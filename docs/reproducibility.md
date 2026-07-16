@@ -116,9 +116,6 @@ python scripts/evaluation/experiments/run_all_experiments.py \
   --from-cache --test-mode --skip-failed
 ```
 
-`run_all_training.sh` contains an original Linux workstation interpreter path
-and should be adapted deliberately before use on another machine.
-
 ## Reproducibility controls
 
 - Dataset splitting defaults to seed 42.
