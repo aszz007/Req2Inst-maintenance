@@ -69,7 +69,7 @@ def _load_test_data(expert_type):
 
 
 def _run_or_load(cache_subdir, filename, run_fn, args):
-    """从缓存加载或执行推理。"""
+    """Run or load."""
     cached = load_predictions_cache(cache_subdir, filename)
     if cached and not args.force_regenerate:
         logger.info(f'缓存命中: {cache_subdir.name}/{filename}')
@@ -78,7 +78,7 @@ def _run_or_load(cache_subdir, filename, run_fn, args):
 
 
 def run_matched_expert(expert_type, test_data, args):
-    """运行与其领域匹配的专家（MoE-4对角线）。"""
+    """Run matched expert."""
     cache_subdir = CACHE_DIR / 'lora_moe'
     filename = f'{expert_type}_predictions.json'
 
@@ -103,7 +103,7 @@ def run_matched_expert(expert_type, test_data, args):
 
 
 def run_cross_domain(expert_type, eval_domain, test_data, args):
-    """使用expert_type训练的专家评估eval_domain领域的测试数据。"""
+    """Run cross domain."""
     cache_subdir = CACHE_DIR / 'exp3_cross_domain'
     filename = f'{expert_type}_expert_on_{eval_domain}_predictions.json'
 
@@ -177,7 +177,7 @@ def run_general_via_text_expert(test_data, args):
 
 
 def run_single_model(expert_type, test_data, args):
-    """在给定专家类型的测试数据上运行lora_single统一模型。"""
+    """Run single model."""
     cache_subdir = CACHE_DIR / 'lora_single'
     filename = f'{expert_type}_predictions.json'
 
@@ -226,6 +226,7 @@ def _is_full_run_cache(cache_subdir, filename):
 
 
 def plot_cross_domain_heatmap(cross_domain_rougeL, exp_dir):
+    """Plot cross domain heatmap."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -257,6 +258,7 @@ def plot_cross_domain_heatmap(cross_domain_rougeL, exp_dir):
 
 
 def plot_architecture_comparison(arch_scores, exp_dir):
+    """Plot architecture comparison."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -284,6 +286,7 @@ def plot_architecture_comparison(arch_scores, exp_dir):
 
 
 def run(args):
+    """Run the workflow."""
     logger.info('=' * 80)
     logger.info('实验3: MoE架构验证')
     logger.info('=' * 80)
@@ -299,7 +302,6 @@ def run(args):
         'architecture_comparison': {},
     }
 
-    # 加载所有专项领域的测试数据，以及General测试数据（用于MoE-3对比）
     test_datasets = {}
     for et in SPECIALIZED_TYPES + ['general']:
         try:
@@ -308,7 +310,6 @@ def run(args):
         except Exception as e:
             logger.error(f'加载 {et} 数据失败: {e}')
 
-    # 1. 匹配专家（MoE-4对角线）
     logger.info('\n--- MoE-4: 匹配专家 ---')
     matched_rougeL = {}
     matched_f1 = {}
@@ -335,7 +336,6 @@ def run(args):
         except Exception as e:
             logger.error(f'匹配 {et} 失败: {e}')
 
-    # 2. 跨域评估: expert_i在domain_j上（3x3矩阵，跳过对角线）
     logger.info('\n--- 跨域分析 ---')
     cross_domain_rougeL = {}
     for expert_type in SPECIALIZED_TYPES:
@@ -365,7 +365,6 @@ def run(args):
             except Exception as e:
                 logger.error(f'跨域 {expert_type}->>{eval_domain} 失败: {e}')
 
-    # 3. MoE-3: General测试集通过TextExpert（退化路由）
     logger.info('\n--- MoE-3: General域退化路由（TextExpert）---')
     moe3_general_rougeL = 0.0
     moe3_general_f1 = 0.0
@@ -392,7 +391,6 @@ def run(args):
             except Exception as e:
                 logger.error(f'MoE-3 general退化路由失败: {e}')
 
-    # 4. 单模型（lora_single）在所有领域上的评估（含general，与MoE-4/MoE-3四域平均保持一致）
     logger.info('\n--- 单模型（lora_single）---')
     single_rougeL_list = []
     single_f1_list = []
@@ -419,8 +417,6 @@ def run(args):
         except Exception as e:
             logger.error(f'单模型 {et} 失败: {e}')
 
-    # MoE-4: text/image/uml匹配 + general匹配，四域平均
-    # general匹配分复用exp2的lora_moe/general缓存
     moe4_general_rougeL = 0.0
     moe4_general_f1 = 0.0
     if 'general' in test_datasets:
@@ -441,7 +437,6 @@ def run(args):
     moe4_rougeL = np.mean(moe4_all_rougeL) if moe4_all_rougeL else 0
     moe4_f1 = np.mean(moe4_all_f1) if moe4_all_f1 else 0
 
-    # MoE-3: text/image/uml匹配 + general通过TextExpert退化路由，四域平均
     moe3_all_rougeL = list(matched_rougeL.values()) + [moe3_general_rougeL]
     moe3_all_f1 = list(matched_f1.values()) + [moe3_general_f1]
     moe3_rougeL = np.mean(moe3_all_rougeL) if moe3_all_rougeL else 0
@@ -475,7 +470,6 @@ def run(args):
     except Exception as e:
         logger.warning(f'绘图失败: {e}')
 
-    # 汇总
     logger.info('\n' + '=' * 80)
     logger.info('架构对比汇总')
     logger.info('=' * 80)
@@ -487,6 +481,7 @@ def run(args):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp3: MoE architecture validation')
     parser.add_argument('--force-regenerate', action='store_true')
     parser.add_argument('--from-cache', action='store_true')

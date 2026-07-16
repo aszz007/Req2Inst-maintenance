@@ -1,39 +1,4 @@
-"""
-一键训练所有专家脚本
-
-按顺序执行所有训练任务：
-  - 第1轮：Prompt Tuning (4个专家，约4小时)
-  - 第2轮：P-Tuning v2 (4个专家，约5小时)
-  - 第3轮：准全参数微调 (4个专家，约7小时)
-
-总计：12个模型，预计约16小时
-
-使用方法：
-  python scripts/training/train_all_experts.py
-
-  可选参数：
-    --method {prompt_tuning,p_tuning,full_finetuning,all} [...]
-             训练指定方法，可指定多个（默认：all）
-    --expert {text,image,uml,general,all}
-             仅训练指定专家（默认：all）
-
-示例：
-  # 训练所有方法和专家
-  python scripts/training/train_all_experts.py
-
-  # 仅训练Prompt Tuning
-  python scripts/training/train_all_experts.py --method prompt_tuning
-
-  # 训练P-Tuning v2和准全参数微调（跳过Prompt Tuning）
-  python scripts/training/train_all_experts.py --method p_tuning full_finetuning --skip-failed
-
-  # 仅训练文本专家（所有方法）
-  python scripts/training/train_all_experts.py --expert text
-
-环境：instruction_generator (transformers==4.57.0)
-作者：Training Pipeline System
-日期：2025-02-15
-"""
+"""Run the configured expert-training tasks."""
 
 import sys
 import os
@@ -50,7 +15,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 TRAINING_TASKS = {
     'lora_moe': {
-        # 'text': 'scripts/training/lora_moe/train_text_expert.py',  # 已完成，跳过
         'image': 'scripts/training/lora_moe/train_image_expert.py',
         'uml': 'scripts/training/lora_moe/train_uml_expert.py',
         'general': 'scripts/training/lora_moe/train_general_expert.py',
@@ -85,7 +49,7 @@ ESTIMATED_TIME = {
 
 
 def print_header():
-    """打印训练标题"""
+    """Print header."""
     print("\n" + "=" * 80)
     print(" " * 22 + "一键训练所有专家")
     print("=" * 80)
@@ -99,7 +63,7 @@ def print_header():
 
 
 def print_session_header(session_num, method_name, total_time):
-    """打印训练轮次标题"""
+    """Print session header."""
     print("\n" + "=" * 80)
     print(f"第{session_num}轮：{method_name}")
     print(f"预计耗时：{total_time:.1f}小时")
@@ -107,7 +71,7 @@ def print_session_header(session_num, method_name, total_time):
 
 
 def format_time(seconds):
-    """将秒数格式化为可读的时间字符串"""
+    """Format time."""
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
@@ -121,7 +85,7 @@ def format_time(seconds):
 
 
 def run_training_task(method, expert, script_path):
-    """执行单个训练任务"""
+    """Run training task."""
     full_path = PROJECT_ROOT / script_path
 
     if not full_path.exists():
@@ -175,7 +139,7 @@ def run_training_task(method, expert, script_path):
 
 
 def main():
-    """主训练流程"""
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
         description='一键训练所有专家',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -236,7 +200,7 @@ def main():
 
     overall_start = time.time()
     results = []
-    failed_tasks = []  # 记录失败的任务
+    failed_tasks = []
 
     try:
         session_num = 1
@@ -258,7 +222,6 @@ def main():
             session_num += 1
 
             for expert in experts_to_train:
-                # 检查任务是否存在（支持手动注释跳过）
                 if expert not in TRAINING_TASKS[method]:
                     print(f"\n跳过: {method}/{expert} (已注释)")
                     continue

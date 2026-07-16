@@ -1,7 +1,4 @@
-"""
-数据预处理模块
-提供图像和UML转JSON的处理函数
-"""
+"""Initialize the preprocessing package."""
 
 from .image_to_json import (
     convert_image_to_json,
@@ -15,12 +12,10 @@ from .uml_to_json import (
 )
 
 __all__ = [
-    # 图像处理
     'convert_image_to_json',
     'batch_convert_images',
     'get_vision_model',
 
-    # UML处理
     'convert_uml_to_json',
     'batch_convert_umls',
 ]

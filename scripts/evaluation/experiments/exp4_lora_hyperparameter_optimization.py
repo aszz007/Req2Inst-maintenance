@@ -80,7 +80,7 @@ def _get_ckpt_path(rank, alpha, dropout):
 
 
 def train_config(rank, alpha, dropout, args):
-    """如果检查点不存在则训练该LoRA配置。"""
+    """Train config."""
     ckpt_path = _get_ckpt_path(rank, alpha, dropout)
 
     if rank == 8 and alpha == 16 and dropout == 0.05:
@@ -110,7 +110,7 @@ def train_config(rank, alpha, dropout, args):
 
 
 def run_inference(rank, alpha, dropout, test_data, args):
-    """运行或从缓存加载某配置的推理结果。"""
+    """Run inference."""
     cfg_name = _config_name(rank, alpha, dropout)
     filename = f'{cfg_name}_predictions.json'
     cached = load_predictions_cache(CACHE_DIR, filename)
@@ -159,6 +159,7 @@ def run_inference(rank, alpha, dropout, test_data, args):
 
 
 def plot_rank_vs_rouge(config_results, exp_dir):
+    """Plot rank vs ROUGE."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -204,6 +205,7 @@ def plot_rank_vs_rouge(config_results, exp_dir):
 
 
 def plot_heatmap_dropout_alpha(config_results, exp_dir, fixed_rank=16):
+    """Plot heatmap dropout alpha."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -333,11 +335,11 @@ def plot_dropout_effect(config_results, exp_dir):
     logger.info(f'图表已保存: {path}')
 
 def run(args):
+    """Run the workflow."""
     logger.info('=' * 80)
     logger.info('实验4: LoRA超参数优化')
     logger.info('=' * 80)
 
-    # 加载文本测试数据
     logger.info('加载文本数据集...')
     all_data = TextDatasetLoader().load_csv_files()
     train_data, _, test_data = split_dataset_for_expert(all_data, 'text')
@@ -449,6 +451,7 @@ def run(args):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp4: LoRA hyperparameter optimization')
     parser.add_argument('--force-regenerate', action='store_true',
                         help='Re-run inference even if cache exists')

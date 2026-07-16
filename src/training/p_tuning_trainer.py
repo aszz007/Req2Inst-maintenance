@@ -1,22 +1,4 @@
-"""
-P-Tuning v2训练器 - P-Tuning v2方法的训练实现（对比实验）
-
-功能：
-  - 支持四种专家类型（text, image, uml, general）
-  - 可选4bit量化训练
-  - P-Tuning v2配置（Prefix Tuning - 通过MLP编码器学习前缀表示）
-  - 继承BaseTrainer的全部训练优化策略：
-      - RTX 4090自动检测与优化
-      - 自适应早停机制（patience根据专家类型和数据量）
-      - Cosine学习率调度 + Warmup
-      - 步级验证策略（UML每30步，其他每50步）
-      - 训练曲线可视化
-      - 梯度检查点
-      - 权重衰减
-
-作者：Training System
-日期：2025-02-15
-"""
+"""Implement P-Tuning v2 training."""
 
 import torch
 import torch.utils.checkpoint
@@ -34,17 +16,7 @@ logger = get_logger('training.p_tuning_trainer')
 
 
 class PTuningTrainer(BaseTrainer):
-    """
-    P-Tuning v2训练器 - 实现P-Tuning v2对比实验方法
-
-    继承BaseTrainer，添加P-Tuning v2特有的：
-    - 可选4bit量化配置
-    - Prefix Tuning（Virtual Token + MLP编码器）参数配置
-    - P-Tuning v2权重保存
-
-    注意：调用顺序必须为 setup_model() -> prepare_data() -> train()
-    prepare_data()创建InstructionDataset时需要tokenizer已完成初始化
-    """
+    """Train models with P-Tuning v2."""
 
     def __init__(self,
                  expert_type: str,
@@ -53,17 +25,7 @@ class PTuningTrainer(BaseTrainer):
                  use_4bit: bool = True,
                  use_rtx4090_optimization: bool = True,
                  debug_samples: bool = False):
-        """
-        初始化P-Tuning v2训练器
-
-        Args:
-            expert_type: 专家类型（'text', 'image', 'uml', 'general'）
-            base_model_path: 基础模型路径（None则从配置获取）
-            output_dir: 输出目录（None则使用checkpoints/p_tuning/{expert_type}_expert/）
-            use_4bit: 是否使用4bit量化训练
-            use_rtx4090_optimization: 是否启用RTX 4090优化
-            debug_samples: 是否在训练开始前打印前3个训练样本（默认关闭）
-        """
+        """Initialize the instance."""
         super().__init__(
             expert_type=expert_type,
             method_name='p_tuning',
@@ -75,35 +37,21 @@ class PTuningTrainer(BaseTrainer):
 
         self.use_4bit = use_4bit
 
-        # P-Tuning v2超参数（直接定义，便于实验调整）
         self.num_virtual_tokens = 20
-        self.encoder_hidden_size = 128  # 从64增加到128，提升稳定性
+        self.encoder_hidden_size = 128
         self.prefix_projection = True
 
-        # 学习率：1e-3为prefix encoder的标准配置
-        # 根本原因修复（gradient checkpointing导致past_key_values被清空）后
-        # 恢复为有效学习率，原2e-5为临时workaround
         original_lr = self.train_cfg.learning_rate
         self.train_cfg.learning_rate = 1e-3
         logger.info(f"学习率设置: {original_lr} -> {self.train_cfg.learning_rate} (prefix encoder标准配置)")
 
-        # P-Tuning v2不支持gradient checkpointing
-        # 原因: Qwen3的gradient checkpointing实现会强制past_key_values=None，
-        # 导致prefix表示被丢弃，梯度无法回传至prefix encoder（grad_norm=0）
-        # 显存优化通过MLP-level activation checkpointing（setup_model中实现）解决，
-        # 该方法只触及FFN路径，不影响attention的past_key_values注入机制
-        # disable_gradient_checkpointing=True确保TrainingArguments也不会
-        # 通过Trainer二次调用gradient_checkpointing_enable()
         self.disable_gradient_checkpointing = True
 
-        # P-Tuning v2不支持load_best_model_at_end（会导致embedding shape mismatch）
         self.disable_load_best_model = True
 
-        # 使用统一的序列长度管理（由base_trainer的_get_max_seq_length()决定）
         self.train_cfg.max_seq_length = self._get_max_seq_length()
         logger.info(f"Max序列长度: {self.train_cfg.max_seq_length} (由base_trainer统一管理)")
 
-        # P-Tuning v2专用：减少dataloader workers以节省系统内存
         self.reduced_workers = True
 
         logger.info(f"4bit量化: {use_4bit}")
@@ -124,33 +72,11 @@ class PTuningTrainer(BaseTrainer):
         self._print_training_config()
 
     def _get_batch_config(self):
-        """
-        获取P-Tuning v2专用的batch配置
-
-        P-Tuning v2不能使用gradient checkpointing，显存占用更大
-        统一使用保守配置避免OOM：
-        - 所有专家：batch=1, grad_accum=128（有效batch=128）
-
-        Returns:
-            (batch_size, gradient_accumulation_steps)
-        """
-        # 统一配置，避免text和image专家OOM
+        """Return batch config."""
         return 1, 128
 
     def _enable_mlp_activation_checkpointing(self):
-        """
-        对每个decoder层的MLP子模块启用activation checkpointing
-
-        原理：
-        - Layer-level gradient checkpointing无法用于PrefixTuning（Qwen3会强制
-          past_key_values=None，丢弃prefix注入，导致grad_norm=0）
-        - MLP-level checkpointing仅触及FFN路径，attention的past_key_values完全不受影响
-        - 效果：不保存gate/up/activated/down中间激活（约4GB @ 2048 tokens），
-          backward时重新计算，以训练时间换显存
-
-        对text/image专家（序列短）同样有效但收益较小；对uml/general专家（序列长）
-        是解决OOM的关键。
-        """
+        """Enable activation checkpointing for MLP layers."""
         try:
             base_model = self.model.get_base_model()
             if not (hasattr(base_model, 'model') and hasattr(base_model.model, 'layers')):
@@ -184,15 +110,7 @@ class PTuningTrainer(BaseTrainer):
             logger.warning(traceback.format_exc())
 
     def setup_model(self) -> bool:
-        """
-        设置模型和P-Tuning v2配置
-
-        必须在prepare_data()之前调用，以确保tokenizer在
-        InstructionDataset初始化时已完成加载
-
-        Returns:
-            bool: 是否成功
-        """
+        """Configure the model."""
         try:
             import os
             os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
@@ -205,7 +123,6 @@ class PTuningTrainer(BaseTrainer):
             if not self._load_base_model(self.use_4bit):
                 return False
 
-            # 配置P-Tuning v2（Prefix Tuning）
             logger.info("配置P-Tuning v2...")
 
             # use_cache must be False during training to avoid storing KV cache for every
@@ -249,20 +166,16 @@ class PTuningTrainer(BaseTrainer):
             # which only touches the FFN path and leaves past_key_values untouched.
             self._enable_mlp_activation_checkpointing()
 
-            # ===== 诊断性日志：检查模型各部分dtype =====
             logger.info("=" * 80)
             logger.info("模型Dtype诊断")
             logger.info("=" * 80)
 
-            # 检查prompt_encoder的dtype
             if hasattr(self.model, 'prompt_encoder'):
                 for name, param in self.model.prompt_encoder.named_parameters():
                     logger.info(f"  prompt_encoder.{name}: dtype={param.dtype}, shape={param.shape}")
 
-            # 检查base model的部分层dtype
             base_model = self.model.get_base_model()
             if hasattr(base_model, 'model'):
-                # Qwen3-8B结构
                 if hasattr(base_model.model, 'layers') and len(base_model.model.layers) > 0:
                     first_layer = base_model.model.layers[0]
                     if hasattr(first_layer, 'self_attn'):

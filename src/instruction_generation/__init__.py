@@ -1,7 +1,4 @@
-"""
-指令生成模块
-负责整合MoE系统生成最终指令
-"""
+"""Initialize the instruction generation package."""
 
 from .generator import InstructionGenerator
 from .quality_validator import QualityValidator, ValidationResult

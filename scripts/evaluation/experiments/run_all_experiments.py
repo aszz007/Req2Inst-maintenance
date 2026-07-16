@@ -44,7 +44,6 @@ EXP_SCRIPTS = {
     11: 'exp11_ablation_optimization.py',
 }
 
-# exp9, exp10, exp11 需要附加 --all 参数
 EXP_EXTRA_ARGS = {
     9:  ['--all'],
     10: ['--all'],
@@ -88,7 +87,6 @@ def run_experiment(exp_num, args, skip_failed, previously_failed):
 
     cmd = [sys.executable, str(script)]
 
-    # 附加各实验专属参数（如 --all）
     cmd.extend(EXP_EXTRA_ARGS.get(exp_num, []))
 
     if args.from_cache:
@@ -133,6 +131,7 @@ def parse_int_list(s):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
         description='Run all comparison experiments (exp1–exp11)',
         formatter_class=argparse.RawDescriptionHelpFormatter,

@@ -1,43 +1,5 @@
 #!/usr/bin/env python3
-"""
-实验8: 推理效率基准测试
-
-测量并对比所有方法的推理效率:
-  - 模型加载时间 (s)
-  - 单样本推理延迟 (ms): 均值/中位数/P95/最小/最大/标准差 (batch_size=1)
-  - 批量吞吐量 (samples/sec): 各方法最优batch size
-  - GPU峰值显存占用 (MB)
-  - Adapter/索引磁盘大小 (MB)
-
-基准测试方法 (9种):
-  CPU基线:  bm25, lsa, template
-  GPU方法:  zeroshot, lora_moe, lora_single, p_tuning, prompt_tuning, full_finetuning
-
-所有GPU方法统一使用FP16推理, 消除量化策略差异对延迟/显存对比的干扰。
-推荐在RTX 5090 (32GB VRAM) 上运行以确保FP16下所有方法均有充足显存。
-所有GPU方法统一使用text expert测试集, 确保公平对比。
-
-测试协议:
-  1. 清空GPU缓存
-  2. 记录GPU基线显存
-  3. 加载模型 -> 记录加载时间 + 加载后峰值显存
-  4. 预热: N_WARMUP 个样本 (结果丢弃, 稳定GPU时钟)
-  5. 延迟测量: N_LATENCY 个样本逐条推理 (batch_size=1), 记录每条耗时
-  6. 吞吐测量: N_THROUGHPUT 个样本按最优batch推理, 记录总耗时
-  7. 卸载模型 -> 清空GPU缓存
-  8. 进入下一方法
-
-可视化 (7张图):
-  - latency_comparison.png: 延迟对比柱状图 (中位数+P95标记)
-  - latency_distribution.png: 延迟分布箱线图
-  - throughput_comparison.png: 吞吐量对比柱状图
-  - gpu_memory_comparison.png: GPU显存对比柱状图
-  - load_time_comparison.png: 模型加载时间对比
-  - latency_vs_memory.png: 延迟-显存权衡散点气泡图
-  - summary_table.png: 论文级综合汇总表格
-
-输出路径: outputs/evaluations/experiments/exp8_inference_efficiency/
-"""
+"""Run Experiment 8 inference-efficiency benchmarks."""
 
 import sys
 import gc
@@ -68,53 +30,43 @@ path_cfg = get_path_config()
 EXP_DIR = path_cfg.OUTPUTS_DIR / 'evaluations' / 'experiments' / 'exp8_inference_efficiency'
 PLOTS_DIR = EXP_DIR / 'plots'
 
-# ---------------------------------------------------------------------------
-# 统一配色方案
-# ---------------------------------------------------------------------------
 
 COLOR_MAP = {
-    'bm25': '#4ECDC4',  # CPU基线 - 青色
-    'lsa': '#45B7A0',  # CPU基线 - 深青色
-    'template': '#36A882',  # CPU基线 - 绿青色
-    'zeroshot': '#ff7f0e',  # GPU方法 - 橙色
-    'lora_moe': '#1f77b4',  # LoRA-MoE (主方法) - 蓝色
-    'lora_single': '#ff9933',  # GPU方法 - 深橙色
-    'p_tuning': '#d62728',  # 软提示方法 - 红色
-    'prompt_tuning': '#e74c3c',  # 软提示方法 - 浅红色
-    'full_finetuning': '#9467bd',  # 全参数基线 - 紫色
+    'bm25': '#4ECDC4',
+    'lsa': '#45B7A0',
+    'template': '#36A882',
+    'zeroshot': '#ff7f0e',
+    'lora_moe': '#1f77b4',
+    'lora_single': '#ff9933',
+    'p_tuning': '#d62728',
+    'prompt_tuning': '#e74c3c',
+    'full_finetuning': '#9467bd',
 }
 
 
 def _get_method_color(method):
-    """根据方法名返回统一配色, 未知方法返回灰色."""
+    """Return method color."""
     return COLOR_MAP.get(method, '#999999')
 
 
-# ---------------------------------------------------------------------------
-# 基准测试配置
-# ---------------------------------------------------------------------------
 
-N_WARMUP = 3  # 预热样本数 (丢弃, 稳定GPU时钟频率)
-N_LATENCY = 50  # 延迟测量样本数 (batch=1, 逐条推理)
-N_THROUGHPUT = 100  # 吞吐测量样本数 (按最优batch推理)
-N_LATENCY_TEST = 5  # --test-mode 覆盖值
+N_WARMUP = 3
+N_LATENCY = 50
+N_THROUGHPUT = 100
+N_LATENCY_TEST = 5
 N_THROUGHPUT_TEST = 10
 
-# 需要FP16推理的方法 —— 统一FP16策略: 所有GPU方法均使用FP16
-# (消除量化策略差异对延迟/显存对比的干扰, 推荐在RTX 5090 32GB VRAM上运行)
 
-# 各方法吞吐测量时的最优batch size (FP16, RTX 5090 32GB VRAM)
-# (CPU基线使用批量处理; P-Tuning/Prompt Tuning因位置敏感必须batch=1)
 THROUGHPUT_BATCH = {
     'bm25': 'bulk',
     'lsa': 'bulk',
     'template': 'bulk',
-    'zeroshot': 4,  # FP16基础模型, 显存占用较高
-    'lora_moe': 8,  # FP16 + LoRA adapter, 适中配置
-    'lora_single': 8,  # FP16 + LoRA adapter, 适中配置
-    'p_tuning': 1,  # 必须为1 (位置敏感的软提示, padding导致嵌入对齐错位)
-    'prompt_tuning': 1,  # 必须为1
-    'full_finetuning': 4,  # FP16 + 7类线性层adapter, 显存占用较高
+    'zeroshot': 4,
+    'lora_moe': 8,
+    'lora_single': 8,
+    'p_tuning': 1,
+    'prompt_tuning': 1,
+    'full_finetuning': 4,
 }
 
 METHOD_LABELS = {
@@ -133,23 +85,18 @@ CPU_METHODS = {'bm25', 'lsa', 'template'}
 GPU_METHODS = {'zeroshot', 'lora_moe', 'lora_single',
                'p_tuning', 'prompt_tuning', 'full_finetuning'}
 
-# 显示顺序: CPU基线在前, GPU方法在后
 METHOD_ORDER = [
     'bm25', 'lsa', 'template',
     'zeroshot', 'lora_moe', 'lora_single',
     'p_tuning', 'prompt_tuning', 'full_finetuning',
 ]
 
-# 有序的方法列表, 与METHOD_ORDER保持一致
 ALL_METHODS = list(METHOD_ORDER)
 
 
-# ---------------------------------------------------------------------------
-# GPU 工具函数
-# ---------------------------------------------------------------------------
 
 def _gpu_available():
-    """检查GPU是否可用."""
+    """Return whether a CUDA GPU is available."""
     try:
         import torch
         return torch.cuda.is_available()
@@ -158,7 +105,7 @@ def _gpu_available():
 
 
 def _gpu_sync():
-    """同步GPU操作, 确保所有核函数执行完毕."""
+    """Synchronize queued GPU work."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -168,7 +115,7 @@ def _gpu_sync():
 
 
 def _clear_gpu():
-    """强制清空GPU显存并重置峰值统计."""
+    """Clear cached GPU memory."""
     try:
         import torch
         gc.collect()
@@ -181,7 +128,7 @@ def _clear_gpu():
 
 
 def _gpu_peak_mb():
-    """返回自上次reset以来的GPU峰值显存 (MB)."""
+    """Return peak GPU memory use in MB."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -193,7 +140,7 @@ def _gpu_peak_mb():
 
 
 def _gpu_current_mb():
-    """返回当前GPU已分配显存 (MB)."""
+    """Return current GPU memory use in MB."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -204,12 +151,9 @@ def _gpu_current_mb():
     return 0.0
 
 
-# ---------------------------------------------------------------------------
-# Adapter / 索引磁盘大小
-# ---------------------------------------------------------------------------
 
 def _disk_size_mb(method):
-    """返回指定方法 (text expert) 的adapter/索引磁盘大小 (MB)."""
+    """Return file or directory size in MB."""
     try:
         ckpt_map = {
             'lora_moe': path_cfg.LORA_MOE_CKPTS.get('text'),
@@ -232,19 +176,13 @@ def _disk_size_mb(method):
         return 0.0
 
 
-# ---------------------------------------------------------------------------
-# 方法基准测试 -- 统一推理接口
-#   每个方法返回: (load_time_s, latencies_ms, throughput_info)
-#     latencies_ms: 每条样本的推理耗时列表 (毫秒, batch=1)
 #     throughput_info: dict {n_samples, wall_time_s, batch_size, samples_per_sec}
-# ---------------------------------------------------------------------------
 
 def _benchmark_cpu_method(method, train_data, test_inputs, n_warmup, n_latency, n_throughput):
-    """基准测试CPU基线方法 (BM25 / LSA / Template)."""
+    """Benchmark a CPU baseline."""
     from src.baselines.ir_methods import BM25Retriever, LSARetriever
     from src.baselines.template_filling import TemplateFiller
 
-    # --- 加载 / 构建索引 ---
     t0 = time.perf_counter()
     if method == 'bm25':
         obj = BM25Retriever()
@@ -262,18 +200,15 @@ def _benchmark_cpu_method(method, train_data, test_inputs, n_warmup, n_latency, 
         predict_batch = lambda inps: obj.batch_fill(inps)
     load_time = time.perf_counter() - t0
 
-    # --- 预热 ---
     for inp in test_inputs[:n_warmup]:
         _ = predict_one(inp)
 
-    # --- 延迟测量 (逐条推理) ---
     latencies = []
     for inp in test_inputs[n_warmup:n_warmup + n_latency]:
         t0 = time.perf_counter()
         _ = predict_one(inp)
         latencies.append((time.perf_counter() - t0) * 1000)  # ms
 
-    # --- 吞吐测量 (批量推理) ---
     batch_inputs = test_inputs[:n_throughput]
     t0 = time.perf_counter()
     _ = predict_batch(batch_inputs)
@@ -289,7 +224,7 @@ def _benchmark_cpu_method(method, train_data, test_inputs, n_warmup, n_latency, 
 
 
 def _infer_one(gen_obj, inp, method):
-    """统一的单样本推理接口, 消除zeroshot与expert路径的代码重复."""
+    """Run inference for one sample."""
     if method == 'zeroshot':
         return gen_obj.batch_generate([inp], input_type='text', n_shots=0)
     else:
@@ -297,7 +232,7 @@ def _infer_one(gen_obj, inp, method):
 
 
 def _infer_batch(gen_obj, inputs, method, batch_size):
-    """统一的批量推理接口, 消除zeroshot与expert路径的代码重复."""
+    """Run batched inference."""
     if method == 'zeroshot':
         return gen_obj.batch_generate(inputs, input_type='text', n_shots=0)
     else:
@@ -305,16 +240,12 @@ def _infer_batch(gen_obj, inputs, method, batch_size):
 
 
 def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput):
-    """基准测试GPU方法 (zero-shot / LoRA变体 / P-tuning等).
-
-    所有GPU方法统一使用FP16推理, 确保公平对比。
-    """
+    """Benchmark a GPU method."""
     import torch
 
-    use_4bit = False  # 统一FP16策略: 所有GPU方法均不使用4bit量化
+    use_4bit = False
     batch_size = THROUGHPUT_BATCH.get(method, 4)
 
-    # --- 加载模型 ---
     if method == 'zeroshot':
         from src.baselines.zero_shot import ZeroShotGenerator
         logger.info(f'  [DEBUG] 加载基础模型 (无adapter), use_4bit=False (统一FP16)')
@@ -326,7 +257,6 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
             return None, None, None
         load_time = time.perf_counter() - t0
     else:
-        # 所有其他GPU方法使用Expert类
         from src.experts import TextExpert
         ckpt_map = {
             'lora_moe': lambda: str(path_cfg.LORA_MOE_CKPTS['text']),
@@ -349,24 +279,20 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
             return None, None, None
         load_time = time.perf_counter() - t0
 
-    # GPU显存快照
     logger.info(f'  [DEBUG] 模型加载后GPU显存: {_gpu_current_mb():.0f} MB (峰值: {_gpu_peak_mb():.0f} MB)')
     logger.info(f'  [DEBUG] 吞吐测量batch_size: {batch_size} (统一FP16推理)')
 
-    # --- 预热 ---
     for inp in test_inputs[:n_warmup]:
         _infer_one(gen, inp, method)
 
-    # --- 延迟测量 (逐条推理, batch_size=1) ---
     latencies = []
-    output_lengths = []  # 记录每条输出字符数, 用于分析延迟差异
+    output_lengths = []
     for inp in test_inputs[n_warmup:n_warmup + n_latency]:
         _gpu_sync()
         t0 = time.perf_counter()
         result = _infer_one(gen, inp, method)
         _gpu_sync()
         latencies.append((time.perf_counter() - t0) * 1000)
-        # 提取输出长度
         if isinstance(result, list) and len(result) > 0:
             out_text = result[0] if isinstance(result[0], str) else str(result[0])
         elif isinstance(result, str):
@@ -374,7 +300,6 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
         else:
             out_text = str(result) if result else ''
         output_lengths.append(len(out_text))
-    # 输出长度统计 (用于解释延迟差异)
     if output_lengths:
         avg_len = sum(output_lengths) / len(output_lengths)
         min_len = min(output_lengths)
@@ -382,16 +307,13 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
         logger.info(f'  [DEBUG] 输出长度统计: 平均={avg_len:.0f}字符, '
                     f'最短={min_len}, 最长={max_len}')
 
-    # --- 吞吐测量 ---
     batch_inputs = test_inputs[:n_throughput]
     _gpu_sync()
     t0 = time.perf_counter()
     _infer_batch(gen, batch_inputs, method, batch_size)
     _gpu_sync()
     wall = time.perf_counter() - t0
-    # 注意: GPU峰值显存由调用方 run() 在卸载前通过 _gpu_peak_mb() 读取
 
-    # --- 卸载模型 ---
     gen.unload_model()
 
     throughput_info = {
@@ -403,12 +325,9 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
     return load_time, latencies, throughput_info, output_lengths
 
 
-# ---------------------------------------------------------------------------
-# 可视化绘图
-# ---------------------------------------------------------------------------
 
 def plot_latency_comparison(results_by_method, test_mode=False):
-    """延迟对比柱状图 (中位数+P95标记)."""
+    """Plot latency comparison."""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     methods = [m for m in METHOD_ORDER if m in results_by_method]
@@ -421,7 +340,6 @@ def plot_latency_comparison(results_by_method, test_mode=False):
     fig, ax = plt.subplots(figsize=(10, max(5, len(methods) * 0.7)))
     bars = ax.barh(y, medians, color=colors, edgecolor='gray', height=0.55,
                    label='Median')
-    # P95 标记
     ax.scatter(p95s, y, marker='|', color='red', s=120, zorder=5, label='P95')
     for i, (med, p95) in enumerate(zip(medians, p95s)):
         offset = max(max(medians), 0.1) * 0.02
@@ -445,7 +363,7 @@ def plot_latency_comparison(results_by_method, test_mode=False):
 
 
 def plot_latency_distribution(latencies_dict, test_mode=False):
-    """延迟分布箱线图, 直观展示各方法延迟稳定性."""
+    """Plot latency distribution."""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     methods = [m for m in METHOD_ORDER if m in latencies_dict and len(latencies_dict[m]) > 0]
@@ -480,7 +398,7 @@ def plot_latency_distribution(latencies_dict, test_mode=False):
 
 
 def plot_throughput_comparison(results_by_method, test_mode=False):
-    """吞吐量对比柱状图 (samples/sec)."""
+    """Plot throughput comparison."""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     methods = [m for m in METHOD_ORDER if m in results_by_method]
@@ -512,7 +430,7 @@ def plot_throughput_comparison(results_by_method, test_mode=False):
 
 
 def plot_gpu_memory_comparison(results_by_method, test_mode=False):
-    """GPU显存对比柱状图 (仅GPU方法)."""
+    """Plot GPU memory comparison."""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     methods = [m for m in METHOD_ORDER if m in results_by_method and m in GPU_METHODS]
@@ -535,7 +453,6 @@ def plot_gpu_memory_comparison(results_by_method, test_mode=False):
     if test_mode:
         title += ' [Test Mode]'
     ax.set_title(title)
-    # 根据实际参与测试的方法动态生成图例
     legend_handles = []
     legend_labels = []
     if 'lora_moe' in methods:
@@ -561,7 +478,7 @@ def plot_gpu_memory_comparison(results_by_method, test_mode=False):
 
 
 def plot_load_time_comparison(results_by_method, test_mode=False):
-    """模型加载时间对比图, 展示部署启动优势."""
+    """Plot load time comparison."""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     methods = [m for m in METHOD_ORDER if m in results_by_method]
@@ -593,7 +510,7 @@ def plot_load_time_comparison(results_by_method, test_mode=False):
 
 
 def plot_combined_efficiency(results_by_method, test_mode=False):
-    """延迟-显存权衡散点气泡图 (气泡大小=adapter磁盘大小, 仅GPU方法)."""
+    """Plot combined efficiency."""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     methods = [m for m in METHOD_ORDER if m in results_by_method and m in GPU_METHODS]
@@ -603,7 +520,6 @@ def plot_combined_efficiency(results_by_method, test_mode=False):
     latencies = [results_by_method[m].get('latency_median_ms', 0) for m in methods]
     memories = [results_by_method[m].get('peak_gpu_memory_mb', 0) for m in methods]
     adapter_sizes = [results_by_method[m].get('adapter_size_mb', 1) for m in methods]
-    # 归一化气泡大小以保证可读性
     max_adapter = max(adapter_sizes) if max(adapter_sizes) > 0 else 1
     bubble_sizes = [max(40, (s / max_adapter) * 400) for s in adapter_sizes]
 
@@ -632,14 +548,13 @@ def plot_combined_efficiency(results_by_method, test_mode=False):
 
 
 def plot_summary_table(results_by_method, test_mode=False):
-    """论文级综合汇总表格图片, LoRA-MoE行蓝色高亮."""
+    """Plot summary table."""
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
     methods = [m for m in METHOD_ORDER if m in results_by_method]
     if not methods:
         return
 
-    # 构建表格数据
     columns = ['Method', 'Device', 'Quant', 'Load(s)', 'Latency(ms)', 'P95(ms)',
                'Thru(/s)', 'Memory(MB)', 'Adapter(MB)']
     cell_data = []
@@ -666,15 +581,13 @@ def plot_summary_table(results_by_method, test_mode=False):
     table.set_fontsize(9)
     table.scale(1.0, 1.4)
 
-    # 表头样式
     for j in range(len(columns)):
         cell = table[0, j]
         cell.set_facecolor('#2c3e50')
         cell.set_text_props(color='white', fontweight='bold')
 
-    # LoRA-MoE 行蓝色高亮
     for i, m in enumerate(methods):
-        row_idx = i + 1  # 跳过表头
+        row_idx = i + 1
         if m == 'lora_moe':
             for j in range(len(columns)):
                 cell = table[row_idx, j]
@@ -695,19 +608,15 @@ def plot_summary_table(results_by_method, test_mode=False):
     logger.info(f'图表已保存: {PLOTS_DIR / "summary_table.png"}')
 
 
-# ---------------------------------------------------------------------------
-# 实验报告自动生成
-# ---------------------------------------------------------------------------
 
 def generate_report(results, results_by_method, test_mode=False):
-    """自动生成 report.md 实验报告 (与其他实验保持一致)."""
+    """Generate report."""
     lines = []
     lines.append('# 实验8: 推理效率基准测试报告\n')
     lines.append(f'**生成时间**: {results.get("timestamp", "N/A")}\n')
     if test_mode:
         lines.append('> **注意**: 本报告在测试模式下生成, 样本量较少, 仅供验证流程使用。\n')
 
-    # 硬件信息
     hw = results.get('hardware', {})
     lines.append('## 1. 实验环境\n')
     lines.append(f'- GPU: {hw.get("gpu_name", "N/A")}')
@@ -718,14 +627,12 @@ def generate_report(results, results_by_method, test_mode=False):
     lines.append(f'- 内存: {hw.get("ram_total_gb", "N/A")} GB')
     lines.append('')
 
-    # 测试配置
     lines.append('## 2. 测试配置\n')
     lines.append(f'- 预热样本数: {results.get("n_warmup", "N/A")}')
     lines.append(f'- 延迟测量样本数: {results.get("n_latency", "N/A")}')
     lines.append(f'- 吞吐测量样本数: {results.get("n_throughput", "N/A")}')
     lines.append('')
 
-    # 结果汇总表
     lines.append('## 3. 结果汇总\n')
     lines.append(
         '| 方法 | 设备 | 量化 | 加载(s) | 延迟(ms) | P95(ms) | Min(ms) | Max(ms) | 吞吐(/s) | 显存(MB) | Adapter(MB) |')
@@ -745,10 +652,8 @@ def generate_report(results, results_by_method, test_mode=False):
         )
     lines.append('')
 
-    # 分析要点
     lines.append('## 4. 分析要点\n')
 
-    # 找出GPU方法中延迟最低和吞吐最高的
     gpu_entries = [(m, results_by_method[m]) for m in METHOD_ORDER
                    if m in results_by_method and m in GPU_METHODS]
     if gpu_entries:
@@ -763,7 +668,6 @@ def generate_report(results, results_by_method, test_mode=False):
         lines.append(f'- **显存最低 (GPU)**: {METHOD_LABELS[lowest_mem[0]]} '
                      f'({lowest_mem[1]["peak_gpu_memory_mb"]:.0f} MB)')
 
-        # LoRA-MoE 对比分析
         if 'lora_moe' in results_by_method:
             moe = results_by_method['lora_moe']
             lines.append(f'\n### LoRA-MoE 效率分析\n')
@@ -779,7 +683,6 @@ def generate_report(results, results_by_method, test_mode=False):
             lines.append(f'- Adapter大小: {moe["adapter_size_mb"]:.1f} MB')
     lines.append('')
 
-    # 图表说明
     lines.append('## 5. 可视化图表\n')
     plot_descriptions = [
         ('latency_comparison.png', '延迟对比柱状图 (中位数+P95标记)'),
@@ -794,17 +697,14 @@ def generate_report(results, results_by_method, test_mode=False):
         lines.append(f'- `plots/{fname}`: {desc}')
     lines.append('')
 
-    # 写入文件
     report_path = EXP_DIR / 'report.md'
     report_path.write_text('\n'.join(lines), encoding='utf-8')
     logger.info(f'实验报告已保存: {report_path}')
 
 
-# ---------------------------------------------------------------------------
-# 主函数
-# ---------------------------------------------------------------------------
 
 def run(args):
+    """Run the workflow."""
     logger.info('=' * 80)
     logger.info('实验8: 推理效率基准测试')
     logger.info('=' * 80)
@@ -813,13 +713,11 @@ def run(args):
     n_throughput = N_THROUGHPUT_TEST if args.test_mode else N_THROUGHPUT
     n_warmup = min(N_WARMUP, 1) if args.test_mode else N_WARMUP
 
-    # 加载文本数据集 (与exp1/exp2的text expert使用相同测试集)
     logger.info('加载文本数据集...')
     loader = TextDatasetLoader()
     all_data = loader.load_csv_files()
     train_data, _, test_data = split_dataset_for_expert(all_data, 'text')
     test_inputs = [d['input'] for d in test_data]
-    # 确保样本量足够
     n_needed = n_warmup + max(n_latency, n_throughput)
     if len(test_inputs) < n_needed:
         logger.warning(f'测试集仅 {len(test_inputs)} 条, 需要 {n_needed} 条, 将循环复用')
@@ -827,7 +725,6 @@ def run(args):
             test_inputs = test_inputs + test_inputs
     logger.info(f'测试集样本: {len(test_data)} | 延迟测量: {n_latency} | 吞吐测量: {n_throughput}')
 
-    # 选择待测方法
     methods_to_run = list(METHOD_ORDER)
     if args.methods:
         methods_to_run = [m.strip() for m in args.methods.split(',')]
@@ -846,7 +743,7 @@ def run(args):
         'methods': {},
     }
     results_by_method = {}
-    latencies_dict = {}  # 保存原始延迟数据, 用于箱线图绘制
+    latencies_dict = {}
 
     for method in methods_to_run:
         logger.info(f'\n{"=" * 60}')
@@ -875,10 +772,8 @@ def run(args):
             latencies_arr = np.array(latencies) if latencies else np.array([0])
             adapter_mb = _disk_size_mb(method)
 
-            # 保存原始延迟数据
             latencies_dict[method] = latencies if latencies else []
 
-            # 输出长度统计 (仅GPU方法有数据)
             out_len_stats = {}
             if out_lens:
                 out_arr = np.array(out_lens)
@@ -928,11 +823,9 @@ def run(args):
             logger.error(traceback.format_exc())
             _clear_gpu()
 
-    # 保存结果
     EXP_DIR.mkdir(parents=True, exist_ok=True)
     save_experiment_results(results, EXP_DIR, 'results.json')
 
-    # 绘制图表 (7张)
     try:
         if results_by_method:
             plot_latency_comparison(results_by_method, args.test_mode)
@@ -946,14 +839,12 @@ def run(args):
         logger.warning(f'绘图失败: {e}')
         logger.warning(traceback.format_exc())
 
-    # 生成实验报告
     try:
         generate_report(results, results_by_method, args.test_mode)
     except Exception as e:
         logger.warning(f'报告生成失败: {e}')
         logger.warning(traceback.format_exc())
 
-    # 控制台汇总表
     logger.info('\n' + '=' * 120)
     logger.info('推理效率汇总')
     logger.info('=' * 120)
@@ -1042,7 +933,7 @@ def run(args):
 
 
 def _get_hardware_info():
-    """收集硬件信息, 用于实验结果的可复现性."""
+    """Return hardware info."""
     info = {}
     try:
         import torch
@@ -1066,7 +957,7 @@ def _get_hardware_info():
 
 
 def main():
-    # 命令行参数覆盖全局配置
+    """Run the command-line entry point."""
     global N_LATENCY, N_THROUGHPUT
 
     parser = argparse.ArgumentParser(description='实验8: 推理效率基准测试')

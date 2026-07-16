@@ -1,17 +1,4 @@
-"""
-文本专家 - 将文本需求转换为众包指令
-功能:
-  - 处理Low_Requirements文本需求
-  - 生成三段式众包指令
-  - 使用Qwen3-8B + LoRA微调权重
-
-环境要求: instruction_generator
-模型: Qwen3-8B（默认）
-训练数据: dataset/text/
-
-作者: Expert System
-日期: 2025-02-13
-"""
+"""Implement the text-domain expert."""
 
 import json
 from pathlib import Path
@@ -29,21 +16,7 @@ logger = get_logger('experts.text')
 
 
 def _build_prompt_for_domain(input_data):
-    """
-    根据输入数据的实际领域类型构建对应的prompt（跨域评估场景使用）。
-
-    检测规则（按优先级）：
-      - json解析失败的字符串 → text → TextInstructionTemplate
-      - JSON含 actors + use_cases → uml → UMLInstructionTemplate
-      - JSON含 description + details(objects或scene) → image → ImageInstructionTemplate
-      - 其他JSON → text → TextInstructionTemplate
-
-    正常领域推理场景（text专家收到纯文本）同样会路由到TextInstructionTemplate，
-    与原有逻辑行为一致。
-
-    Returns:
-        tuple(str, str): (构建的prompt, 检测到的领域类型 'text'/'image'/'uml')
-    """
+    """Build prompt for domain."""
     if isinstance(input_data, dict):
         data = input_data
         text_fallback = str(input_data)
@@ -67,19 +40,12 @@ def _build_prompt_for_domain(input_data):
 
 
 class TextExpert(BaseExpert):
-    """文本专家 - 文本需求转众包指令"""
+    """Generate instructions for text-domain inputs."""
 
     def __init__(self, lora_path: Optional[str] = None, use_4bit: bool = True):
-        """
-        初始化文本专家
-
-        Args:
-            lora_path: LoRA权重路径(None则使用默认配置)
-            use_4bit: 是否使用4bit量化
-        """
+        """Initialize the instance."""
         path_cfg = get_path_config()
 
-        # 如果没有提供lora_path,使用配置中的路径
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get('text_expert')
             if lora_weight_path is None:
@@ -107,16 +73,7 @@ class TextExpert(BaseExpert):
         logger.info("文本专家初始化完成")
 
     def generate_instruction(self, input_data: str, sample_index: int = None) -> str:
-        """
-        生成文本众包指令
-
-        Args:
-            input_data: Low_Requirements文本需求
-            sample_index: 样本索引（用于控制日志输出）
-
-        Returns:
-            str: 生成的三段式指令
-        """
+        """Generate instruction."""
         if not self.is_model_loaded:
             logger.warning("模型未加载,尝试加载模型...")
             if not self.load_model():
@@ -124,7 +81,6 @@ class TextExpert(BaseExpert):
                 return ""
 
         try:
-            # 构建prompt（跨域评估时自动检测输入类型并使用对应模板）
             prompt, detected_domain = _build_prompt_for_domain(input_data)
             if detected_domain != 'text' and (sample_index is None or sample_index < 3):
                 logger.warning(
@@ -134,7 +90,6 @@ class TextExpert(BaseExpert):
             if sample_index is None or sample_index < 3:
                 logger.debug(f"生成指令 - 输入需求: {input_data[:100]}...")
 
-            # 调用模型生成
             infer_cfg = get_inference_config()
             instruction = self._generate_with_model(
                 prompt=prompt,
@@ -147,10 +102,8 @@ class TextExpert(BaseExpert):
                 verbose=(sample_index is None or sample_index < 3)
             )
 
-            # 规范化输出（补全 Definition: 标签、去除行尾分隔符等）
             instruction = self._normalize_instruction(instruction)
 
-            # 只在前3个样本输出模型原始输出
             if sample_index is None or sample_index < 3:
                 logger.info("=" * 80)
                 logger.info("模型原始输出:")
@@ -158,7 +111,6 @@ class TextExpert(BaseExpert):
                 logger.info(instruction)
                 logger.info("=" * 80)
 
-            # 验证输出格式（仅记录日志，不覆盖模型输出）
             if self.validate_output(instruction):
                 logger.info("指令生成成功,格式验证通过")
             else:
@@ -172,16 +124,7 @@ class TextExpert(BaseExpert):
             return ""
 
     def batch_generate_instruction(self, input_data_list: list, batch_size: int = 16) -> list:
-        """
-        批量生成文本众包指令（提高GPU利用率）
-
-        Args:
-            input_data_list: 文本需求列表
-            batch_size: 批处理大小（默认8，适合RTX 4090 24GB）
-
-        Returns:
-            list: 生成的指令列表
-        """
+        """Generate instructions in batches."""
         if not self.is_model_loaded:
             logger.warning("模型未加载,尝试加载模型...")
             if not self.load_model():
@@ -191,7 +134,6 @@ class TextExpert(BaseExpert):
         try:
             logger.info(f"批量生成指令 - 共{len(input_data_list)}个样本，batch_size={batch_size}")
 
-            # 构建所有prompts（跨域评估时自动检测输入类型并使用对应模板）
             prompts = []
             for _idx, _data in enumerate(input_data_list):
                 _prompt, _domain = _build_prompt_for_domain(_data)
@@ -201,7 +143,6 @@ class TextExpert(BaseExpert):
                     )
                 prompts.append(_prompt)
 
-            # 输出前3个样本的详细信息
             for i in range(min(3, len(input_data_list))):
                 logger.info("=" * 80)
                 logger.info(f"[样本 {i+1}/{len(input_data_list)}] 输入需求:")
@@ -209,7 +150,6 @@ class TextExpert(BaseExpert):
                 logger.info(input_data_list[i][:200] + ("..." if len(input_data_list[i]) > 200 else ""))
                 logger.info("=" * 80)
 
-            # 批量生成
             infer_cfg = get_inference_config()
             instructions = self._generate_batch_with_model(
                 prompts=prompts,
@@ -223,7 +163,6 @@ class TextExpert(BaseExpert):
                 verbose=True
             )
 
-            # 输出前3个样本的生成结果
             for i in range(min(3, len(instructions))):
                 logger.info("=" * 80)
                 logger.info(f"[样本 {i+1}/{len(input_data_list)}] 生成的指令:")
@@ -231,7 +170,6 @@ class TextExpert(BaseExpert):
                 logger.info(instructions[i])
                 logger.info("=" * 80)
 
-            # 验证每个输出（先规范化再验证，仅记录日志，不覆盖模型输出）
             validated_instructions = []
             for i, instruction in enumerate(instructions):
                 instruction = self._normalize_instruction(instruction)
@@ -247,15 +185,7 @@ class TextExpert(BaseExpert):
             return [""] * len(input_data_list)
 
     def validate_output(self, instruction: str) -> bool:
-        """
-        验证输出格式是否符合三段式要求
-
-        Args:
-            instruction: 生成的指令
-
-        Returns:
-            bool: 是否符合格式
-        """
+        """Validate output."""
         if not instruction or len(instruction.strip()) < 50:
             logger.debug("指令内容过短")
             return False
@@ -269,15 +199,7 @@ class TextExpert(BaseExpert):
         return True
 
     def _fallback_generation(self, input_data: str) -> str:
-        """
-        回退方案: 生成基础格式的指令
-
-        Args:
-            input_data: 输入需求
-
-        Returns:
-            str: 基础格式的指令
-        """
+        """Generate fallback output."""
         logger.info("使用回退方案生成指令")
 
         fallback_instruction = """Definition: In this task, implement and test the specified requirement.

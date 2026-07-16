@@ -1,7 +1,4 @@
-"""
-Prompt模板模块
-功能：为不同类型的专家提供标准化的prompt构建接口
-"""
+"""Initialize the prompt templates package."""
 
 from .text_template import TextInstructionTemplate
 from .image_template import ImageInstructionTemplate

@@ -199,6 +199,7 @@ def plot_grouped_bar(results_table, exp_dir):
 
 
 def run(args):
+    """Run the workflow."""
     logger.info('=' * 80)
     logger.info('Exp2: Fine-tuning Method Comparison')
     logger.info('=' * 80)
@@ -317,6 +318,7 @@ def run(args):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp2: Fine-tuning method comparison')
     parser.add_argument('--force-regenerate', action='store_true')
     parser.add_argument('--from-cache', action='store_true')

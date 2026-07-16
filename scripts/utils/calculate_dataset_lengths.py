@@ -1,3 +1,5 @@
+"""Calculate token-length distributions for project datasets."""
+
 import os
 import sys
 import pandas as pd
@@ -6,9 +8,6 @@ from pathlib import Path
 from transformers import AutoTokenizer
 from tqdm import tqdm
 
-# ==========================================
-# 1. 环境与路径设置
-# ==========================================
 current_file = Path(__file__).resolve()
 current_dir = current_file.parent
 project_root = current_dir.parent.parent
@@ -30,11 +29,9 @@ except ImportError as e:
     sys.exit(1)
 
 
-# ==========================================
-# 2. 辅助函数
-# ==========================================
 
 def get_tokenizer():
+    """Return tokenizer."""
     model_path = path_cfg.get_text_model_path()
     print(f"\n[Tokenizer] 正在加载模型路径: {model_path}")
 
@@ -52,34 +49,25 @@ def get_tokenizer():
 
 
 def read_csv_safely(file_path):
-    """
-    超强力 CSV 读取器
-    策略：尝试多种编码 -> 成功后打印预览 -> 让用户确认是否乱码
-    """
-    # 优先级：UTF-8 -> Windows常用 -> 中文 -> 兜底(Latin-1)
-    # latin-1 永远不会报错，但可能会把中文显示成乱码，所以放在最后
+    """Read a CSV file with encoding fallbacks."""
     encodings = ['utf-8-sig', 'utf-8', 'cp1252', 'gbk', 'gb18030', 'latin-1']
 
     for enc in encodings:
         try:
-            # 尝试读取
             df = pd.read_csv(file_path, encoding=enc)
 
-            # 这里的逻辑是：只要 read_csv 不报错，就认为读取成功。
-            # 但是为了让用户放心，我们记录下使用的编码
             return df, enc
         except Exception:
             continue
 
-    # 如果所有都失败（几乎不可能，因为latin-1能吃所有字节）
     return None, None
 
 
 def calculate_lengths_from_df(df, tokenizer, expert_type, source_name=""):
+    """Calculate lengths from df."""
     lengths = []
     desc = f"处理 {source_name}" if source_name else f"处理 {expert_type}"
 
-    # 查找列名
     input_col = None
     output_col = None
 
@@ -93,14 +81,11 @@ def calculate_lengths_from_df(df, tokenizer, expert_type, source_name=""):
     if not input_col or not output_col:
         return []
 
-    # === 【关键步骤】数据内容预览 ===
-    # 打印第一条非空数据，供用户肉眼核对
     first_valid_row = df.dropna(subset=[input_col]).iloc[0] if not df.empty else None
     if first_valid_row is not None:
         preview_text = str(first_valid_row[input_col])[:60].replace('\n', ' ')
         print(f"  -> [预览 {source_name}] ({input_col}): {preview_text}...")
 
-    # 开始统计
     for _, row in tqdm(df.iterrows(), total=len(df), desc=desc, leave=False):
         try:
             input_raw = str(row[input_col])
@@ -128,6 +113,7 @@ def calculate_lengths_from_df(df, tokenizer, expert_type, source_name=""):
 
 
 def print_stats(name, lengths):
+    """Print stats."""
     if not lengths:
         print(f"[{name}] 未找到有效数据或文件为空")
         return
@@ -143,11 +129,9 @@ def print_stats(name, lengths):
     print("======================================\n")
 
 
-# ==========================================
-# 3. 主程序
-# ==========================================
 
 def main():
+    """Run the command-line entry point."""
     tokenizer = get_tokenizer()
     if not tokenizer:
         return
@@ -164,11 +148,9 @@ def main():
         print(f"[Text] 发现 {len(csv_files)} 个文件")
         for csv_file in csv_files:
             try:
-                # 使用安全读取函数
                 df, used_encoding = read_csv_safely(csv_file)
 
                 if df is not None:
-                    # 打印成功读取的编码，让你确认
                     print(f"[Text] 读取 {csv_file.name} 成功 | 编码: {used_encoding}")
 
                     file_lengths = calculate_lengths_from_df(

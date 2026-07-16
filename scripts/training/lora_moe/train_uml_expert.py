@@ -1,29 +1,10 @@
-"""
-UML专家训练脚本
-功能：训练UML Expert，将UML用例图描述转换为业务逻辑实现指令
-环境：instruction_generator（transformers==4.57.0）
-基础模型：Qwen3-8B（默认）
-数据集：uml_dataset.csv（1500条数据）
-输出：checkpoints/lora_moe/uml_expert/
-
-使用方法：
-  # 方法1: 通过环境管理脚本运行（推荐）
-  python scripts/run_with_env.py --env text --script scripts/training/train_uml_expert.py
-
-  # 方法2: 直接在instruction_generator环境中运行
-  conda activate instruction_generator
-  python scripts/training/train_uml_expert.py
-
-作者：Training System
-日期：2025-02-15
-"""
+"""Train the UML expert."""
 
 import sys
 import argparse
 import os
 from pathlib import Path
 
-# 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -35,7 +16,7 @@ logger = get_logger('training.train_uml_expert')
 
 
 def print_header():
-    """打印训练开始的标题"""
+    """Print header."""
     print("=" * 80)
     print(" " * 30 + "UML专家训练 (UML Expert Training)")
     print("=" * 80)
@@ -43,7 +24,7 @@ def print_header():
 
 
 def print_config(use_4bit: bool, use_rtx4090: bool):
-    """打印训练配置"""
+    """Print config."""
     path_cfg = get_path_config()
     train_cfg = get_training_config()
     lora_cfg = get_lora_config('conservative')
@@ -91,18 +72,16 @@ def print_config(use_4bit: bool, use_rtx4090: bool):
 
 
 def validate_environment():
-    """验证运行环境"""
+    """Validate environment."""
     print("验证运行环境...")
     print("-" * 80)
 
-    # 检查transformers版本
     try:
         import transformers
         tf_version = transformers.__version__
 
         print(f"Transformers版本: {tf_version}")
 
-        # UML Expert应该使用transformers 4.57.0（统一环境）
         try:
             v_parts = tf_version.split('.')
             major, minor = int(v_parts[0]), int(v_parts[1])
@@ -116,7 +95,6 @@ def validate_environment():
         logger.error("未安装transformers库")
         return False
 
-    # 检查PEFT
     try:
         import peft
         print(f"PEFT版本: {peft.__version__}")
@@ -124,7 +102,6 @@ def validate_environment():
         logger.error("未安装PEFT库，请运行: pip install peft --break-system-packages")
         return False
 
-    # 检查PyTorch
     try:
         import torch
         print(f"PyTorch版本: {torch.__version__}")
@@ -134,7 +111,6 @@ def validate_environment():
             print(f"CUDA可用: {gpu_name}")
             print(f"显存: {gpu_memory:.2f}GB")
 
-            # 检测是否为4090
             is_rtx4090 = 'RTX 4090' in gpu_name or 'RTX 4090D' in gpu_name
             if is_rtx4090:
                 print(f"检测到RTX 4090，将启用优化配置")
@@ -151,7 +127,7 @@ def validate_environment():
 
 
 def detect_rtx4090() -> bool:
-    """检测是否为RTX 4090显卡"""
+    """Detect rtx4090."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -163,8 +139,7 @@ def detect_rtx4090() -> bool:
 
 
 def main():
-    """主训练流程"""
-    # 解析命令行参数
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='训练UML专家')
     parser.add_argument('--use_4bit', action='store_true', default=True,
                         help='使用4bit量化训练（默认：True）')
@@ -174,7 +149,6 @@ def main():
                         help='禁用RTX 4090优化（默认：自动检测）')
     args = parser.parse_args()
 
-    # 检测是否为RTX 4090
     is_rtx4090 = detect_rtx4090()
     use_rtx4090_opt = is_rtx4090 and not args.no_rtx4090_opt
 
@@ -184,15 +158,12 @@ def main():
         else:
             logger.info("检测到RTX 4090，但优化已禁用")
 
-    # 打印标题
     print_header()
 
-    # 验证环境
     if not validate_environment():
         logger.error("环境验证失败，请检查依赖库")
         return 1
 
-    # 创建训练器（会自动打印实际配置）
     logger.info(f"创建UML专家训练器...")
     try:
         trainer = LoRATrainer(
@@ -206,19 +177,16 @@ def main():
         logger.error(traceback.format_exc())
         return 1
 
-    # 设置模型
     logger.info("设置模型和LoRA配置...")
     if not trainer.setup_model():
         logger.error("模型设置失败")
         return 1
 
-    # 准备数据
     logger.info("准备训练数据...")
     if not trainer.prepare_data():
         logger.error("数据准备失败")
         return 1
 
-    # 打印数据统计
     status = trainer.get_training_status()
     print(f"数据统计:")
     print(f"  - 训练样本: {status['train_samples']}")
@@ -228,7 +196,6 @@ def main():
     print("注意：1500条数据使用标准80:10:10划分策略")
     print()
 
-    # 开始训练
     logger.info("开始训练...")
     print("=" * 80)
     print("训练开始 - 这可能需要较长时间，请耐心等待...")

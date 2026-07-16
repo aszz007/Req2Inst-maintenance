@@ -1,21 +1,4 @@
-"""
-图像专家 - 将图像描述JSON转换为图像标注指令
-功能:
-  - 处理图像描述JSON
-  - 生成三段式图像标注众包指令
-
-环境要求: instruction_generator
-模型: Qwen3-8B（用于指令生成）
-训练数据: dataset/image/image_dataset.csv (只有1个版本)
-
-说明:
-  - Image Expert只有1个,因为图像数据集只有1个版本
-  - 基础模型是Qwen3-8B,不是视觉模型
-  - 输入是JSON文本描述,不是图像
-
-作者: Expert System
-日期: 2025-02-13
-"""
+"""Implement the image-domain expert."""
 
 import json
 from pathlib import Path
@@ -33,21 +16,7 @@ logger = get_logger('experts.image')
 
 
 def _build_prompt_for_domain(input_data):
-    """
-    根据输入数据的实际领域类型构建对应的prompt（跨域评估场景使用）。
-
-    检测规则（按优先级）：
-      - json解析失败的字符串 → text → TextInstructionTemplate
-      - JSON含 actors + use_cases → uml → UMLInstructionTemplate
-      - JSON含 description + details(objects或scene) → image → ImageInstructionTemplate
-      - 其他JSON → text → TextInstructionTemplate
-
-    正常领域推理场景（image专家收到图像JSON）同样会路由到ImageInstructionTemplate，
-    与原有逻辑行为一致。
-
-    Returns:
-        tuple(str, str): (构建的prompt, 检测到的领域类型 'text'/'image'/'uml')
-    """
+    """Build prompt for domain."""
     if isinstance(input_data, dict):
         data = input_data
         text_fallback = str(input_data)
@@ -71,24 +40,16 @@ def _build_prompt_for_domain(input_data):
 
 
 class ImageExpert(BaseExpert):
-    """图像专家 - 图像描述转图像标注指令"""
+    """Generate instructions for image-domain inputs."""
 
     def __init__(self,
                  lora_path: Optional[str] = None,
                  use_4bit: bool = True):
-        """
-        初始化图像专家
-
-        Args:
-            lora_path: LoRA权重路径(None则使用默认配置)
-            use_4bit: 是否使用4bit量化
-        """
+        """Initialize the instance."""
         path_cfg = get_path_config()
 
-        # 图像专家固定名称
         expert_name = 'image_expert'
 
-        # 如果没有提供lora_path,使用配置中的路径
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get(expert_name)
             if lora_weight_path is None:
@@ -116,18 +77,7 @@ class ImageExpert(BaseExpert):
         logger.info("图像专家初始化完成")
 
     def generate_instruction(self, input_data: Union[str, dict], sample_index: int = None) -> str:
-        """
-        生成图像标注指令
-
-        Args:
-            input_data: 图像描述数据,支持:
-                - dict: 包含description字段的字典
-                - str: JSON字符串或纯文本description
-            sample_index: 样本索引（用于控制日志输出）
-
-        Returns:
-            str: 生成的三段式图像标注指令
-        """
+        """Generate instruction."""
         if not self.is_model_loaded:
             logger.warning("模型未加载,尝试加载模型...")
             if not self.load_model():
@@ -135,7 +85,6 @@ class ImageExpert(BaseExpert):
                 return ""
 
         try:
-            # 只在前3个样本输出调试信息
             show_debug = sample_index is None or sample_index < 3
 
             if show_debug:
@@ -160,7 +109,6 @@ class ImageExpert(BaseExpert):
                     logger.info(f"未知数据类型: {input_data}")
                 logger.info("=" * 80)
 
-            # 构建prompt（跨域评估时自动检测输入类型并使用对应模板）
             prompt, detected_domain = _build_prompt_for_domain(input_data)
             if detected_domain != 'image' and show_debug:
                 logger.warning(
@@ -170,7 +118,6 @@ class ImageExpert(BaseExpert):
             if show_debug:
                 logger.debug(f"生成指令 - 输入数据类型: {type(input_data).__name__}")
 
-            # 调用模型生成
             infer_cfg = get_inference_config()
             instruction = self._generate_with_model(
                 prompt=prompt,
@@ -183,10 +130,8 @@ class ImageExpert(BaseExpert):
                 verbose=show_debug
             )
 
-            # 规范化输出（补全 Definition: 标签、去除行尾分隔符等）
             instruction = self._normalize_instruction(instruction)
 
-            # 只在前3个样本输出模型原始输出
             if show_debug:
                 logger.info("=" * 80)
                 logger.info("模型原始输出:")
@@ -194,7 +139,6 @@ class ImageExpert(BaseExpert):
                 logger.info(instruction)
                 logger.info("=" * 80)
 
-            # 验证输出格式（仅记录日志，不覆盖模型输出）
             if self.validate_output(instruction):
                 logger.info("指令生成成功,格式验证通过")
             else:
@@ -208,16 +152,7 @@ class ImageExpert(BaseExpert):
             return ""
 
     def batch_generate_instruction(self, input_data_list: list, batch_size: int = 16) -> list:
-        """
-        批量生成图像标注指令（提高GPU利用率）
-
-        Args:
-            input_data_list: 图像描述数据列表
-            batch_size: 批处理大小（默认8，适合RTX 4090 24GB）
-
-        Returns:
-            list: 生成的指令列表
-        """
+        """Generate instructions in batches."""
         if not self.is_model_loaded:
             logger.warning("模型未加载,尝试加载模型...")
             if not self.load_model():
@@ -227,7 +162,6 @@ class ImageExpert(BaseExpert):
         try:
             logger.info(f"批量生成指令 - 共{len(input_data_list)}个样本，batch_size={batch_size}")
 
-            # 构建所有prompts（跨域评估时自动检测输入类型并使用对应模板）
             prompts = []
             for _idx, _data in enumerate(input_data_list):
                 _prompt, _domain = _build_prompt_for_domain(_data)
@@ -237,7 +171,6 @@ class ImageExpert(BaseExpert):
                     )
                 prompts.append(_prompt)
 
-            # 批量生成
             infer_cfg = get_inference_config()
             instructions = self._generate_batch_with_model(
                 prompts=prompts,
@@ -251,7 +184,6 @@ class ImageExpert(BaseExpert):
                 verbose=True
             )
 
-            # 输出前3个样本的生成结果
             for i in range(min(3, len(instructions))):
                 logger.info("=" * 80)
                 logger.info(f"[样本 {i+1}/{len(input_data_list)}] 生成的指令:")
@@ -259,7 +191,6 @@ class ImageExpert(BaseExpert):
                 logger.info(instructions[i])
                 logger.info("=" * 80)
 
-            # 验证每个输出（先规范化再验证，仅记录日志，不覆盖模型输出）
             validated_instructions = []
             for i, instruction in enumerate(instructions):
                 instruction = self._normalize_instruction(instruction)
@@ -275,15 +206,7 @@ class ImageExpert(BaseExpert):
             return [""] * len(input_data_list)
 
     def validate_output(self, instruction: str) -> bool:
-        """
-        验证输出格式是否符合图像标注三段式要求
-
-        Args:
-            instruction: 生成的指令
-
-        Returns:
-            bool: 是否符合格式
-        """
+        """Validate output."""
         if not instruction or len(instruction.strip()) < 50:
             logger.debug("指令内容过短")
             return False
@@ -294,7 +217,6 @@ class ImageExpert(BaseExpert):
             logger.debug(f"格式验证失败: {result['errors']}")
             return False
 
-        # 额外检查是否包含bounding boxes要求
         if not result['has_bounding_boxes']:
             logger.debug("缺少bounding boxes要求")
             return False
@@ -302,15 +224,7 @@ class ImageExpert(BaseExpert):
         return True
 
     def _fallback_generation(self, input_data: Union[str, dict]) -> str:
-        """
-        回退方案: 生成基础格式的图像标注指令
-
-        Args:
-            input_data: 输入数据（完整JSON或纯文本）
-
-        Returns:
-            str: 基础格式的指令
-        """
+        """Generate fallback output."""
         logger.info("使用回退方案生成指令")
 
         fallback_instruction = """Definition: In this task, draw bounding boxes around all visible objects in the image.

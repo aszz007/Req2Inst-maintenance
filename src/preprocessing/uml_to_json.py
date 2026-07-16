@@ -1,9 +1,4 @@
-"""
-UML转JSON处理函数
-提供可复用的UML处理接口
-作者：Preprocessing System
-日期：2025-01-26
-"""
+"""Convert UML inputs into structured JSON descriptions."""
 
 from pathlib import Path
 from typing import Dict, Optional
@@ -14,12 +9,11 @@ from src.utils.logger import get_logger
 
 logger = get_logger('preprocessing.uml_to_json')
 
-# 全局模型实例
 _vision_model = None
 
 
 def get_vision_model() -> VisionModel:
-    """获取视觉模型单例（UML识别使用Qwen3-VL-8B）"""
+    """Return vision model."""
     global _vision_model
     if _vision_model is None:
         logger.info("初始化视觉模型（Qwen3-VL-8B for UML recognition）...")
@@ -32,36 +26,20 @@ def convert_uml_to_json(
     save_path: Optional[str] = None,
     max_retries: int = 2
 ) -> Dict:
-    """
-    将UML图转换为JSON描述
-
-    Args:
-        uml_path: UML图路径
-        save_path: 保存路径（可选）
-        max_retries: 最大重试次数
-
-    Returns:
-        dict: 包含description字段的JSON（UML数据集格式）
-
-    Example:
-        >>> result = convert_uml_to_json("path/to/uml.jpg")
-        >>> print(result['description'])  # JSON字符串
-    """
+    """Convert UML to JSON."""
     logger.info(f"处理UML图: {Path(uml_path).name}")
 
     try:
         start_time = time.time()
 
-        # 获取模型并识别
         model = get_vision_model()
         result = model.recognize_uml(uml_path, max_retries=max_retries)
 
         processing_time = round(time.time() - start_time, 2)
 
-        # 构建返回结果（匹配UML数据集格式）
         if result.get('success', False):
             output_data = {
-                "description": result['description'],  # 纯JSON字符串
+                "description": result['description'],
                 "processing_time": processing_time,
                 "recognition_status": "success"
             }
@@ -73,7 +51,6 @@ def convert_uml_to_json(
                 "error": result.get('error', '未知错误')
             }
 
-        # 保存文件（如果指定）
         if save_path:
             from src.utils.file_utils import save_json
             save_json({"description": output_data["description"]}, save_path)
@@ -95,17 +72,7 @@ def batch_convert_umls(
     output_dir: Optional[str] = None,
     progress_callback: Optional[callable] = None
 ) -> Dict:
-    """
-    批量转换UML图（简化版，供脚本调用）
-
-    Args:
-        uml_paths: UML图路径列表
-        output_dir: 输出目录（可选）
-        progress_callback: 进度回调函数
-
-    Returns:
-        dict: 统计信息
-    """
+    """Convert UML inputs in batches."""
     results = []
     success = 0
     failed = 0

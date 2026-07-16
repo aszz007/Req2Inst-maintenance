@@ -1,3 +1,5 @@
+"""Package Req2Inst for local installation."""
+
 from setuptools import setup, find_packages
 
 setup(

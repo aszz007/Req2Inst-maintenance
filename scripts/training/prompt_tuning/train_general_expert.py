@@ -1,22 +1,4 @@
-"""
-Prompt Tuning通用专家训练脚本
-
-功能：使用Prompt Tuning方法训练General Expert，作为兜底专家处理各类需求
-环境：instruction_generator（transformers==4.57.0）
-基础模型：Qwen3-8B（默认）
-方法：Prompt Tuning（soft prompts / virtual tokens）
-数据集：text_dataset + image_dataset + uml_dataset（混合数据）
-输出：checkpoints/prompt_tuning/general_expert/
-
-对比实验说明：
-  Prompt Tuning vs LoRA：验证不同参数高效微调方法的效果
-
-使用方法：
-  python scripts/run_with_env.py --env text --script scripts/training/prompt_tuning/train_general_expert.py
-
-作者：Training System
-日期：2025-02-15
-"""
+"""Train the general expert."""
 
 import sys
 import argparse
@@ -32,6 +14,7 @@ logger = get_logger('training.prompt_tuning.general_expert')
 
 
 def detect_rtx4090() -> bool:
+    """Detect rtx4090."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -43,6 +26,7 @@ def detect_rtx4090() -> bool:
 
 
 def print_header():
+    """Print header."""
     print("=" * 80)
     print(" " * 12 + "Prompt Tuning通用专家训练 (General Expert Training)")
     print("=" * 80)
@@ -50,6 +34,7 @@ def print_header():
 
 
 def validate_environment() -> bool:
+    """Validate environment."""
     print("验证运行环境...")
     print("-" * 80)
 
@@ -89,6 +74,7 @@ def validate_environment() -> bool:
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='使用Prompt Tuning训练通用专家')
     parser.add_argument('--use_4bit', action='store_true', default=True,
                         help='使用4bit量化训练（默认：True）')
@@ -126,8 +112,6 @@ def main():
         logger.error(traceback.format_exc())
         return 1
 
-    # setup_model()必须在prepare_data()之前调用
-    # InstructionDataset初始化时需要tokenizer已完成加载
     logger.info("设置模型和Prompt Tuning配置...")
     if not trainer.setup_model():
         logger.error("模型设置失败")

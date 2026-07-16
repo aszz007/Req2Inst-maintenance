@@ -5,8 +5,8 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 LOG_FILE="$LOG_DIR/training_${TIMESTAMP}.log"
 PYTHON="/root/miniconda3/envs/instruction_generator/bin/python"
 
-# Python过滤器：将\r回车符还原为终端实际展示效果（仅保留每行最终状态）
-# 全程使用二进制模式读写，避免管道环境下stdout编码不是UTF-8导致中文乱码
+# Python filter that reproduces terminal carriage-return behavior and keeps
+# only the final state of each line. Binary I/O avoids stdout recoding in pipes.
 _CR_FILTER='
 import sys
 out = sys.stdout.buffer
@@ -36,9 +36,8 @@ run_task() {
     local _ec_file
     _ec_file=$(mktemp)
 
-    # tee 将原始字节流同时送往：
-    #   1. 终端 stdout（\r 由终端自然处理，进度条实时刷新）
-    #   2. 进程替换：过滤器折叠 \r，只追加干净结果到日志文件
+    # Send the raw byte stream to the terminal for live progress rendering and
+    # to the filter, which collapses carriage returns before appending the log.
     { $PYTHON $script; echo $? > "$_ec_file"; } 2>&1 | \
         tee >(python3 -u -c "$_CR_FILTER" >> "$LOG_FILE")
 
@@ -53,7 +52,7 @@ run_task() {
     fi
 }
 
-# ---- 训练任务列表 ----
+# ---- Training tasks ----
 #run_task "Lora MoE Text Expert"            "scripts/training/lora_moe/train_text_expert.py"
 #run_task "Lora MoE Image Expert"           "scripts/training/lora_moe/train_image_expert.py"
 #run_task "Lora MoE UML Expert"             "scripts/training/lora_moe/train_uml_expert.py"

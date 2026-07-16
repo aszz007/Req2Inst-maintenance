@@ -1,33 +1,11 @@
-"""
-LoRA-Single统一模型训练脚本
-
-功能：训练单一LoRA模型处理所有输入类型（不使用MoE）
-环境：instruction_generator（transformers==4.51.0）
-基础模型：Qwen3-8B
-数据集：text + image + uml混合数据集
-输出：checkpoints/lora_single/unified_expert/
-
-对比实验说明：
-  - LoRA-Single vs LoRA-MoE：验证MoE架构的有效性
-  - 使用相同的LoRA配置（rank=8），仅架构不同
-  - 数据集与General Expert相同，但没有路由机制
-
-使用方法：
-  python scripts/training/lora_single/train_unified_expert.py
-
-作者：Comparative Training System
-日期：2025-02-15
-"""
+"""Train the unified expert."""
 
 import sys
 import argparse
 from pathlib import Path
 
-# 获取当前脚本的绝对路径并回溯到项目根目录
-# 路径层级：scripts(1) / training(2) / lora_single(3) / 脚本(4)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
-# 确保路径被正确插入
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -43,7 +21,7 @@ logger = get_logger('training.lora_single.unified_expert')
 
 
 def detect_rtx4090() -> bool:
-    """检测是否为RTX 4090显卡"""
+    """Detect rtx4090."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -55,7 +33,7 @@ def detect_rtx4090() -> bool:
 
 
 def print_header():
-    """打印训练开始的标题"""
+    """Print header."""
     print("=" * 80)
     print(" " * 18 + "LoRA-Single统一模型训练 (Unified Expert Training)")
     print("=" * 80)
@@ -63,11 +41,10 @@ def print_header():
 
 
 def validate_environment():
-    """验证运行环境"""
+    """Validate environment."""
     print("验证运行环境...")
     print("-" * 80)
 
-    # 检查transformers版本
     try:
         import transformers
         version = transformers.__version__
@@ -85,7 +62,6 @@ def validate_environment():
         logger.error("未安装transformers库")
         return False
 
-    # 检查PEFT
     try:
         import peft
         print(f"PEFT版本: {peft.__version__}")
@@ -93,7 +69,6 @@ def validate_environment():
         logger.error("未安装PEFT库，请运行: pip install peft --break-system-packages")
         return False
 
-    # 检查PyTorch
     try:
         import torch
         print(f"PyTorch版本: {torch.__version__}")
@@ -112,8 +87,7 @@ def validate_environment():
 
 
 def main():
-    """主训练流程"""
-    # 解析命令行参数
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='训练LoRA-Single统一模型')
     parser.add_argument('--use_4bit', action='store_true', default=True,
                         help='使用4bit量化训练（默认：True）')
@@ -121,22 +95,18 @@ def main():
                         help='不使用4bit量化')
     args = parser.parse_args()
 
-    # 打印标题
     print_header()
 
-    # 验证环境
     if not validate_environment():
         logger.error("环境验证失败，请检查依赖库")
         return 1
 
-    # 检测是否为RTX 4090
     is_rtx4090 = detect_rtx4090()
     use_rtx4090_opt = is_rtx4090
 
     if is_rtx4090:
         logger.info("检测到RTX 4090，启用优化配置")
 
-    # 打印实验说明
     print("=" * 80)
     print("对比实验：LoRA-Single vs LoRA-MoE")
     print("=" * 80)
@@ -149,11 +119,8 @@ def main():
     print("=" * 80)
     print()
 
-    # 创建训练器（复用ExpertTrainer，使用general类型）
     logger.info("创建LoRA-Single统一模型训练器...")
     try:
-        # 使用general类型训练器（包含所有数据）
-        # expert_type='general'确保加载text+image+uml混合数据集
         path_cfg = get_path_config()
         trainer = LoRATrainer(
             expert_type='general',
@@ -163,7 +130,6 @@ def main():
             use_domain_templates=True
         )
 
-        # output_dir指向unified_expert而非general_expert，需要覆盖
         trainer.output_dir = path_cfg.LORA_SINGLE_CKPT
         trainer.checkpoint_dir = path_cfg.LORA_SINGLE_CKPT / 'training_checkpoints'
 
@@ -173,13 +139,11 @@ def main():
         logger.error(traceback.format_exc())
         return 1
 
-    # 准备数据
     logger.info("准备训练数据...")
     if not trainer.prepare_data():
         logger.error("数据准备失败")
         return 1
 
-    # 打印数据统计
     status = trainer.get_training_status()
     print(f"数据统计:")
     print(f"  - 训练样本: {status['train_samples']}")
@@ -187,13 +151,11 @@ def main():
     print(f"  - 数据来源: text + image + uml（混合数据集）")
     print()
 
-    # 设置模型
     logger.info("设置模型和LoRA配置...")
     if not trainer.setup_model():
         logger.error("模型设置失败")
         return 1
 
-    # 开始训练
     logger.info("开始训练...")
     print("=" * 80)
     print("训练开始 - 这可能需要较长时间，请耐心等待...")

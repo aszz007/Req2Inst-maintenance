@@ -111,7 +111,7 @@ def _sample_examples(train_data, n, seed):
 
 
 def run_few_shot(n_shots, run_id, train_data, test_data, generator, args):
-    """运行或从缓存加载某(n_shots, run_id)组合的少样本推理结果。"""
+    """Run few shot."""
     filename = _cache_filename(n_shots, run_id)
     cached = load_predictions_cache(CACHE_DIR, filename)
     if cached and not args.force_regenerate:
@@ -145,7 +145,7 @@ def run_few_shot(n_shots, run_id, train_data, test_data, generator, args):
 
 
 def run_lora_moe(test_data, args):
-    """运行或加载LoRA-MoE文本专家推理结果（复用exp1/exp2缓存）。"""
+    """Run LoRA moe."""
     cache_subdir = path_cfg.OUTPUTS_DIR / 'inference_cache' / 'lora_moe'
     filename = 'text_predictions.json'
     cached = load_predictions_cache(cache_subdir, filename)
@@ -190,6 +190,7 @@ def compute_runs_stats(run_metrics):
 
 
 def plot_bar_with_errorbars(shot_summary, lora_rougeL, exp_dir, test_mode=False):
+    """Plot bar with errorbars."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -237,6 +238,7 @@ def plot_bar_with_errorbars(shot_summary, lora_rougeL, exp_dir, test_mode=False)
 
 
 def run(args):
+    """Run the workflow."""
     logger.info('=' * 80)
     logger.info('实验6: Few-Shot vs 微调对比')
     logger.info('=' * 80)
@@ -254,7 +256,6 @@ def run(args):
         'lora_moe': {},
     }
 
-    # 加载基础模型（用于所有few-shot推理）
     generator = ZeroShotGenerator(use_4bit=True)
     if not generator.load_model():
         logger.error('基础模型加载失败，无法进行少样本生成')
@@ -314,7 +315,6 @@ def run(args):
     finally:
         generator.unload_model()
 
-    # LoRA-MoE基线
     logger.info('\n=== LoRA-MoE（微调） ===')
     lora_moe_cache_subdir = path_cfg.OUTPUTS_DIR / 'inference_cache' / 'lora_moe'
     if getattr(args, 'only_missing', False) and _is_full_run_cache(
@@ -351,7 +351,6 @@ def run(args):
     except Exception as e:
         logger.warning(f'绘图失败: {e}')
 
-    # 汇总
     logger.info('\n' + '=' * 80)
     logger.info('少样本一致性汇总')
     logger.info('=' * 80)
@@ -364,6 +363,7 @@ def run(args):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp6: Few-shot vs fine-tuning')
     parser.add_argument('--force-regenerate', action='store_true')
     parser.add_argument('--from-cache', action='store_true')

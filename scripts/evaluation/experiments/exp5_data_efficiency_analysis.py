@@ -87,6 +87,7 @@ def _release_gpu(trainer=None):
         torch.cuda.synchronize()
 
 def train_for_fraction(method, fraction, train_data, args):
+    """Train for fraction."""
     ckpt_path = _get_ckpt_path(method, fraction)
 
     if fraction == 1.00 and ckpt_path.exists():
@@ -145,6 +146,7 @@ def train_for_fraction(method, fraction, train_data, args):
 
 
 def run_inference(method, fraction, test_data, args):
+    """Run inference."""
     tag = _fraction_tag(fraction)
     cache_subdir = CACHE_DIR_BASE / f'{method}_exp5'
     filename = f'text_{tag}_predictions.json'
@@ -205,6 +207,7 @@ train_data_global = []   # set in run() so train_for_fraction can use it
 
 
 def plot_learning_curves(fraction_results, exp_dir):
+    """Plot learning curves."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -240,6 +243,7 @@ def plot_learning_curves(fraction_results, exp_dir):
 
 
 def run(args):
+    """Run the workflow."""
     global train_data_global
 
     logger.info('=' * 80)
@@ -319,7 +323,6 @@ def run(args):
     except Exception as e:
         logger.warning(f'绘图失败: {e}')
 
-    # 汇总
     logger.info('\n' + '=' * 80)
     logger.info('数据效率汇总')
     logger.info('=' * 80)
@@ -339,6 +342,7 @@ def run(args):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp5: Data efficiency analysis')
     parser.add_argument('--force-regenerate', action='store_true')
     parser.add_argument('--force-retrain', action='store_true')

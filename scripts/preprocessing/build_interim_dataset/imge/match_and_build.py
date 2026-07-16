@@ -1,14 +1,4 @@
-"""
-Image数据集构建脚本 - 从图片和JSON识别结果构建CSV数据集
-功能：
-1. 遍历图片目录获取所有图片名（去除扩展名）
-2. 读取JSON文件构建 图片名 -> 识别信息 映射
-3. 验证映射完整性（记录缺失项）
-4. 生成CSV：Header | Description | Instruction
-5. 处理图片和JSON不匹配的情况，不终止程序
-6. 单独记录错误日志和处理统计
-7. Description列保留所有Image识别内容（description, details等），过滤元数据字段
-"""
+"""Match image records and build the interim image dataset."""
 
 import json
 import csv
@@ -18,10 +8,10 @@ from datetime import datetime
 
 
 class ImageDatasetBuilder:
-    """Image数据集构建器 - 将图片 + JSON识别结果转换为CSV数据集"""
+    """Build the interim image dataset from matched records."""
 
     def __init__(self):
-        """初始化构建器"""
+        """Initialize the instance."""
         self.image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp']
         self.errors = []
         self.stats = {
@@ -34,22 +24,13 @@ class ImageDatasetBuilder:
         }
 
     def get_all_images(self, image_folder: Path) -> Set[str]:
-        """
-        获取文件夹中所有图片名（不带扩展名）
-
-        Args:
-            image_folder: 图片文件夹路径
-
-        Returns:
-            set: 图片名集合（不带扩展名）
-        """
+        """Return all images."""
         if not image_folder.exists():
             raise FileNotFoundError(f"图片文件夹不存在: {image_folder}")
 
         image_names = set()
 
         for ext in self.image_extensions:
-            # 处理小写和大写扩展名
             for file_path in image_folder.glob(f"*{ext}"):
                 image_names.add(file_path.stem)
             for file_path in image_folder.glob(f"*{ext.upper()}"):
@@ -59,22 +40,13 @@ class ImageDatasetBuilder:
         return image_names
 
     def load_json_results(self, json_file: Path) -> Dict[str, Dict]:
-        """
-        加载JSON识别结果并构建映射
-
-        Args:
-            json_file: JSON文件路径
-
-        Returns:
-            dict: 图片名到识别信息的映射
-        """
+        """Load JSON results."""
         if not json_file.exists():
             raise FileNotFoundError(f"JSON文件不存在: {json_file}")
 
         with open(json_file, 'r', encoding='utf-8') as f:
             results = json.load(f)
 
-        # 构建映射：图片名（不带扩展名）-> 识别信息
         json_mapping = {}
 
         for entry in results:
@@ -87,14 +59,11 @@ class ImageDatasetBuilder:
                 })
                 continue
 
-            # 从图片名中移除扩展名
             name_without_ext = Path(image_name).stem
 
-            # 检查识别是否成功（支持两种格式）
             recognition_status = entry.get('recognition_status', '')
             success_flag = entry.get('success', False)
 
-            # 识别失败的判断：recognition_status不是'success' 且 success不是True
             is_failed = (recognition_status != 'success' and not success_flag)
 
             if is_failed:
@@ -106,34 +75,21 @@ class ImageDatasetBuilder:
                     'error': error_msg
                 })
 
-            # 存入映射（即使识别失败也保留，但标记）
             json_mapping[name_without_ext] = entry
 
         self.stats['total_json_entries'] = len(json_mapping)
         return json_mapping
 
     def validate_mapping(self, image_names: Set[str], json_mapping: Dict[str, Dict]) -> Tuple[List[str], List[str]]:
-        """
-        验证图片-JSON映射的完整性
-
-        Args:
-            image_names: 图片名集合
-            json_mapping: JSON映射
-
-        Returns:
-            tuple: (图片缺失JSON列表, JSON缺失图片列表)
-        """
-        # 存在图片但没有JSON的
+        """Validate mapping."""
         images_without_json = list(image_names - json_mapping.keys())
 
-        # 存在JSON但没有对应图片的
         json_without_images = list(json_mapping.keys() - image_names)
 
         self.stats['images_without_json'] = len(images_without_json)
         self.stats['json_without_images'] = len(json_without_images)
         self.stats['matched'] = len(image_names & json_mapping.keys())
 
-        # 记录错误
         for img_name in images_without_json:
             self.errors.append({
                 'type': 'IMAGE_WITHOUT_JSON',
@@ -151,35 +107,20 @@ class ImageDatasetBuilder:
         return images_without_json, json_without_images
 
     def prepare_json_string(self, recognition_info: Dict) -> str:
-        """
-        准备用于CSV的JSON字符串（移除元数据，保留所有Image识别内容）
-        保留字段: description, details (objects, scene, spatial_info等所有识别内容)
-        移除字段: confidence, recognition_status, image_path, image_name, model_version
-
-        Args:
-            recognition_info: 识别信息字典
-
-        Returns:
-            str: 格式化的JSON字符串
-        """
-        # 检查识别是否成功（支持两种格式）
+        """Prepare JSON string."""
         recognition_status = recognition_info.get('recognition_status', '')
         success_flag = recognition_info.get('success', False)
 
-        # 识别成功的判断：recognition_status是'success' 或 success是True
         is_success = (recognition_status == 'success' or success_flag)
 
         if not is_success:
-            # 识别失败，返回错误信息
             error_msg = recognition_info.get('error', f'Recognition status: {recognition_status}' if recognition_status else 'Unknown error')
             return json.dumps({
                 'recognition_status': 'failed',
                 'error': error_msg
             }, ensure_ascii=False)
 
-        # 识别成功，提取所有识别内容相关的字段
         try:
-            # 定义需要排除的元数据字段
             metadata_fields = {
                 'confidence',
                 'recognition_status',
@@ -191,21 +132,17 @@ class ImageDatasetBuilder:
                 'error'
             }
 
-            # 创建干净的识别内容字典，排除元数据字段
             clean_info = {}
             for key, value in recognition_info.items():
                 if key not in metadata_fields:
                     clean_info[key] = value
 
-            # 如果clean_info为空，至少保留description字段
             if not clean_info:
                 clean_info = {'description': recognition_info.get('description', '')}
 
-            # 转换为JSON字符串
             return json.dumps(clean_info, ensure_ascii=False)
 
         except Exception as e:
-            # 其他异常处理
             return json.dumps({
                 'recognition_status': 'error',
                 'error': f'Unexpected error: {str(e)}',
@@ -220,34 +157,19 @@ class ImageDatasetBuilder:
         error_log: str = None,
         include_failed: bool = True
     ) -> str:
-        """
-        从图片和JSON结果构建CSV数据集
-
-        Args:
-            image_folder: 图片文件夹路径
-            json_file: JSON识别结果文件
-            output_csv: 输出CSV文件路径（可选）
-            error_log: 错误日志文件路径（可选）
-            include_failed: 是否包含识别失败的记录
-
-        Returns:
-            str: 输出CSV文件路径
-        """
+        """Build CSV dataset."""
         print("="*80)
         print(" "*25 + "Image数据集构建器")
         print("="*80)
 
-        # 转换为Path对象
         image_folder = Path(image_folder)
         json_file = Path(json_file)
 
-        # 步骤1：获取所有图片
         print("\n[步骤 1/5] 扫描图片目录...")
         print(f"图片文件夹: {image_folder}")
         image_names = self.get_all_images(image_folder)
         print(f"找到 {len(image_names)} 张不重复的图片")
 
-        # 步骤2：加载JSON结果
         print("\n[步骤 2/5] 加载JSON识别结果...")
         print(f"JSON文件: {json_file}")
         json_mapping = self.load_json_results(json_file)
@@ -255,7 +177,6 @@ class ImageDatasetBuilder:
         if self.stats['failed_recognitions'] > 0:
             print(f"  ⚠ 其中 {self.stats['failed_recognitions']} 条识别失败")
 
-        # 步骤3：验证映射
         print("\n[步骤 3/5] 验证图片-JSON映射...")
         images_without_json, json_without_images = self.validate_mapping(image_names, json_mapping)
 
@@ -265,7 +186,6 @@ class ImageDatasetBuilder:
         if self.stats['json_without_images'] > 0:
             print(f"⚠ JSON缺少图片: {self.stats['json_without_images']}")
 
-        # 步骤4：构建CSV
         print("\n[步骤 4/5] 构建CSV数据集...")
 
         if output_csv is None:
@@ -274,13 +194,11 @@ class ImageDatasetBuilder:
 
         output_csv = Path(output_csv)
 
-        # 准备数据行
         rows = []
         for image_name in sorted(image_names):
             if image_name in json_mapping:
                 recognition_info = json_mapping[image_name]
 
-                # 如果不包含失败的记录，则跳过（支持两种格式）
                 recognition_status = recognition_info.get('recognition_status', '')
                 success_flag = recognition_info.get('success', False)
                 is_success = (recognition_status == 'success' or success_flag)
@@ -288,10 +206,9 @@ class ImageDatasetBuilder:
                 if not include_failed and not is_success:
                     continue
 
-                # 准备行数据
-                header = image_name  # 图片名（去掉扩展名）
-                description = self.prepare_json_string(recognition_info)  # 只保留描述内容
-                instruction = ""  # 空白，待后续填充
+                header = image_name
+                description = self.prepare_json_string(recognition_info)
+                instruction = ""
 
                 rows.append({
                     'Header': header,
@@ -299,7 +216,6 @@ class ImageDatasetBuilder:
                     'Instruction': instruction
                 })
             else:
-                # 图片存在但没有JSON - 添加占位符
                 rows.append({
                     'Header': image_name,
                     'Description': json.dumps({
@@ -309,7 +225,6 @@ class ImageDatasetBuilder:
                     'Instruction': ""
                 })
 
-        # 写入CSV（使用utf-8-sig编码，添加BOM以避免Windows Excel乱码）
         with open(output_csv, 'w', encoding='utf-8-sig', newline='') as f:
             fieldnames = ['Header', 'Description', 'Instruction']
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -320,7 +235,6 @@ class ImageDatasetBuilder:
         print(f"CSV数据集已创建: {output_csv}")
         print(f"总行数: {len(rows)}")
 
-        # 步骤5：保存错误日志
         print("\n[步骤 5/5] 保存错误日志...")
 
         if error_log is None:
@@ -339,7 +253,6 @@ class ImageDatasetBuilder:
         print(f"错误日志已保存: {error_log}")
         print(f"总错误数: {len(self.errors)}")
 
-        # 打印汇总信息
         print("\n" + "="*80)
         print(" "*30 + "汇总")
         print("="*80)
@@ -358,27 +271,19 @@ class ImageDatasetBuilder:
 
 
 def main():
-    """主函数 - 构建Image数据集"""
+    """Run the command-line entry point."""
 
-    # ==================== 配置区域 ====================
-    # 请根据实际情况修改以下路径
 
-    # 图片文件夹路径
     IMAGE_FOLDER = r"data/raw/image/coco_1k"
 
-    # JSON识别结果文件（由图像识别脚本生成）
     JSON_FILE = r"outputs/recognition_results/image/image_recognition_qwen3_20260215_210034.json"
 
-    # 输出CSV文件路径
     OUTPUT_CSV = r"data/interim/image/image_interim_coco_1k.csv"
 
-    # 错误日志文件路径（可选）
     ERROR_LOG = r"data/interim/image/image_dataset_errors.json"
 
-    # 是否在CSV中包含识别失败的记录（True/False）
     INCLUDE_FAILED = True
 
-    # ==================== 配置区域结束 ====================
 
     print("="*80)
     print(" "*20 + "Image数据集构建工具")
@@ -390,10 +295,8 @@ def main():
     print("="*80 + "\n")
 
     try:
-        # 创建构建器
         builder = ImageDatasetBuilder()
 
-        # 构建数据集
         output_path = builder.build_csv_dataset(
             image_folder=IMAGE_FOLDER,
             json_file=JSON_FILE,

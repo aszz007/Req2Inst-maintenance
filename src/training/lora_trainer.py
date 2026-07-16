@@ -1,15 +1,4 @@
-"""
-LoRA训练器 - LoRA-MoE方法的训练实现
-
-功能：
-  - 支持四种专家类型（text, image, uml, general）
-  - 4bit量化训练
-  - LoRA微调配置
-  - 自动选择target_modules
-
-作者：Training System
-日期：2025-02-15
-"""
+"""Implement LoRA training for domain experts."""
 
 import torch
 from pathlib import Path
@@ -27,15 +16,7 @@ logger = get_logger('training.lora_trainer')
 
 
 class LoRATrainer(BaseTrainer):
-    """
-    LoRA训练器 - 实现LoRA-MoE方法
-
-    继承BaseTrainer，添加LoRA特有的：
-    - 4bit量化配置
-    - LoRA参数配置（默认使用exp4搜索得到的最优值：rank=64, alpha=128）
-    - target_modules自动选择
-    - LoRA权重保存
-    """
+    """Train domain experts with LoRA."""
 
     def __init__(self,
                  expert_type: str,
@@ -45,25 +26,11 @@ class LoRATrainer(BaseTrainer):
                  use_4bit: bool = True,
                  use_rtx4090_optimization: bool = True,
                  debug_samples: bool = False,
-                 lora_rank: int = 64,      # ← exp4搜索最优值（原为8）
-                 lora_alpha: int = 128,    # ← exp4搜索最优值（原为16）
+                 lora_rank: int = 64,
+                 lora_alpha: int = 128,
                  lora_dropout: float = 0.05,
                  use_domain_templates: bool = False):
-        """
-        初始化LoRA训练器
-
-        Args:
-            expert_type: 专家类型（'text', 'image', 'uml', 'general'）
-            base_model_path: 基础模型路径（None则从配置获取）
-            output_dir: 输出目录（None则从配置获取）
-            use_4bit: 是否使用4bit量化训练
-            use_rtx4090_optimization: 是否启用RTX 4090优化
-            debug_samples: 是否在训练开始前打印前3个训练样本（默认关闭）
-            lora_rank: LoRA秩，默认64（exp4超参数搜索最优值）
-            lora_alpha: LoRA缩放因子，默认128（= 2 × rank，标准比例）
-            lora_dropout: LoRA dropout率，默认0.05
-        """
-        # 调用父类初始化
+        """Initialize the instance."""
         super().__init__(
             expert_type=expert_type,
             method_name=method_name,
@@ -71,17 +38,15 @@ class LoRATrainer(BaseTrainer):
             output_dir=output_dir,
             use_rtx4090_optimization=use_rtx4090_optimization,
             debug_samples=debug_samples,
-            use_domain_templates=use_domain_templates  # 传递给BaseTrainer
+            use_domain_templates=use_domain_templates
         )
 
         self.use_4bit = use_4bit
 
-        # LoRA超参数（通过构造函数传入，支持实验调整）
         self.lora_rank = lora_rank
         self.lora_alpha = lora_alpha
         self.lora_dropout = lora_dropout
 
-        # 根据模型版本确定target_modules
         self.target_modules = self._get_target_modules()
 
         logger.info(f"4bit量化: {use_4bit}")
@@ -92,33 +57,14 @@ class LoRATrainer(BaseTrainer):
         logger.info("  - Warmup比例: 10% (标准设置)")
         logger.info("  - NaN-aware早停: 自动忽略NaN验证损失")
 
-        # 打印配置
         self._print_training_config()
 
     def _get_batch_config(self):
-        """
-        获取LoRA专用的batch配置，针对不同expert优化
-
-        保守配置以避免OOM（基于实际训练OOM分析优化）：
-        - Image (原batch=8出现OOM): batch=2, grad_accum=64
-        - Text (提供更多显存余量): batch=2, grad_accum=64
-        - UML (长序列JSON输入): batch=1, grad_accum=128
-        - General (最长序列): batch=1, grad_accum=128
-
-        保持有效batch=128以保证训练稳定性
-
-        注意：rank=64相比rank=8显存占用约增加2-3GB（adapter参数量8x），
-        RTX 4090 24GB在上述保守配置下仍可安全训练。
-
-        Returns:
-            (batch_size, gradient_accumulation_steps)
-        """
+        """Return batch config."""
         if self.use_rtx4090_optimization:
             if self.expert_type in ['image', 'text']:
-                # Image/Text使用保守配置，避免OOM
                 return 2, 64
             elif self.expert_type in ['uml', 'general']:
-                # UML/General使用最保守配置（序列长，JSON重复多）
                 return 1, 128
             else:
                 return 1, 128
@@ -126,32 +72,19 @@ class LoRATrainer(BaseTrainer):
             return self.train_cfg.batch_size, self.train_cfg.gradient_accumulation_steps
 
     def _get_target_modules(self) -> list:
-        """
-        根据模型版本自动选择target_modules
-
-        Returns:
-            list: target_modules列表
-        """
+        """Return target modules."""
         if self.model_version == 'qwen3_8b':
-            # Qwen3-8B使用新的注意力层命名
             return ["q_proj", "k_proj", "v_proj", "o_proj"]
         else:
-            # 默认使用Qwen3的命名
             logger.warning(f"未知模型版本 {self.model_version}，使用Qwen3默认配置")
             return ["q_proj", "k_proj", "v_proj", "o_proj"]
 
     def setup_model(self) -> bool:
-        """
-        设置模型和LoRA配置
-
-        Returns:
-            bool: 是否成功
-        """
+        """Configure the model."""
         try:
             if not self._load_base_model(self.use_4bit):
                 return False
 
-            # 配置LoRA
             logger.info("配置LoRA...")
             lora_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,

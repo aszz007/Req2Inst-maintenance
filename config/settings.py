@@ -1,8 +1,4 @@
-"""
-项目配置中心
-功能：统一管理所有路径、超参数、训练配置
-环境：instruction_generator（单一Conda环境，transformers==4.57.0）
-"""
+"""Centralize model, path, training, inference, and device configuration."""
 
 import torch
 from pathlib import Path
@@ -11,36 +7,32 @@ from typing import List, Optional
 
 @dataclass
 class ModelConfig:
-    """文本模型配置（用于Expert训练和推理）"""
+    """Store text-model configuration."""
 
-    # 统一使用Qwen3-8B，所有Expert均基于此模型
     version: str = "qwen3_8b"
 
     def get_model_name(self) -> str:
-        """获取完整模型名称"""
+        """Return model name."""
         return "Qwen3-8B"
 
     def get_model_size(self) -> str:
-        """获取模型大小描述"""
+        """Return model size."""
         return "8B"
 
 
 @dataclass
 class VisionModelConfig:
-    """视觉模型版本配置"""
+    """Store vision-model configuration."""
 
-    # 统一使用Qwen3-VL-8B
     version: str = "qwen3"
 
-    # 支持的版本列表
     SUPPORTED_VERSIONS: List[str] = None
 
     def __post_init__(self):
-        """初始化支持的版本列表"""
+        """Finalize dataclass initialization."""
         if self.SUPPORTED_VERSIONS is None:
             self.SUPPORTED_VERSIONS = ["qwen3"]
 
-        # 验证版本
         if self.version not in self.SUPPORTED_VERSIONS:
             raise ValueError(
                 f"不支持的视觉模型版本: {self.version}，"
@@ -48,83 +40,66 @@ class VisionModelConfig:
             )
 
     def get_model_name(self) -> str:
-        """获取完整模型名称"""
+        """Return model name."""
         return "Qwen3-VL-8B-Instruct"
 
     def get_model_size(self) -> str:
-        """获取模型大小描述"""
+        """Return model size."""
         return "8B"
 
 class PathConfig:
-    """路径配置类 - 管理所有项目路径"""
+    """Store project path configuration."""
 
     def __init__(self):
-        """初始化路径配置"""
-        # ==================== 项目根目录 ====================
+        """Initialize the instance."""
         self.PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-        # ==================== 基础模型路径 ====================
         self.BASE_MODELS_DIR = self.PROJECT_ROOT / "base_models"
 
-        # Qwen3-8B模型路径（默认文本模型，所有Expert统一使用）
         self.QWEN3_8B_PATH = (
             self.BASE_MODELS_DIR / "qwen3-8B" / "Qwen" / "Qwen3-8B"
         )
 
-        # 文本模型路径映射
         self.TEXT_MODEL_PATHS = {
             'qwen3_8b': self.QWEN3_8B_PATH,
         }
 
-        # Qwen3-VL-8B模型路径（视觉模型，仅用于数据准备阶段的图像/UML识别）
         self.QWEN_VL_3_PATH = (
                 self.BASE_MODELS_DIR / "qwen3-VL-8B" / "qwen" / "Qwen3-VL-8B-Instruct"
         )
 
-        # 视觉模型路径映射
         self.VISION_MODEL_PATHS = {
             'qwen3': self.QWEN_VL_3_PATH,
         }
 
-        # ==================== 数据相关路径 ====================
         self.DATA_DIR = self.PROJECT_ROOT / "data"
         self.RAW_DATA_DIR = self.DATA_DIR / "raw"
         self.INTERIM_DATA_DIR = self.DATA_DIR / "interim"
 
-        # 原始数据子目录
         self.RAW_IMAGE_DIR = self.RAW_DATA_DIR / "image"
         self.RAW_TEXT_DIR = self.RAW_DATA_DIR / "text"
         self.RAW_UML_DIR = self.RAW_DATA_DIR / "uml"
 
-        # 原始数据默认测试目录（用于批量识别脚本）
         self.COCO_1K_DIR = self.RAW_IMAGE_DIR / "coco_1k"
         self.ROBOFLOW_UML_DIR = self.RAW_UML_DIR / "roboflow_uml"
         self.MDPI_UML_DIR = self.RAW_UML_DIR / "mdpi_uml"
         self.PLANT_UML_DIR = self.RAW_UML_DIR / "plant_uml"
 
-        # 中间处理结果子目录
         self.INTERIM_IMAGE_DIR = self.INTERIM_DATA_DIR / "image"
         self.INTERIM_TEXT_DIR = self.INTERIM_DATA_DIR / "text"
         self.INTERIM_UML_DIR = self.INTERIM_DATA_DIR / "uml"
 
-        # ==================== 数据集路径 ====================
-        # 最终训练数据集位于 data/dataset/ 下（与 raw/ 和 interim/ 同级）
         self.DATASET_DIR = self.DATA_DIR / "dataset"
         self.TEXT_DATASET_DIR = self.DATASET_DIR / "text"
         self.IMAGE_DATASET_DIR = self.DATASET_DIR / "image"
         self.UML_DATASET_DIR = self.DATASET_DIR / "uml"
         self.GENERAL_DATASET_DIR = self.DATASET_DIR / "general"
 
-        # 具体数据集文件
         self.IMAGE_DATASET_CSV = self.IMAGE_DATASET_DIR / "image_dataset.csv"
 
-        # UML数据集（单一版本 - 1500条数据）
         self.UML_DATASET_CSV = self.UML_DATASET_DIR / "uml_dataset.csv"
 
-        # General数据集（不需要单独文件，动态加载text+image+uml）
-        # self.GENERAL_DATASET_CSV - 已移除，General专家直接从三个数据源加载
 
-        # 文本数据集（多个文件）
         self.TEXT_DATASET_FILES = {
             'CCHIT': self.TEXT_DATASET_DIR / "CCHIT_dataset.csv",
             'CM1': self.TEXT_DATASET_DIR / "CM1_dataset.csv",
@@ -134,33 +109,24 @@ class PathConfig:
             'WARC': self.TEXT_DATASET_DIR / "WARC_dataset.csv"
         }
 
-        # ==================== 推理输入路径 ====================
         self.INPUTS_DIR = self.PROJECT_ROOT / "inputs"
         self.INPUT_TEXT_DIR = self.INPUTS_DIR / "text"
         self.INPUT_IMAGE_DIR = self.INPUTS_DIR / "image"
         self.INPUT_UML_DIR = self.INPUTS_DIR / "uml"
 
-        # ==================== LoRA权重路径 ====================
         self.LORA_WEIGHTS_DIR = self.PROJECT_ROOT / "lora_weights"
         self.EXPERTS_DIR = self.LORA_WEIGHTS_DIR / "experts"
 
-        # 各专家权重路径
         self.TEXT_EXPERT_WEIGHTS = self.EXPERTS_DIR / "text_expert"
 
-        # Image Expert只有1个版本（数据集只有1个版本）
         self.IMAGE_EXPERT_WEIGHTS = self.EXPERTS_DIR / "image_expert"
 
-        # UML Expert（单一版本，使用qwen3_v3数据集）
         self.UML_EXPERT_WEIGHTS = self.EXPERTS_DIR / "uml_expert"
 
-        # General Expert（单一版本）
         self.GENERAL_EXPERT_WEIGHTS = self.EXPERTS_DIR / "general_expert"
 
-        # ==================== Checkpoint路径 ====================
         self.CHECKPOINTS_DIR = self.PROJECT_ROOT / "checkpoints"
 
-        # LoRA-MoE方法（主要方法）
-        # 所有专家均使用exp4超参数搜索得到的最优配置 (r64, alpha128, dropout0.05)
         self.LORA_MOE_CKPTS = {
             'text': self.CHECKPOINTS_DIR / "lora_moe" / "text_expert",
             'image': self.CHECKPOINTS_DIR / "lora_moe" / "image_expert",
@@ -168,10 +134,8 @@ class PathConfig:
             'general': self.CHECKPOINTS_DIR / "lora_moe" / "general_expert",
         }
 
-        # LoRA-Single方法（对比基线）
         self.LORA_SINGLE_CKPT = self.CHECKPOINTS_DIR / "lora_single" / "unified_expert"
 
-        # P-Tuning v2方法（对比基线）
         self.PTUNING_CKPTS = {
             'text': self.CHECKPOINTS_DIR / "p_tuning" / "text_expert",
             'image': self.CHECKPOINTS_DIR / "p_tuning" / "image_expert",
@@ -179,7 +143,6 @@ class PathConfig:
             'general': self.CHECKPOINTS_DIR / "p_tuning" / "general_expert",
         }
 
-        # Prompt Tuning方法（对比基线）
         self.PROMPT_TUNING_CKPTS = {
             'text': self.CHECKPOINTS_DIR / "prompt_tuning" / "text_expert",
             'image': self.CHECKPOINTS_DIR / "prompt_tuning" / "image_expert",
@@ -187,7 +150,6 @@ class PathConfig:
             'general': self.CHECKPOINTS_DIR / "prompt_tuning" / "general_expert",
         }
 
-        # Full Fine-tuning方法（最强基线）
         self.FULL_FINETUNING_CKPTS = {
             'text': self.CHECKPOINTS_DIR / "full_finetuning" / "text_expert",
             'image': self.CHECKPOINTS_DIR / "full_finetuning" / "image_expert",
@@ -195,8 +157,6 @@ class PathConfig:
             'general': self.CHECKPOINTS_DIR / "full_finetuning" / "general_expert",
         }
 
-        # 专家LoRA权重映射（集中配置）
-        # 指向 checkpoints/lora_moe/ 作为默认加载路径，与 LORA_MOE_CKPTS 保持一致
         self.EXPERT_LORA_PATHS = {
             # Text Expert
             'text': self.LORA_MOE_CKPTS['text'],
@@ -215,15 +175,13 @@ class PathConfig:
             'general_expert': self.LORA_MOE_CKPTS['general'],
         }
 
-        # 兼容旧版路径
         self.TEXT_EXPERT_CKPT = self.LORA_MOE_CKPTS['text']
         self.IMAGE_EXPERT_CKPT = self.LORA_MOE_CKPTS['image']
         self.UML_EXPERT_CKPT = self.LORA_MOE_CKPTS['uml']
 
-        # ==================== 输出路径 ====================
         self.OUTPUTS_DIR = self.PROJECT_ROOT / "outputs"
         self.GENERATED_INSTRUCTIONS_DIR = self.OUTPUTS_DIR / "generated_instructions"
-        self.RECOGNITION_RESULTS_DIR = self.OUTPUTS_DIR / "recognition_results"  # 识别结果输出目录
+        self.RECOGNITION_RESULTS_DIR = self.OUTPUTS_DIR / "recognition_results"
         self.IMAGE_RECOGNITION_DIR = self.RECOGNITION_RESULTS_DIR / "image"
         self.UML_RECOGNITION_DIR = self.RECOGNITION_RESULTS_DIR / "uml"
         self.EVALUATIONS_DIR = self.OUTPUTS_DIR / "evaluations"
@@ -231,22 +189,13 @@ class PathConfig:
         self.COMPARISONS_DIR = self.EVALUATIONS_DIR / "comparisons"
         self.REPORTS_DIR = self.OUTPUTS_DIR / "reports"
 
-        # ==================== 日志路径 ====================
         self.LOGS_DIR = self.PROJECT_ROOT / "logs"
         self.TRAINING_LOGS_DIR = self.LOGS_DIR / "training"
         self.INFERENCE_LOGS_DIR = self.LOGS_DIR / "inference"
         self.PREPROCESSING_LOGS_DIR = self.LOGS_DIR / "preprocessing"
 
     def get_text_model_path(self, version: str = None) -> Path:
-        """
-        获取文本模型路径
-
-        Args:
-            version: 模型版本（当前仅支持 'qwen3_8b'），None则使用默认版本
-
-        Returns:
-            Path: 模型路径
-        """
+        """Return text model path."""
         if version is None:
             model_cfg = get_model_config()
             version = model_cfg.version
@@ -260,15 +209,7 @@ class PathConfig:
         return self.TEXT_MODEL_PATHS[version]
 
     def get_vision_model_path(self, version: str = None) -> Path:
-        """
-        获取视觉模型路径
-
-        Args:
-            version: 模型版本（当前仅支持 'qwen3'），None则使用默认版本
-
-        Returns:
-            Path: 模型路径
-        """
+        """Return vision model path."""
         if version is None:
             vision_cfg = get_vision_model_config()
             version = vision_cfg.version
@@ -282,18 +223,7 @@ class PathConfig:
         return self.VISION_MODEL_PATHS[version]
 
     def get_expert_weight_path(self, expert_name: str, method: str = 'lora_moe') -> Path:
-        """
-        获取专家权重路径
-
-        Args:
-            expert_name: 专家名称（'text', 'image', 'uml', 'general'）
-            method: 微调方法（'lora_moe', 'lora_single', 'p_tuning',
-                    'prompt_tuning', 'full_finetuning'），默认使用 lora_moe
-
-        Returns:
-            Path: 权重路径
-        """
-        # 移除可能的_expert后缀，统一处理
+        """Return expert weight path."""
         base_name = expert_name.replace('_expert', '')
 
         method_map = {
@@ -309,44 +239,37 @@ class PathConfig:
         if method in method_map and base_name in method_map[method]:
             return method_map[method][base_name]
 
-        # 兜底：使用 EXPERT_LORA_PATHS（指向 checkpoints/lora_moe/）
         if base_name in self.EXPERT_LORA_PATHS:
             return self.EXPERT_LORA_PATHS[base_name]
 
         return self.CHECKPOINTS_DIR / 'lora_moe' / f'{base_name}_expert'
 
     def get_checkpoint_path(self, expert_name: str) -> Path:
-        """获取专家训练检查点路径"""
+        """Return checkpoint path."""
         return self.CHECKPOINTS_DIR / f"{expert_name}_training"
 
     def create_directories(self):
-        """创建所有必要的目录"""
+        """Create directories."""
         dirs = [
-            # LoRA和检查点
             self.LORA_WEIGHTS_DIR,
             self.EXPERTS_DIR,
             self.CHECKPOINTS_DIR,
-            # 数据集目录
             self.TEXT_DATASET_DIR,
             self.IMAGE_DATASET_DIR,
             self.UML_DATASET_DIR,
             self.GENERAL_DATASET_DIR,
-            # 中间数据
             self.INTERIM_IMAGE_DIR,
             self.INTERIM_TEXT_DIR,
             self.INTERIM_UML_DIR,
-            # 推理输入
             self.INPUT_TEXT_DIR,
             self.INPUT_IMAGE_DIR,
             self.INPUT_UML_DIR,
-            # 输出
             self.GENERATED_INSTRUCTIONS_DIR,
             self.IMAGE_RECOGNITION_DIR,
             self.UML_RECOGNITION_DIR,
             self.METRICS_DIR,
             self.COMPARISONS_DIR,
             self.REPORTS_DIR,
-            # 日志
             self.TRAINING_LOGS_DIR,
             self.INFERENCE_LOGS_DIR,
             self.PREPROCESSING_LOGS_DIR,
@@ -360,137 +283,109 @@ class PathConfig:
 
 @dataclass
 class LoRAConfig:
-    """LoRA超参数配置"""
+    """Store LoRA adaptation configuration."""
 
-    # LoRA rank (秩)
     rank: int = 64
 
-    # LoRA alpha (缩放因子)
     alpha: int = 128
 
-    # Dropout概率
     dropout: float = 0.05
 
-    # 目标模块（应用LoRA的层）
     target_modules: List[str] = None
 
-    # 任务类型
     task_type: str = "CAUSAL_LM"
 
-    # 是否训练偏置
     bias: str = "none"
 
     def __post_init__(self):
-        """
-        设置默认目标模块
-
-        注意：Qwen3-8B 使用 ["q_proj", "k_proj", "v_proj", "o_proj"]
-        所有Expert统一使用此配置。
-        """
+        """Finalize dataclass initialization."""
         if self.target_modules is None:
-            # Qwen3-8B 标准注意力层命名
             self.target_modules = [
-                "q_proj",  # Query投影层
-                "k_proj",  # Key投影层
-                "v_proj",  # Value投影层
-                "o_proj",  # Output投影层
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
             ]
 
     @classmethod
     def get_conservative_config(cls):
-        """保守配置（较小的rank，适合数据量小的场景）"""
+        """Return conservative config."""
         return cls(rank=64, alpha=128, dropout=0.05)
 
     @classmethod
     def get_aggressive_config(cls):
-        """激进配置（较大的rank，适合数据量充足的场景）"""
+        """Return aggressive config."""
         return cls(rank=16, alpha=32, dropout=0.1)
 
 
 @dataclass
 class TrainingConfig:
-    """训练配置"""
+    """Store shared training configuration."""
 
-    # ==================== 基础配置 ====================
     batch_size: int = 8
     gradient_accumulation_steps: int = 2
     num_epochs: int = 3
     learning_rate: float = 2e-4
 
-    # ==================== 优化器配置 ====================
     optimizer: str = "adamw_torch"
     weight_decay: float = 0.01
     warmup_ratio: float = 0.1
 
-    # ==================== 学习率调度 ====================
     lr_scheduler_type: str = "cosine"
 
-    # ==================== 日志与保存 ====================
     logging_steps: int = 10
     save_steps: int = 100
     save_total_limit: int = 3
 
-    # ==================== 评估配置 ====================
     evaluation_strategy: str = "steps"
     eval_steps: int = 100
 
-    # ==================== 其他配置 ====================
-    fp16: bool = True  # 混合精度训练
+    fp16: bool = True
     max_grad_norm: float = 1.0
     seed: int = 42
-    max_seq_length: int = 2048  # 支持长文本样本（UML和Text数据集包含1000+ tokens的样本）
+    max_seq_length: int = 2048
 
-    # ==================== 数据集划分比例 ====================
-    # 文本数据集（2400条）
     text_train_ratio: float = 0.8
     text_val_ratio: float = 0.1
     text_test_ratio: float = 0.1
 
-    # 图像数据集（1000条）
     image_train_ratio: float = 0.8
     image_val_ratio: float = 0.1
     image_test_ratio: float = 0.1
 
-    # UML数据集（1500条）- 使用标准80:10:10划分
     uml_train_ratio: float = 0.8
     uml_val_ratio: float = 0.1
     uml_test_ratio: float = 0.1
 
 @dataclass
 class TrainingConfig4090:
-    """针对RTX 4090优化的训练配置"""
+    """Store RTX 4090-specific training configuration."""
 
-    # ===== 基础训练参数（4090优化）=====
-    batch_size = 8  # 从4提升到8（4090显存充足）
-    gradient_accumulation_steps = 2  # 从4降到2（保持有效batch=16）
+    batch_size = 8
+    gradient_accumulation_steps = 2
     num_epochs = 3
     learning_rate = 2e-4
     weight_decay = 0.01
     warmup_ratio = 0.1
-    max_seq_length = 2048  # 支持长文本（UML和Text数据集包含长样本）
+    max_seq_length = 2048
 
-    # ===== 4090专属优化 =====
-    use_flash_attention = True  # 启用Flash Attention 2（提速30%）
-    bf16 = True  # 使用BF16（4090支持，比FP16更稳定）
-    tf32 = True  # 启用TF32（4090特有，免费提速）
+    use_flash_attention = True
+    bf16 = True
+    tf32 = True
 
-    # ===== 数据加载优化 =====
-    dataloader_num_workers = 8  # 从2提升到8（充分利用CPU）
+    dataloader_num_workers = 8
     dataloader_pin_memory = True
-    dataloader_prefetch_factor = 4  # 预加载4个batch
+    dataloader_prefetch_factor = 4
 
-    # ===== 梯度优化 =====
-    gradient_checkpointing = False  # 4090显存足够，关闭以提速
+    gradient_checkpointing = False
     max_grad_norm = 1.0
 
-    # ===== 保存策略 =====
     save_strategy = "epoch"
-    save_total_limit = 2  # 只保留最好的2个检查点（节省空间）
+    save_total_limit = 2
     evaluation_strategy = "epoch"
-    logging_steps = 5  # 从10降到5（更频繁的日志）
+    logging_steps = 5
 
-    # ===== 优化器配置 =====
-    optimizer_type = "adamw_torch_fused"  # 融合优化器（4090提速15%）
+    optimizer_type = "adamw_torch_fused"
     adam_beta1 = 0.9
     adam_beta2 = 0.999
     adam_epsilon = 1e-8
@@ -498,133 +393,91 @@ class TrainingConfig4090:
 
 @dataclass
 class PTuningV2Config:
-    """P-Tuning v2配置（用于对比实验）"""
+    """Store P-Tuning v2 configuration."""
 
-    # Prefix长度（virtual tokens数量）
-    num_virtual_tokens: int = 20  # 根据论文推荐，适合中等任务
+    num_virtual_tokens: int = 20
 
-    # Encoder配置（针对24GB显存优化）
-    encoder_hidden_size: int = 64  # 从128降至64，显存减半，质量影响<5%
-    encoder_num_layers: int = 2  # MLP encoder的层数
-    encoder_dropout: float = 0.1  # Dropout率
+    encoder_hidden_size: int = 64
+    encoder_num_layers: int = 2
+    encoder_dropout: float = 0.1
 
-    # 任务类型
     task_type: str = "CAUSAL_LM"
 
-    # Prefix投影（是否使用MLP重参数化）
     prefix_projection: bool = True
 
     @classmethod
     def get_default_config(cls):
-        """默认配置（显存优化版）"""
+        """Return default config."""
         return cls(num_virtual_tokens=20, encoder_hidden_size=64)
 
     @classmethod
     def get_large_config(cls):
-        """更大的配置（适合复杂任务且显存充足时）"""
+        """Return large config."""
         return cls(num_virtual_tokens=30, encoder_hidden_size=128)
 
     @classmethod
     def get_emergency_config(cls):
-        """紧急显存优化配置（严重OOM时使用，质量损失10-15%）"""
+        """Return emergency config."""
         return cls(num_virtual_tokens=15, encoder_hidden_size=32)
 
 
 @dataclass
 class PromptTuningConfig:
-    """Prompt Tuning配置（用于对比实验）"""
+    """Store prompt-tuning configuration."""
 
-    # Soft prompt长度（virtual tokens数量）
-    num_virtual_tokens: int = 10  # 更轻量的配置
+    num_virtual_tokens: int = 10
 
-    # Prompt初始化方式
-    prompt_tuning_init: str = "RANDOM"  # RANDOM或TEXT
-    prompt_tuning_init_text: Optional[str] = None  # 如果使用TEXT初始化
+    prompt_tuning_init: str = "RANDOM"
+    prompt_tuning_init_text: Optional[str] = None
 
-    # 任务类型
     task_type: str = "CAUSAL_LM"
 
-    # Token嵌入维度（自动从模型获取）
     token_dim: Optional[int] = None
 
     @classmethod
     def get_default_config(cls):
-        """默认配置"""
+        """Return default config."""
         return cls(num_virtual_tokens=10, prompt_tuning_init="RANDOM")
 
     @classmethod
     def get_large_config(cls):
-        """更大的配置"""
+        """Return large config."""
         return cls(num_virtual_tokens=20, prompt_tuning_init="RANDOM")
 
 
 @dataclass
 class FullFineTuningConfig:
-    """全参数微调配置（用于对比实验）
+    """Store full-finetuning configuration."""
 
-    保守高质量策略，优先训练质量和稳定性，适配RTX 4090 24GB显存。
-
-    策略设计（基于实际样本分析）：
-    - LoRA Rank: 16（高质量配置，损失仅5-10%）
-    - LoRA Alpha: 32（标准2倍rank配置）
-    - Target Modules: 仅attention层（节省40%显存）
-    - Max Seq Length: 2048（覆盖Text长样本+UML中样本）
-    - Batch Size: 1（最保守配置）
-    - Gradient Accumulation: 16（有效batch=16，稳定训练）
-    - Gradient Checkpointing: 启用（节省约30%显存）
-    - 4bit量化: 启用（基础模型约4-5GB）
-    - 内存碎片优化: 启用expandable_segments
-
-    样本覆盖率分析（基于实际数据集统计）：
-    - Text: 约90%完整（短样本~500 tokens全覆盖，长样本~3000 tokens部分截断）
-    - Image: 100%完整（最长约500 tokens）
-    - UML: 约70%完整（短样本~600 tokens全覆盖，超长样本~7000 tokens严重截断）
-    - General: 约85%完整（混合数据集）
-
-    预期显存占用：15-18GB（安全边界，留5-6GB余量）
-    训练质量：相对理想配置损失5-10%（非常好）
-
-    注意：UML超长样本（7000 tokens）无法在24GB显存上完整训练，
-         这是硬件物理限制，需要接受截断。如果发生OOM，
-         可降级使用get_memory_efficient_config()。
-    """
-
-    # 使用高rank LoRA（保守高质量配置）
     use_high_rank_lora: bool = True
-    lora_rank: int = 64  # exp4搜索最优值（与lora_moe保持一致）
-    lora_alpha: int = 128  # 2倍rank
+    lora_rank: int = 64
+    lora_alpha: int = 128
     lora_dropout: float = 0.05
 
-    # 目标模块（仅attention层以节省显存）
     target_modules: List[str] = None
 
-    # 训练配置（保守配置）
-    learning_rate: float = 1e-4  # 比LoRA更小的学习率
-    num_epochs: int = 3  # 适中的epochs
+    learning_rate: float = 1e-4
+    num_epochs: int = 3
     weight_decay: float = 0.01
     warmup_ratio: float = 0.1
 
-    # 梯度裁剪（防止梯度爆炸）
     max_grad_norm: float = 0.5
 
-    # 批次大小（保守配置）
-    batch_size: int = 1  # 最保守batch size
-    gradient_accumulation_steps: int = 16  # 有效batch=16
+    batch_size: int = 1
+    gradient_accumulation_steps: int = 16
 
-    # 序列长度（保守高质量配置）
-    max_seq_length: int = 2048  # 覆盖90% Text + 70% UML
+    max_seq_length: int = 2048
 
     def __post_init__(self):
-        """初始化target_modules"""
+        """Finalize dataclass initialization."""
         if self.target_modules is None:
-            # 仅覆盖注意力层（移除FFN以节省显存）
             self.target_modules = [
-                "q_proj", "k_proj", "v_proj", "o_proj",  # 注意力层
+                "q_proj", "k_proj", "v_proj", "o_proj",
             ]
 
     @classmethod
     def get_default_config(cls):
-        """默认配置（保守高质量策略）"""
+        """Return default config."""
         return cls(
             lora_rank=64,
             lora_alpha=128,
@@ -635,13 +488,7 @@ class FullFineTuningConfig:
 
     @classmethod
     def get_memory_efficient_config(cls):
-        """显存高效配置（如果发生OOM时降级使用）
-
-        相比默认配置：
-        - rank保持16（质量优先）
-        - max_seq_length降至1536（覆盖Text短样本+部分长样本）
-        - 显存占用降低约10-15%
-        """
+        """Return memory efficient config."""
         return cls(
             lora_rank=64,
             lora_alpha=128,
@@ -652,7 +499,7 @@ class FullFineTuningConfig:
 
     @classmethod
     def get_balanced_config(cls):
-        """平衡配置（质量与覆盖率平衡）"""
+        """Return balanced config."""
         return cls(
             lora_rank=12,
             lora_alpha=24,
@@ -663,10 +510,7 @@ class FullFineTuningConfig:
 
     @classmethod
     def get_max_quality_config(cls):
-        """最高质量配置（需要较大显存）
-
-        警告：可能OOM，仅在有充足显存余量时使用
-        """
+        """Return max quality config."""
         return cls(
             lora_rank=32,
             lora_alpha=64,
@@ -677,9 +521,8 @@ class FullFineTuningConfig:
 
 @dataclass
 class InferenceConfig:
-    """专家推理生成参数配置 - 统一管理所有专家的推理生成参数"""
+    """Store inference configuration."""
 
-    # 温度参数（0.3适合指令生成：稳定输出同时保留必要多样性）
     temperature: float = 0.3
 
     # Nucleus sampling
@@ -688,32 +531,29 @@ class InferenceConfig:
     # Top-k sampling
     top_k: int = 40
 
-    # 重复惩罚
     repetition_penalty: float = 1.15
 
-    # 最大生成token数（三段式指令通常不超过200 token，512为安全上限）
     max_new_tokens: int = 512
 
 
 @dataclass
 class DeviceConfig:
-    """设备配置"""
+    """Store device and GPU-tier configuration."""
 
     device: Optional[str] = None
     gpu_name: Optional[str] = None
     gpu_memory_gb: Optional[float] = None
     is_high_end_gpu: bool = False
-    enable_streaming: bool = False  # 是否启用流式输出（默认关闭）
+    enable_streaming: bool = False
 
     def __post_init__(self):
-        """自动检测设备和GPU型号"""
+        """Finalize dataclass initialization."""
         if self.device is None:
             if torch.cuda.is_available():
                 self.device = "cuda"
                 self.gpu_name = torch.cuda.get_device_name(0)
                 self.gpu_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
 
-                # 检测是否为高端GPU（支持高效fp16推理）
                 self.is_high_end_gpu = self._detect_high_end_gpu()
 
                 print(f"[设备] 使用GPU: {self.gpu_name}")
@@ -724,54 +564,33 @@ class DeviceConfig:
                 print("[设备] 使用CPU")
 
     def _detect_high_end_gpu(self) -> bool:
-        """
-        检测是否为高端GPU
-
-        高端GPU定义（支持高效fp16，显存>=20GB）：
-        - RTX 4090 (24GB)
-        - RTX 4080 (16GB)
-        - A100 (40GB/80GB)
-        - H100 (80GB)
-        - V100 (16GB/32GB)
-        - A6000 (48GB)
-
-        Returns:
-            bool: 是否为高端GPU
-        """
+        """Detect high end GPU."""
         if not self.gpu_name:
             return False
 
         gpu_lower = self.gpu_name.lower()
 
-        # 高端GPU列表
         high_end_keywords = [
-            '4090', '4080',  # RTX 40系高端
-            'a100', 'h100', 'a6000',  # 数据中心GPU
-            'v100',  # 上一代数据中心GPU
+            '4090', '4080',
+            'a100', 'h100', 'a6000',
+            'v100',
         ]
 
-        # 检查关键词
         for keyword in high_end_keywords:
             if keyword in gpu_lower:
                 return True
 
-        # 备用判断：显存>=20GB也视为高端GPU
         if self.gpu_memory_gb and self.gpu_memory_gb >= 20.0:
             return True
 
         return False
 
     def get_device(self) -> str:
-        """获取设备名称"""
+        """Return device."""
         return self.device
 
     def get_gpu_info(self) -> dict:
-        """
-        获取GPU详细信息
-
-        Returns:
-            dict: GPU信息
-        """
+        """Return GPU info."""
         return {
             'device': self.device,
             'gpu_name': self.gpu_name,
@@ -780,50 +599,26 @@ class DeviceConfig:
         }
 
     def should_use_quantization(self) -> bool:
-        """
-        判断是否应该使用量化
-
-        Returns:
-            bool: True表示使用4bit量化，False表示使用fp16
-        """
-        # 高端GPU不使用量化（fp16即可）
-        # 其他GPU使用4bit量化（节省显存）
+        """Return whether quantization should be enabled."""
         return not self.is_high_end_gpu
 
     def get_gpu_tier(self) -> str:
-        """
-        获取GPU性能分级
-
-        Returns:
-            str: GPU性能级别 ('low' / 'mid' / 'high')
-        """
+        """Return GPU tier."""
         if not torch.cuda.is_available():
             return 'low'
 
-        # 高端GPU (>16GB 或在高端列表中)
         if self.is_high_end_gpu:
             return 'high'
 
-        # 中端GPU (7.5-16GB, 包括8GB显卡如RTX 4060)
         if self.gpu_memory_gb and 7.5 <= self.gpu_memory_gb <= 16.0:
             return 'mid'
 
-        # 低端GPU (<7.5GB)
         return 'low'
 
     def get_generation_config(self, task_type: str = 'uml') -> dict:
-        """
-        根据GPU性能获取生成配置参数
-
-        Args:
-            task_type: 任务类型 ('uml' 或 'image')
-
-        Returns:
-            dict: 生成配置参数
-        """
+        """Return generation config."""
         tier = self.get_gpu_tier()
 
-        # UML识别生成参数配置
         uml_configs = {
             'high': {
                 'max_new_tokens': 4096,
@@ -848,7 +643,6 @@ class DeviceConfig:
             }
         }
 
-        # 图像识别生成参数配置
         image_configs = {
             'high': {
                 'max_new_tokens': 512,
@@ -880,21 +674,20 @@ class DeviceConfig:
         else:
             return uml_configs.get(tier, uml_configs['mid'])
 
-# ==================== 全局配置实例 ====================
 _path_config = None
 _lora_config = None
 _training_config = None
 _inference_config = None
 _device_config = None
-_model_config = None  # 文本模型选择
-_vision_model_config = None  # 视觉模型选择
-_ptuning_config = None  # P-Tuning v2配置
-_prompt_tuning_config = None  # Prompt Tuning配置
-_full_finetuning_config = None  # Full Fine-tuning配置
+_model_config = None
+_vision_model_config = None
+_ptuning_config = None
+_prompt_tuning_config = None
+_full_finetuning_config = None
 
 
 def get_path_config() -> PathConfig:
-    """获取路径配置单例"""
+    """Return path config."""
     global _path_config
     if _path_config is None:
         _path_config = PathConfig()
@@ -902,12 +695,7 @@ def get_path_config() -> PathConfig:
 
 
 def get_lora_config(config_type: str = "conservative") -> LoRAConfig:
-    """
-    获取LoRA配置
-
-    Args:
-        config_type: 'conservative' 或 'aggressive'
-    """
+    """Return LoRA config."""
     global _lora_config
     if _lora_config is None:
         if config_type == "aggressive":
@@ -918,7 +706,7 @@ def get_lora_config(config_type: str = "conservative") -> LoRAConfig:
 
 
 def get_training_config() -> TrainingConfig:
-    """获取训练配置单例"""
+    """Return training config."""
     global _training_config
     if _training_config is None:
         _training_config = TrainingConfig()
@@ -926,12 +714,7 @@ def get_training_config() -> TrainingConfig:
 
 
 def get_ptuning_config(config_type: str = "default") -> PTuningV2Config:
-    """
-    获取P-Tuning v2配置
-
-    Args:
-        config_type: 'default' 或 'large'
-    """
+    """Return ptuning config."""
     global _ptuning_config
     if _ptuning_config is None:
         if config_type == "large":
@@ -942,12 +725,7 @@ def get_ptuning_config(config_type: str = "default") -> PTuningV2Config:
 
 
 def get_prompt_tuning_config(config_type: str = "default") -> PromptTuningConfig:
-    """
-    获取Prompt Tuning配置
-
-    Args:
-        config_type: 'default' 或 'large'
-    """
+    """Return prompt tuning config."""
     global _prompt_tuning_config
     if _prompt_tuning_config is None:
         if config_type == "large":
@@ -958,14 +736,7 @@ def get_prompt_tuning_config(config_type: str = "default") -> PromptTuningConfig
 
 
 def get_full_finetuning_config(config_type: str = "default") -> FullFineTuningConfig:
-    """
-    获取Full Fine-tuning配置单例
-
-    Args:
-        config_type: 配置类型
-            - 'default': 默认配置（rank=64，接近全参数微调）
-            - 'memory_efficient': 显存优化配置（rank=32，显存占用更低）
-    """
+    """Return full finetuning config."""
     global _full_finetuning_config
     if _full_finetuning_config is None:
         if config_type == "memory_efficient":
@@ -976,7 +747,7 @@ def get_full_finetuning_config(config_type: str = "default") -> FullFineTuningCo
 
 
 def get_inference_config() -> InferenceConfig:
-    """获取推理生成参数配置单例"""
+    """Return inference config."""
     global _inference_config
     if _inference_config is None:
         _inference_config = InferenceConfig()
@@ -984,7 +755,7 @@ def get_inference_config() -> InferenceConfig:
 
 
 def get_device_config() -> DeviceConfig:
-    """获取设备配置单例"""
+    """Return device config."""
     global _device_config
     if _device_config is None:
         _device_config = DeviceConfig()
@@ -992,12 +763,7 @@ def get_device_config() -> DeviceConfig:
 
 
 def set_streaming_mode(enable: bool):
-    """
-    设置流式输出模式
-
-    Args:
-        enable: True启用流式输出，False禁用
-    """
+    """Set streaming mode."""
     global _device_config
     if _device_config is None:
         _device_config = DeviceConfig()
@@ -1006,12 +772,7 @@ def set_streaming_mode(enable: bool):
 
 
 def get_model_config(version: str = None) -> ModelConfig:
-    """
-    获取文本模型配置（始终返回Qwen3-8B配置）
-
-    Args:
-        version: 保留参数以维持接口兼容性，实际忽略（固定使用qwen3_8b）
-    """
+    """Return model config."""
     global _model_config
     if _model_config is None:
         _model_config = ModelConfig()
@@ -1022,12 +783,7 @@ def get_model_config(version: str = None) -> ModelConfig:
 
 
 def get_vision_model_config(version: str = None) -> VisionModelConfig:
-    """
-    获取视觉模型配置（始终返回Qwen3-VL-8B配置）
-
-    Args:
-        version: 保留参数以维持接口兼容性，实际忽略（固定使用qwen3）
-    """
+    """Return vision model config."""
     global _vision_model_config
     if _vision_model_config is None:
         _vision_model_config = VisionModelConfig()
@@ -1035,12 +791,7 @@ def get_vision_model_config(version: str = None) -> VisionModelConfig:
 
 
 def set_vision_model_version(version: str):
-    """
-    切换视觉模型版本
-
-    Args:
-        version: 当前仅支持 'qwen3'
-    """
+    """Set the vision-model version."""
     global _vision_model_config
     _vision_model_config = VisionModelConfig(version=version)
     print(f"✓ 已切换视觉模型版本: {version}")
@@ -1048,12 +799,7 @@ def set_vision_model_version(version: str):
 
 
 def validate_config() -> tuple:
-    """
-    验证所有配置
-
-    Returns:
-        tuple: (是否通过验证, 错误/警告信息列表)
-    """
+    """Validate config."""
     messages = []
     is_valid = True
 
@@ -1061,12 +807,10 @@ def validate_config() -> tuple:
     print("配置验证中...")
     print("=" * 60)
 
-    # 1. 验证路径
     path_cfg = get_path_config()
 
     print("\n[1/5] 检查基础模型路径...")
 
-    # 检查默认文本模型（Qwen3-8B）
     qwen3_8b_path = path_cfg.QWEN3_8B_PATH
     if not qwen3_8b_path.exists():
         messages.append(f"❌ Qwen3-8B模型未找到: {qwen3_8b_path}")
@@ -1074,7 +818,6 @@ def validate_config() -> tuple:
     else:
         print(f"✓ Qwen3-8B模型路径正确")
 
-    # 检查视觉模型（Qwen3-VL-8B）
     vision_path = path_cfg.get_vision_model_path('qwen3')
     if not vision_path.exists():
         messages.append(f"⚠ Qwen3-VL-8B 模型未找到: {vision_path}")
@@ -1082,7 +825,6 @@ def validate_config() -> tuple:
     else:
         print(f"✓ Qwen3-VL-8B 视觉模型路径正确")
 
-    # 2. 验证数据集
     print("\n[2/5] 检查数据集...")
     if path_cfg.IMAGE_DATASET_CSV.exists():
         print(f"✓ 图像数据集存在")
@@ -1095,7 +837,6 @@ def validate_config() -> tuple:
     if not path_cfg.UML_DATASET_CSV.exists():
         messages.append(f"⚠ UML数据集未找到（可能尚未创建）: {path_cfg.UML_DATASET_CSV}")
 
-    # 3. 验证CUDA环境
     print("\n[3/5] 检查CUDA环境...")
     device_cfg = get_device_config()
 
@@ -1104,7 +845,6 @@ def validate_config() -> tuple:
     else:
         print(f"✓ CUDA可用")
 
-    # 4. 验证必要依赖
     print("\n[4/5] 检查依赖库...")
     required_packages = {
         'transformers': '模型加载',
@@ -1121,7 +861,6 @@ def validate_config() -> tuple:
             messages.append(f"❌ 缺少依赖: {package} - {description}")
             is_valid = False
 
-    # 5. 创建必要目录
     print("\n[5/5] 创建必要目录...")
     try:
         path_cfg.create_directories()
@@ -1129,7 +868,6 @@ def validate_config() -> tuple:
         messages.append(f"❌ 创建目录失败: {str(e)}")
         is_valid = False
 
-    # 输出验证结果
     print("\n" + "=" * 60)
     print("验证结果")
     print("=" * 60)

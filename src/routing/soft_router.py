@@ -1,16 +1,4 @@
-"""
-Soft Router - 基于PEFT加权融合的软路由实现
-
-功能：
-  - 加载多个LoRA adapter到同一基础模型
-  - 使用 add_weighted_adapter() 进行参数级融合
-  - 支持类型感知的soft权重构造（General域）
-  - 融合后单次前向推理，显存与单专家相同
-
-依赖：peft >= 0.6.0（add_weighted_adapter 支持）
-
-Date: 2026-03-04
-"""
+"""Implement weighted LoRA-adapter routing for routing experiments."""
 
 import torch
 import json
@@ -29,20 +17,13 @@ logger = get_logger('routing.soft_router')
 
 @dataclass
 class SoftRoutingConfig:
-    """软路由配置"""
-    # 融合比例：specialized专家的权重（general专家权重 = 1 - alpha）
+    """Store soft-routing configuration."""
     alpha: float = 0.5
-    # 融合模式
     combination_type: str = "linear"
 
 
 def check_peft_version():
-    """
-    检查PEFT版本是否支持 add_weighted_adapter
-
-    Returns:
-        bool: 是否满足版本要求
-    """
+    """Check peft version."""
     try:
         import peft
         version = peft.__version__
@@ -59,15 +40,7 @@ def check_peft_version():
 
 
 def _clean_adapter_config(adapter_path: Path) -> Path:
-    """
-    清理adapter配置中不兼容的参数（与language_model.py逻辑一致）
-
-    Args:
-        adapter_path: 原始adapter路径
-
-    Returns:
-        Path: 清理后的路径（可能是临时目录）
-    """
+    """Clean adapter config."""
     config_file = adapter_path / "adapter_config.json"
     if not config_file.exists():
         return adapter_path
@@ -101,23 +74,8 @@ def _clean_adapter_config(adapter_path: Path) -> Path:
 
 
 class SoftRouter:
-    """
-    软路由器 - 使用PEFT加权融合多个LoRA adapter
+    """Blend LoRA adapters for soft-routing experiments."""
 
-    核心机制：
-    1. 将多个专家的LoRA adapter加载到同一基础模型
-    2. 使用 add_weighted_adapter() 按门控权重线性融合为merged adapter
-    3. 融合后执行单次前向推理，显存开销与单专家完全相同
-
-    使用方式：
-        router = SoftRouter(base_model, tokenizer, adapter_paths)
-        router.load_all_adapters()
-        router.merge_adapters(weights={"text_expert": 0.5, "general_expert": 0.5})
-        output = router.generate(prompt)
-        router.cleanup()
-    """
-
-    # 专家名称列表（固定顺序）
     EXPERT_NAMES = ['text_expert', 'image_expert', 'uml_expert', 'general_expert']
 
     def __init__(
@@ -126,37 +84,23 @@ class SoftRouter:
         tokenizer,
         adapter_paths: Dict[str, str],
     ):
-        """
-        初始化软路由器
-
-        Args:
-            base_model: 已加载的基础模型（AutoModelForCausalLM）
-            tokenizer: 分词器
-            adapter_paths: 专家名称到adapter路径的映射
-                例如: {"text_expert": "/path/to/text_expert", ...}
-        """
+        """Initialize the instance."""
         self.base_model = base_model
         self.tokenizer = tokenizer
         self.adapter_paths = adapter_paths
         self.peft_model = None
-        self._temp_dirs = []  # 追踪临时目录以便清理
+        self._temp_dirs = []
         self._adapters_loaded = False
         self._current_merged_name = None
 
     def load_all_adapters(self) -> bool:
-        """
-        加载所有专家adapter到同一模型
-
-        Returns:
-            bool: 是否全部加载成功
-        """
+        """Load all adapters."""
         try:
             adapter_names = list(self.adapter_paths.keys())
             if not adapter_names:
                 logger.error("没有可用的adapter路径")
                 return False
 
-            # 加载第一个adapter（创建PeftModel）
             first_name = adapter_names[0]
             first_path = Path(self.adapter_paths[first_name])
             cleaned_path = _clean_adapter_config(first_path)
@@ -171,7 +115,6 @@ class SoftRouter:
                 is_trainable=False,
             )
 
-            # 加载后续adapter
             for name in adapter_names[1:]:
                 adapter_path = Path(self.adapter_paths[name])
                 cleaned_path = _clean_adapter_config(adapter_path)
@@ -195,23 +138,12 @@ class SoftRouter:
             return False
 
     def merge_adapters(self, weights: Dict[str, float], merged_name: str = "merged") -> bool:
-        """
-        按指定权重融合adapter
-
-        Args:
-            weights: 专家名称到权重的映射
-                例如: {"text_expert": 0.5, "general_expert": 0.5}
-            merged_name: 融合后adapter的名称
-
-        Returns:
-            bool: 是否融合成功
-        """
+        """Merge weighted LoRA adapters."""
         if not self._adapters_loaded:
             logger.error("adapter未加载，请先调用 load_all_adapters()")
             return False
 
         try:
-            # 如果已有之前的merged adapter，先删除
             if self._current_merged_name is not None:
                 try:
                     self.peft_model.delete_adapter(self._current_merged_name)
@@ -242,15 +174,7 @@ class SoftRouter:
             return False
 
     def set_single_adapter(self, adapter_name: str) -> bool:
-        """
-        切换到单个adapter（不融合）
-
-        Args:
-            adapter_name: adapter名称
-
-        Returns:
-            bool: 是否切换成功
-        """
+        """Activate one LoRA adapter."""
         if not self._adapters_loaded:
             logger.error("adapter未加载")
             return False
@@ -264,7 +188,7 @@ class SoftRouter:
             return False
 
     def cleanup(self):
-        """清理临时目录和资源"""
+        """Release temporary resources."""
         for temp_dir in self._temp_dirs:
             try:
                 if temp_dir.exists():
@@ -273,12 +197,11 @@ class SoftRouter:
                 logger.warning(f"清理临时目录失败: {e}")
         self._temp_dirs.clear()
 
-        # 注意：不清理peft_model，由调用方负责模型生命周期
         self._current_merged_name = None
         self._adapters_loaded = False
 
     def __del__(self):
-        """析构时清理临时目录"""
+        """Release owned resources."""
         try:
             self.cleanup()
         except Exception:
@@ -289,21 +212,7 @@ def build_type_aware_weights(
     data_type: str,
     alpha: float = 0.5,
 ) -> Dict[str, float]:
-    """
-    根据General样本的数据来源类型构造soft权重
-
-    策略：
-    - general(text源) -> text_expert * alpha + general_expert * (1-alpha)
-    - general(image源) -> image_expert * alpha + general_expert * (1-alpha)
-    - general(uml源) -> uml_expert * alpha + general_expert * (1-alpha)
-
-    Args:
-        data_type: 样本来源类型（"text" / "image" / "uml"）
-        alpha: specialized专家的权重
-
-    Returns:
-        Dict[str, float]: 专家名称到权重的映射
-    """
+    """Build type aware weights."""
     type_to_expert = {
         'text': 'text_expert',
         'image': 'image_expert',
@@ -312,7 +221,6 @@ def build_type_aware_weights(
 
     specialized_expert = type_to_expert.get(data_type)
     if specialized_expert is None:
-        # 未知类型，仅使用general expert
         logger.warning(f"未知数据类型: {data_type}，使用纯general权重")
         return {'general_expert': 1.0}
 
@@ -325,15 +233,7 @@ def build_type_aware_weights(
 def group_general_samples_by_type(
     test_data: List[Dict],
 ) -> Dict[str, List[int]]:
-    """
-    将General测试集样本按data_type分组
-
-    Args:
-        test_data: General测试集样本列表
-
-    Returns:
-        Dict[str, List[int]]: data_type -> 样本索引列表
-    """
+    """Group general samples by input type."""
     groups = {}
     for idx, sample in enumerate(test_data):
         dt = sample.get('data_type', 'unknown')

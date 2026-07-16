@@ -1,25 +1,10 @@
-"""
-Enhanced Metrics Module - Comprehensive Evaluation Metrics
-增强的评估指标模块
-
-功能:
-  - 生成质量指标: BLEU, ROUGE, METEOR, BERTScore
-  - 指令格式指标: Definition/Emphasis/Avoid完整性和格式分数
-  - 统计指标: 长度统计、专家使用统计
-  - 综合评估报告生成
-
-环境要求: qwen_text (评估通常在此环境进行)
-
-作者: Evaluation System
-日期: 2025-02-06
-"""
+"""Calculate generation, format, and binary evaluation metrics."""
 
 import re
 from typing import Dict, List, Tuple, Optional, Any
 from collections import defaultdict
 import warnings
 
-# 忽略BERTScore的警告
 warnings.filterwarnings('ignore')
 
 from src.utils.logger import get_logger
@@ -28,25 +13,18 @@ logger = get_logger('metrics.enhanced')
 
 
 class EvaluationThresholds:
-    """评估阈值配置类"""
+    """Store metric decision thresholds."""
 
-    # 语义相似度阈值
-    # ROUGE_L取0.4以契合各方法实际分布区间（均值约0.34-0.57）；
-    # 取0.5会对中间段方法过度裁切，导致F1值两极分化。
-    # BERTSCORE_F1取0.82低于典型分布中心（0.83-0.88），
-    # 既能让强方法通过，又能过滤弱方法，避免阈值遮蔽效应。
-    ROUGE_L_THRESHOLD = 0.4   # ROUGE-L阈值（从0.5下调）
-    BERTSCORE_F1_THRESHOLD = 0.82  # BERTScore F1阈值（从0.85下调）
+    ROUGE_L_THRESHOLD = 0.4
+    BERTSCORE_F1_THRESHOLD = 0.82
 
-    # 组合逻辑
-    USE_AND_LOGIC = True  # True=AND逻辑(两个都需满足), False=OR逻辑(满足一个即可)
+    USE_AND_LOGIC = True
 
-    # 格式分数阈值
-    FORMAT_SCORE_THRESHOLD = 1.0  # 格式分数阈值(0-1)，1.0表示完全正确
+    FORMAT_SCORE_THRESHOLD = 1.0
 
     @classmethod
     def get_config(cls) -> dict:
-        """获取当前配置"""
+        """Return config."""
         return {
             'rouge_l_threshold': cls.ROUGE_L_THRESHOLD,
             'bertscore_f1_threshold': cls.BERTSCORE_F1_THRESHOLD,
@@ -57,7 +35,7 @@ class EvaluationThresholds:
     @classmethod
     def update_config(cls, rouge_l: float = None, bertscore_f1: float = None,
                      use_and: bool = None, format_score: float = None):
-        """更新配置"""
+        """Update config."""
         if rouge_l is not None:
             cls.ROUGE_L_THRESHOLD = rouge_l
         if bertscore_f1 is not None:
@@ -69,22 +47,12 @@ class EvaluationThresholds:
 
 
 class EnhancedMetrics:
-    """
-    增强的评估指标系统
-
-    包含生成质量、格式检查、统计分析三大类指标
-    """
+    """Calculate generation and quality metrics."""
 
     def __init__(self, use_bertscore: bool = True):
-        """
-        初始化评估指标
-
-        Args:
-            use_bertscore: 是否使用BERTScore(默认开启，评估语义相似度)
-        """
+        """Initialize the instance."""
         self.use_bertscore = use_bertscore
 
-        # 延迟导入evaluate库,避免环境兼容问题
         self.bleu_metric = None
         self.rouge_metric = None
         self.meteor_metric = None
@@ -95,12 +63,7 @@ class EnhancedMetrics:
             logger.info("BERTScore已启用（默认）- 用于评估生成指令的语义相似度")
 
     def cleanup(self):
-        """
-        释放所有评估指标模型占用的GPU显存。
-
-        在完成评估后调用此方法，确保BERTScore等模型从显存中卸载，
-        避免与后续模型加载发生CUDA OOM冲突。
-        """
+        """Release temporary resources."""
         import gc
         for attr in ('bertscore_metric', 'bleu_metric', 'rouge_metric', 'meteor_metric'):
             obj = getattr(self, attr, None)
@@ -120,12 +83,11 @@ class EnhancedMetrics:
             pass
 
     def _lazy_load_metrics(self):
-        """延迟加载评估指标(避免import错误)"""
+        """Lazily load metric implementations."""
         if self.bleu_metric is None:
             try:
                 from evaluate import load
 
-                # 预先下载NLTK数据(METEOR依赖)
                 self._ensure_nltk_data()
 
                 logger.info("加载BLEU指标...")
@@ -153,14 +115,7 @@ class EnhancedMetrics:
                 raise
 
     def _ensure_nltk_data(self):
-        """
-        确保NLTK数据已下载(METEOR依赖)
-
-        METEOR需要的NLTK数据包:
-        - wordnet: 词汇数据库
-        - punkt: 句子分词器
-        - omw-1.4: 开放多语言词网
-        """
+        """Ensure required NLTK resources are available."""
         try:
             import nltk
             from nltk.data import find
@@ -200,16 +155,7 @@ class EnhancedMetrics:
         predictions: List[str],
         references: List[str]
     ) -> Dict[str, float]:
-        """
-        计算生成质量指标
-
-        Args:
-            predictions: 生成的指令列表
-            references: 参考指令列表
-
-        Returns:
-            dict: 包含BLEU, ROUGE, METEOR, BERTScore的指标字典
-        """
+        """Calculate generation quality."""
         self._lazy_load_metrics()
 
         if len(predictions) != len(references):
@@ -254,7 +200,6 @@ class EnhancedMetrics:
             logger.info("开始计算METEOR指标...")
             logger.info(f"METEOR计算中 - 样本数: {len(predictions)}, 请耐心等待...")
 
-            # METEOR计算可能较慢,添加详细日志
             meteor_result = self.meteor_metric.compute(
                 predictions=predictions,
                 references=references
@@ -278,11 +223,9 @@ class EnhancedMetrics:
                     references=references,
                     lang='en'
                 )
-                # 取平均值
                 results['bertscore_precision'] = sum(bertscore_result['precision']) / len(predictions)
                 results['bertscore_recall'] = sum(bertscore_result['recall']) / len(predictions)
                 results['bertscore_f1'] = sum(bertscore_result['f1']) / len(predictions)
-                # 保留 per-sample 列表，供 calculate_binary_classification_metrics 复用，避免重复计算
                 results['bertscore_f1_scores'] = list(bertscore_result['f1'])
                 logger.info(f"BERTScore计算完成 - F1: {results['bertscore_f1']:.4f}")
             except Exception as e:
@@ -299,21 +242,7 @@ class EnhancedMetrics:
         self,
         instructions: List[str]
     ) -> Dict[str, Any]:
-        """
-        计算指令格式指标(重新设计)
-
-        新的格式要求:
-        - Definition必须有实际内容(不能只是"-")
-        - Emphasis/Avoid可以是内容或显式"-"
-        - 三段式完整性检查
-        - 格式分数(0-1)
-
-        Args:
-            instructions: 指令列表
-
-        Returns:
-            dict: 格式指标字典
-        """
+        """Calculate format metrics."""
         logger.info(f"计算格式指标 - 样本数: {len(instructions)}")
 
         format_results = []
@@ -322,7 +251,6 @@ class EnhancedMetrics:
             result = self._check_single_instruction_format(instruction)
             format_results.append(result)
 
-        # 统计汇总
         total = len(format_results)
 
         summary = {
@@ -330,23 +258,18 @@ class EnhancedMetrics:
             'valid_count': sum(1 for r in format_results if r['is_valid']),
             'valid_rate': sum(1 for r in format_results if r['is_valid']) / total if total > 0 else 0,
 
-            # Definition指标
             'definition_present': sum(1 for r in format_results if r['has_definition']) / total if total > 0 else 0,
             'definition_has_content': sum(1 for r in format_results if r['definition_has_content']) / total if total > 0 else 0,
             'definition_in_this_task': sum(1 for r in format_results if r['definition_starts_with_in_this_task']) / total if total > 0 else 0,
 
-            # Emphasis指标
             'emphasis_present': sum(1 for r in format_results if r['has_emphasis']) / total if total > 0 else 0,
             'emphasis_valid': sum(1 for r in format_results if r['emphasis_is_valid']) / total if total > 0 else 0,
 
-            # Avoid指标
             'avoid_present': sum(1 for r in format_results if r['has_avoid']) / total if total > 0 else 0,
             'avoid_valid': sum(1 for r in format_results if r['avoid_is_valid']) / total if total > 0 else 0,
 
-            # 格式分数(0-1)
             'avg_format_score': sum(r['format_score'] for r in format_results) / total if total > 0 else 0,
 
-            # 详细结果
             'detailed_results': format_results
         }
 
@@ -356,15 +279,7 @@ class EnhancedMetrics:
         return summary
 
     def _check_single_instruction_format(self, instruction: str) -> Dict[str, Any]:
-        """
-        检查单条指令的格式
-
-        Args:
-            instruction: 指令文本
-
-        Returns:
-            dict: 格式检查结果
-        """
+        """Check single instruction format."""
         result = {
             'is_valid': False,
             'has_definition': False,
@@ -380,7 +295,6 @@ class EnhancedMetrics:
 
         lines = instruction.split('\n')
 
-        # 查找三段式的三个部分
         definition_line = None
         emphasis_line = None
         avoid_line = None
@@ -400,41 +314,33 @@ class EnhancedMetrics:
                 avoid_line = line_stripped
                 result['has_avoid'] = True
 
-        # 检查Definition
         if definition_line:
             content = definition_line.split('Definition:', 1)[1].strip()
 
-            # Definition不能只是"-"
             if content and content != '-':
                 result['definition_has_content'] = True
             else:
                 result['errors'].append('Definition没有实际内容')
 
-            # 检查是否以"In this task"开头
             if content.lower().startswith('in this task'):
                 result['definition_starts_with_in_this_task'] = True
         else:
             result['errors'].append('缺少Definition')
 
-        # 检查Emphasis(可以是内容或显式"-")
         if emphasis_line:
             content = emphasis_line.split(':', 1)[1].strip()
-            # 有内容或者是显式的"-"都算有效
             if content:
                 result['emphasis_is_valid'] = True
         else:
             result['errors'].append('缺少Emphasis & Caution')
 
-        # 检查Avoid(可以是内容或显式"-")
         if avoid_line:
             content = avoid_line.split(':', 1)[1].strip()
-            # 有内容或者是显式的"-"都算有效
             if content:
                 result['avoid_is_valid'] = True
         else:
             result['errors'].append('缺少Things to Avoid')
 
-        # 计算格式分数(0-1)
         score_components = [
             result['has_definition'],
             result['definition_has_content'],
@@ -446,11 +352,6 @@ class EnhancedMetrics:
         ]
         result['format_score'] = sum(score_components) / len(score_components)
 
-        # 综合判断是否有效
-        # 新的有效标准:
-        # 1. Definition必须存在且有内容
-        # 2. Emphasis必须存在
-        # 3. Avoid必须存在
         result['is_valid'] = (
             result['definition_has_content'] and
             result['has_emphasis'] and
@@ -464,25 +365,14 @@ class EnhancedMetrics:
         instructions: List[str],
         expert_usage: Optional[Dict[str, int]] = None
     ) -> Dict[str, Any]:
-        """
-        计算统计指标
-
-        Args:
-            instructions: 指令列表
-            expert_usage: 专家使用统计字典(可选)
-
-        Returns:
-            dict: 统计指标字典
-        """
+        """Calculate statistical metrics."""
         logger.info(f"计算统计指标 - 样本数: {len(instructions)}")
 
-        # 长度统计
         lengths = [len(inst) for inst in instructions]
         word_counts = [len(inst.split()) for inst in instructions]
         line_counts = [len(inst.split('\n')) for inst in instructions]
 
         stats = {
-            # 字符长度统计
             'char_length': {
                 'mean': sum(lengths) / len(lengths) if lengths else 0,
                 'min': min(lengths) if lengths else 0,
@@ -490,7 +380,6 @@ class EnhancedMetrics:
                 'median': sorted(lengths)[len(lengths)//2] if lengths else 0
             },
 
-            # 单词数统计
             'word_count': {
                 'mean': sum(word_counts) / len(word_counts) if word_counts else 0,
                 'min': min(word_counts) if word_counts else 0,
@@ -498,7 +387,6 @@ class EnhancedMetrics:
                 'median': sorted(word_counts)[len(word_counts)//2] if word_counts else 0
             },
 
-            # 行数统计
             'line_count': {
                 'mean': sum(line_counts) / len(line_counts) if line_counts else 0,
                 'min': min(line_counts) if line_counts else 0,
@@ -507,7 +395,6 @@ class EnhancedMetrics:
             }
         }
 
-        # 专家使用统计
         if expert_usage:
             total_usage = sum(expert_usage.values())
             stats['expert_usage'] = {
@@ -534,35 +421,7 @@ class EnhancedMetrics:
         use_and_logic: bool = None,
         precomputed_bertscore_f1: Optional[List[float]] = None
     ) -> Dict[str, Any]:
-        """
-        计算二分类指标：TP, TN, FP, FN
-
-        定义：
-        - 有效指令（正类）= 格式完整 AND 语义相似度达标
-        - 格式完整 = 三段式结构完整（Definition + Emphasis & Caution + Things to Avoid）
-        - 语义相似度达标 = (ROUGE-L >= rouge_threshold) AND/OR (BERTScore F1 >= bertscore_threshold)
-
-        分类：
-        - TP (True Positive): 格式正确 + 语义达标
-        - FP (False Positive): 格式正确 + 语义不达标（生成了错误的指令）
-        - FN (False Negative): 格式不正确 或 语义不达标
-        - TN (True Negative): 在当前场景中不适用（所有输入都需要生成指令）
-
-        Args:
-            predictions: 生成的指令列表
-            references: 参考指令列表
-            format_threshold: 格式分数阈值（默认使用配置值）
-            rouge_threshold: ROUGE-L阈值（默认使用配置值）
-            bertscore_threshold: BERTScore F1阈值（默认使用配置值）
-            use_and_logic: 是否使用AND逻辑组合ROUGE和BERTScore（默认使用配置值）
-            precomputed_bertscore_f1: 预先计算好的per-sample BERTScore F1列表（由
-                calculate_generation_quality 返回的 bertscore_f1_scores 字段）。
-                若提供则直接使用，跳过重复的 BERTScore 推理，显著节省时间。
-
-        Returns:
-            dict: 包含TP, FP, FN, TN, Precision, Recall, F1, Accuracy的字典
-        """
-        # 使用配置的默认值
+        """Calculate binary classification metrics."""
         if format_threshold is None:
             format_threshold = EvaluationThresholds.FORMAT_SCORE_THRESHOLD
         if rouge_threshold is None:
@@ -584,10 +443,8 @@ class EnhancedMetrics:
                 f"预测和参考数量不匹配: {len(predictions)} vs {len(references)}"
             )
 
-        # 计算格式指标
         format_results = self.calculate_format_metrics(predictions)
 
-        # 计算ROUGE-L分数（用于语义相似度）
         self._lazy_load_metrics()
         try:
             per_sample_rouge = self.rouge_metric.compute(
@@ -600,10 +457,8 @@ class EnhancedMetrics:
             logger.error(f"ROUGE-L计算失败: {e}")
             rouge_l_scores = [0.0] * len(predictions)
 
-        # 可选：使用BERTScore作为额外的语义相似度指标
         bertscore_f1_scores = []
         if precomputed_bertscore_f1 is not None and len(precomputed_bertscore_f1) == len(predictions):
-            # 直接复用外部传入的per-sample BERTScore，避免重复推理
             bertscore_f1_scores = precomputed_bertscore_f1
             logger.info(f"复用预计算BERTScore - 平均F1: {sum(bertscore_f1_scores)/len(bertscore_f1_scores):.4f}")
         elif self.use_bertscore and self.bertscore_metric is not None:
@@ -620,17 +475,15 @@ class EnhancedMetrics:
                 logger.error(f"BERTScore计算失败: {e}")
                 bertscore_f1_scores = [0.0] * len(predictions)
 
-        # 计算每个样本的分类
         tp = 0  # True Positive
         fp = 0  # False Positive
         fn = 0  # False Negative
-        tn = 0  # True Negative (在当前场景中为0)
+        tn = 0
 
-        valid_samples = []  # 记录TP样本索引
-        invalid_samples = []  # 记录FP/FN样本索引
+        valid_samples = []
+        invalid_samples = []
 
         for i, (pred, ref) in enumerate(zip(predictions, references)):
-            # 检查格式完整性
             format_check = self._check_single_format(pred)
             is_format_valid = (
                 format_check['has_definition'] and
@@ -639,25 +492,20 @@ class EnhancedMetrics:
                 format_check['format_score'] >= format_threshold
             )
 
-            # 检查语义相似度
             rouge_l_score = rouge_l_scores[i]
             rouge_valid = rouge_l_score >= rouge_threshold
 
-            # 如果有BERTScore，使用配置的组合逻辑
             if bertscore_f1_scores:
                 bertscore_f1 = bertscore_f1_scores[i]
                 bertscore_valid = bertscore_f1 >= bertscore_threshold
 
-                # 根据配置使用AND或OR逻辑
                 if use_and_logic:
                     is_semantic_valid = rouge_valid and bertscore_valid
                 else:
                     is_semantic_valid = rouge_valid or bertscore_valid
             else:
-                # 如果没有BERTScore，只使用ROUGE
                 is_semantic_valid = rouge_valid
 
-            # 分类逻辑
             if is_format_valid and is_semantic_valid:
                 tp += 1
                 valid_samples.append(i)
@@ -668,7 +516,6 @@ class EnhancedMetrics:
                 fn += 1
                 invalid_samples.append(i)
 
-        # 计算派生指标
         total = len(predictions)
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
@@ -676,24 +523,20 @@ class EnhancedMetrics:
         accuracy = (tp + tn) / total if total > 0 else 0.0
 
         results = {
-            # 基础分类指标
             'TP': tp,
             'FP': fp,
             'FN': fn,
             'TN': tn,
 
-            # 派生指标
             'precision': precision,
             'recall': recall,
             'f1_score': f1_score,
             'accuracy': accuracy,
 
-            # 元数据
             'total_samples': total,
             'valid_samples': valid_samples,
             'invalid_samples': invalid_samples,
 
-            # 阈值信息
             'format_threshold': format_threshold,
             'rouge_threshold': rouge_threshold,
             'bertscore_threshold': bertscore_threshold,
@@ -709,18 +552,7 @@ class EnhancedMetrics:
         return results
 
     def _check_single_format(self, instruction: str) -> Dict[str, Any]:
-        """
-        检查单个指令的格式
-
-        支持多行段落内容：当段落标签行尾无内容时，
-        将后续连续非标签行作为该段落的内容（跨域推理时模型常见输出模式）。
-
-        Args:
-            instruction: 指令文本
-
-        Returns:
-            dict: 格式检查结果
-        """
+        """Check single format."""
         result = {
             'has_definition': False,
             'has_emphasis': False,
@@ -736,7 +568,6 @@ class EnhancedMetrics:
 
         lines = [line.strip() for line in instruction.strip().split('\n') if line.strip()]
 
-        # 段落标签识别表：(前缀, section_key, 内容起始偏移)
         _SECTION_HEADERS = [
             ('Definition:', 'definition', len('Definition:')),
             ('Emphasis & Caution:', 'emphasis', len('Emphasis & Caution:')),
@@ -750,7 +581,6 @@ class EnhancedMetrics:
                     return key, line[offset:].strip()
             return None, None
 
-        # 按段落聚合内容（支持多行）
         sections = {}
         current_key = None
         current_lines = []
@@ -768,26 +598,22 @@ class EnhancedMetrics:
         if current_key is not None:
             sections[current_key] = '\n'.join(current_lines).strip()
 
-        # Definition检查
         if 'definition' in sections:
             result['has_definition'] = True
             content = sections['definition']
             if content and content != '-':
                 result['definition_has_content'] = True
 
-        # Emphasis检查
         if 'emphasis' in sections:
             result['has_emphasis'] = True
             if sections['emphasis']:
                 result['emphasis_valid'] = True
 
-        # Avoid检查
         if 'avoid' in sections:
             result['has_avoid'] = True
             if sections['avoid']:
                 result['avoid_valid'] = True
 
-        # 计算格式分数
         score = 0.0
         if result['definition_has_content']:
             score += 0.4
@@ -808,19 +634,7 @@ class EnhancedMetrics:
         save_path: Optional[str] = None,
         include_binary_metrics: bool = True
     ) -> Dict[str, Any]:
-        """
-        生成综合评估报告
-
-        Args:
-            predictions: 生成的指令列表
-            references: 参考指令列表
-            expert_usage: 专家使用统计
-            save_path: 保存路径(可选)
-            include_binary_metrics: 是否包含二分类指标（默认True）
-
-        Returns:
-            dict: 综合评估报告
-        """
+        """Generate comprehensive report."""
         logger.info("=" * 80)
         logger.info("生成综合评估报告")
         logger.info("=" * 80)
@@ -832,20 +646,16 @@ class EnhancedMetrics:
             }
         }
 
-        # 1. 生成质量指标
         logger.info("\n[1/4] 计算生成质量指标...")
         report['generation_quality'] = self.calculate_generation_quality(
             predictions, references
         )
 
-        # 2. 格式指标
         logger.info("\n[2/4] 计算格式指标...")
         report['format_metrics'] = self.calculate_format_metrics(predictions)
 
-        # 3. 二分类指标（TP/TN/FP/FN）
         if include_binary_metrics:
             logger.info("\n[3/4] 计算二分类指标（TP/TN/FP/FN）...")
-            # 复用 generate_quality 已计算好的 per-sample BERTScore，避免重复推理
             precomputed_bs = report['generation_quality'].get('bertscore_f1_scores', None)
             report['binary_classification'] = self.calculate_binary_classification_metrics(
                 predictions, references,
@@ -854,13 +664,11 @@ class EnhancedMetrics:
         else:
             logger.info("\n[3/4] 跳过二分类指标计算")
 
-        # 4. 统计指标
         logger.info("\n[4/4] 计算统计指标...")
         report['statistical_metrics'] = self.calculate_statistical_metrics(
             predictions, expert_usage
         )
 
-        # 保存报告
         if save_path:
             self._save_report(report, save_path)
 
@@ -871,18 +679,12 @@ class EnhancedMetrics:
         return report
 
     def _get_timestamp(self) -> str:
-        """获取当前时间戳"""
+        """Return timestamp."""
         from datetime import datetime
         return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     def _save_report(self, report: Dict, save_path: str):
-        """
-        保存评估报告
-
-        Args:
-            report: 报告字典
-            save_path: 保存路径
-        """
+        """Save report."""
         import json
         from pathlib import Path
 
@@ -895,17 +697,11 @@ class EnhancedMetrics:
         logger.info(f"评估报告已保存至: {save_path}")
 
     def print_report_summary(self, report: Dict):
-        """
-        打印报告摘要
-
-        Args:
-            report: 评估报告字典
-        """
+        """Print report summary."""
         print("\n" + "=" * 80)
         print("评估报告摘要")
         print("=" * 80)
 
-        # 生成质量
         print("\n[生成质量指标]")
         quality = report['generation_quality']
         print(f"  BLEU:      {quality['bleu']:.4f}")
@@ -918,7 +714,6 @@ class EnhancedMetrics:
             print(f"  BERTScore R: {quality['bertscore_recall']:.4f}")
             print(f"  BERTScore F1: {quality['bertscore_f1']:.4f}")
 
-        # 格式指标
         print("\n[格式指标]")
         format_m = report['format_metrics']
         print(f"  格式验证通过率: {format_m['valid_rate']:.2%}")
@@ -927,7 +722,6 @@ class EnhancedMetrics:
         print(f"  Emphasis有效:   {format_m['emphasis_valid']:.2%}")
         print(f"  Avoid有效:      {format_m['avoid_valid']:.2%}")
 
-        # 二分类指标
         if 'binary_classification' in report:
             print("\n[二分类指标 (TP/TN/FP/FN)]")
             binary = report['binary_classification']
@@ -941,7 +735,6 @@ class EnhancedMetrics:
             print(f"  F1 Score:           {binary['f1_score']:.4f}")
             print(f"  Accuracy (准确率):  {binary['accuracy']:.4f}")
 
-        # 统计指标
         print("\n[统计指标]")
         stats = report['statistical_metrics']
         print(f"  平均字符长度: {stats['char_length']['mean']:.1f}")

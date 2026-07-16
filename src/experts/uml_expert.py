@@ -1,20 +1,4 @@
-"""
-UML专家 - 将UML用例图JSON转换为业务逻辑实现指令
-功能:
-  - 处理UML用例图JSON数据
-  - 生成三段式业务逻辑实现众包指令
-
-环境要求: instruction_generator
-模型: Qwen3-8B（默认）
-训练数据: dataset/uml/uml_dataset.csv
-
-说明:
-  - 基于Qwen3-8B训练
-  - 使用Qwen3-VL识别的UML数据集
-
-作者: Expert System
-日期: 2025-02-13
-"""
+"""Implement the UML-domain expert."""
 
 import json
 from pathlib import Path
@@ -32,21 +16,7 @@ logger = get_logger('experts.uml')
 
 
 def _build_prompt_for_domain(input_data):
-    """
-    根据输入数据的实际领域类型构建对应的prompt（跨域评估场景使用）。
-
-    检测规则（按优先级）：
-      - json解析失败的字符串 → text → TextInstructionTemplate
-      - JSON含 actors + use_cases → uml → UMLInstructionTemplate
-      - JSON含 description + details(objects或scene) → image → ImageInstructionTemplate
-      - 其他JSON → text → TextInstructionTemplate
-
-    正常领域推理场景（uml专家收到UML JSON）同样会路由到UMLInstructionTemplate，
-    与原有逻辑行为一致。
-
-    Returns:
-        tuple(str, str): (构建的prompt, 检测到的领域类型 'text'/'image'/'uml')
-    """
+    """Build prompt for domain."""
     if isinstance(input_data, dict):
         data = input_data
         text_fallback = str(input_data)
@@ -70,24 +40,16 @@ def _build_prompt_for_domain(input_data):
 
 
 class UMLExpert(BaseExpert):
-    """UML专家 - UML用例图JSON转业务逻辑实现指令"""
+    """Generate instructions for UML-domain inputs."""
 
     def __init__(self,
                  lora_path: Optional[str] = None,
                  use_4bit: bool = True):
-        """
-        初始化UML专家
-
-        Args:
-            lora_path: LoRA权重路径(None则使用默认配置)
-            use_4bit: 是否使用4bit量化
-        """
+        """Initialize the instance."""
         path_cfg = get_path_config()
 
-        # UML专家固定名称
         expert_name = 'uml_expert'
 
-        # 如果没有提供lora_path,使用配置中的路径
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get(expert_name)
             if lora_weight_path is None:
@@ -115,18 +77,7 @@ class UMLExpert(BaseExpert):
         logger.info("UML专家初始化完成")
 
     def generate_instruction(self, input_data: Union[str, dict], sample_index: int = None) -> str:
-        """
-        生成UML业务逻辑实现指令
-
-        Args:
-            input_data: UML用例图数据,支持:
-                - dict: 包含actors, use_cases, relationships字段的字典
-                - str: JSON字符串
-            sample_index: 样本索引（用于控制日志输出）
-
-        Returns:
-            str: 生成的三段式业务逻辑实现指令
-        """
+        """Generate instruction."""
         if not self.is_model_loaded:
             logger.warning("模型未加载,尝试加载模型...")
             if not self.load_model():
@@ -134,7 +85,6 @@ class UMLExpert(BaseExpert):
                 return ""
 
         try:
-            # 只在前3个样本输出调试信息
             show_debug = sample_index is None or sample_index < 3
 
             if show_debug:
@@ -159,7 +109,6 @@ class UMLExpert(BaseExpert):
                     logger.info(f"未知数据类型: {input_data}")
                 logger.info("=" * 80)
 
-            # 构建prompt（跨域评估时自动检测输入类型并使用对应模板）
             prompt, detected_domain = _build_prompt_for_domain(input_data)
             if detected_domain == 'uml':
                 uml_data = json.loads(input_data) if isinstance(input_data, str) else input_data
@@ -169,13 +118,11 @@ class UMLExpert(BaseExpert):
                         f"生成指令 - Actors: {elements['actors']}, Use Cases: {len(elements['use_cases'])}个"
                     )
             else:
-                # 跨域评估场景：输入非UML数据，使用与输入类型匹配的模板
                 logger.warning(
                     f"输入数据检测为{detected_domain}类型，使用对应模板（跨域评估场景）"
                 )
                 uml_data = {}
 
-            # 调用模型生成
             infer_cfg = get_inference_config()
             instruction = self._generate_with_model(
                 prompt=prompt,
@@ -188,10 +135,8 @@ class UMLExpert(BaseExpert):
                 verbose=show_debug
             )
 
-            # 规范化输出（补全 Definition: 标签、去除分隔符等）
             instruction = self._normalize_instruction(instruction)
 
-            # 只在前3个样本输出模型原始输出
             if show_debug:
                 logger.info("=" * 80)
                 logger.info("模型原始输出:")
@@ -199,7 +144,6 @@ class UMLExpert(BaseExpert):
                 logger.info(instruction)
                 logger.info("=" * 80)
 
-            # 验证输出格式（仅记录日志，不覆盖模型输出）
             if self.validate_output(instruction):
                 logger.info("指令生成成功,格式验证通过")
             else:
@@ -213,16 +157,7 @@ class UMLExpert(BaseExpert):
             return ""
 
     def batch_generate_instruction(self, input_data_list: list, batch_size: int = 8) -> list:
-        """
-        批量生成UML业务逻辑实现指令（提高GPU利用率）
-
-        Args:
-            input_data_list: UML用例图数据列表
-            batch_size: 批处理大小（默认8，适合RTX 4090 24GB）
-
-        Returns:
-            list: 生成的指令列表
-        """
+        """Generate instructions in batches."""
         if not self.is_model_loaded:
             logger.warning("模型未加载,尝试加载模型...")
             if not self.load_model():
@@ -232,11 +167,9 @@ class UMLExpert(BaseExpert):
         try:
             logger.info(f"批量生成指令 - 共{len(input_data_list)}个样本，batch_size={batch_size}")
 
-            # 解析所有输入数据并构建prompts
-            # 只收集有效prompt及其原始索引，避免空字符串送入模型导致张量越界
             parsed_data_list = [{}] * len(input_data_list)
-            valid_indices = []   # 原始索引
-            valid_prompts = []   # 对应有效prompt
+            valid_indices = []
+            valid_prompts = []
 
             for idx, data in enumerate(input_data_list):
                 _prompt, _domain = _build_prompt_for_domain(data)
@@ -245,7 +178,6 @@ class UMLExpert(BaseExpert):
                         json.loads(data) if isinstance(data, str) else data
                     )
                 else:
-                    # 跨域评估场景：输入非UML数据，使用与输入类型匹配的模板
                     if idx < 3:
                         logger.warning(
                             f"样本{idx}输入检测为{_domain}类型，使用对应模板（跨域评估场景）"
@@ -254,7 +186,6 @@ class UMLExpert(BaseExpert):
                 valid_indices.append(idx)
                 valid_prompts.append(_prompt)
 
-            # 批量生成（仅对有效prompt）
             raw_instructions = [""] * len(input_data_list)
             if valid_prompts:
                 infer_cfg = get_inference_config()
@@ -274,7 +205,6 @@ class UMLExpert(BaseExpert):
 
             instructions = raw_instructions
 
-            # 输出前3个有效样本的生成结果
             shown = 0
             for i in range(len(instructions)):
                 if shown >= 3:
@@ -287,7 +217,6 @@ class UMLExpert(BaseExpert):
                     logger.info("=" * 80)
                     shown += 1
 
-            # 验证每个输出（先规范化再验证，仅记录日志，不覆盖模型输出）
             validated_instructions = []
             for i, instruction in enumerate(instructions):
                 instruction = self._normalize_instruction(instruction)
@@ -303,15 +232,7 @@ class UMLExpert(BaseExpert):
             return [""] * len(input_data_list)
 
     def validate_output(self, instruction: str) -> bool:
-        """
-        验证输出格式是否符合UML业务逻辑三段式要求
-
-        Args:
-            instruction: 生成的指令
-
-        Returns:
-            bool: 是否符合格式
-        """
+        """Validate output."""
         if not instruction or len(instruction.strip()) < 50:
             logger.debug("指令内容过短")
             return False
@@ -322,7 +243,6 @@ class UMLExpert(BaseExpert):
             logger.debug(f"格式验证失败: {result['errors']}")
             return False
 
-        # 额外检查是否包含业务逻辑要求
         if not result['has_business_logic']:
             logger.debug("缺少业务逻辑实现要求")
             return False
@@ -330,15 +250,7 @@ class UMLExpert(BaseExpert):
         return True
 
     def _fallback_generation(self, uml_data: dict) -> str:
-        """
-        回退方案: 生成基础格式的UML业务逻辑指令
-
-        Args:
-            uml_data: UML用例图数据
-
-        Returns:
-            str: 基础格式的指令
-        """
+        """Generate fallback output."""
         logger.info("使用回退方案生成指令")
 
         fallback_instruction = """Definition: In this task, implement the system workflow with specified actors interacting with defined use cases.

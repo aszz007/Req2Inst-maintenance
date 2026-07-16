@@ -1,16 +1,4 @@
-"""
-图像识别脚本（简化版）
-功能：
-  - 批量识别文件夹中的一般图像
-  - 支持Qwen2.5和Qwen3两个视觉模型版本
-  - 输出识别结果到outputs/recognition_results/image/目录
-  - 直接调用VisionModel，无冗余代码
-
-用法：
-  python scripts/preprocessing/raw_to_interim/image/recognize_image.py --version qwen3
-  python scripts/preprocessing/raw_to_interim/image/recognize_image.py --version qwen2.5
-  python scripts/preprocessing/raw_to_interim/image/recognize_image.py --version qwen3 --input /path/to/images
-"""
+"""Recognize raw images and write interim records."""
 
 import argparse
 import json
@@ -20,9 +8,6 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 
-# 添加项目根目录到Python路径
-# 脚本位于: scripts/preprocessing/raw_to_interim/image/recognize_image.py
-# 需要向上4层到达项目根目录
 current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -32,7 +17,7 @@ from config.settings import get_path_config
 
 
 def parse_args():
-    """解析命令行参数"""
+    """Parse args."""
     parser = argparse.ArgumentParser(description='批量识别一般图像')
     parser.add_argument(
         '--version',
@@ -63,16 +48,7 @@ def parse_args():
 
 
 def recognize_single_image(image_path: str, version: str = 'qwen3') -> Dict:
-    """
-    识别单张图片
-
-    Args:
-        image_path: 图片路径
-        version: 模型版本
-
-    Returns:
-        dict: 识别结果
-    """
+    """Recognize single image."""
     image_path = Path(image_path)
 
     if not image_path.exists():
@@ -85,23 +61,19 @@ def recognize_single_image(image_path: str, version: str = 'qwen3') -> Dict:
     print(f"图片路径: {image_path}")
     print(f"{'='*80}\n")
 
-    # 初始化模型
     print(f"[模型加载] 正在加载 {version.upper()} 视觉模型...")
     model = VisionModel(version=version)
     model_info = model.get_model_info()
     print(f"[模型信息] {model_info['model_name']}")
     print(f"[设备] {model_info['device']}\n")
 
-    # 识别
     print(f"[识别中] 正在处理图片...")
     result = model.recognize_image(str(image_path))
 
-    # 添加元数据
     result['image_path'] = str(image_path)
     result['image_name'] = image_path.name
     result['model_version'] = version
 
-    # 显示结果
     print(f"\n{'='*80}")
     print(f"识别结果")
     print(f"{'='*80}")
@@ -130,23 +102,12 @@ def batch_recognize_images(
     version: str = 'qwen3',
     output_file: str = None
 ) -> List[Dict]:
-    """
-    批量识别文件夹中的所有图像
-
-    Args:
-        image_folder: 图片文件夹路径
-        version: 模型版本（'qwen3' 或 'qwen2.5'）
-        output_file: 输出JSON文件路径（None则自动生成）
-
-    Returns:
-        list: 所有识别结果的列表
-    """
+    """Recognize images."""
     image_folder = Path(image_folder)
 
     if not image_folder.exists():
         raise FileNotFoundError(f"文件夹不存在: {image_folder}")
 
-    # 获取所有图片文件（去重）
     image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp']
     image_files = set()
     for ext in image_extensions:
@@ -168,14 +129,12 @@ def batch_recognize_images(
         print("[警告] 未找到任何图片文件")
         return []
 
-    # 初始化模型
     print(f"[模型加载] 正在加载 {version.upper()} 视觉模型...")
     model = VisionModel(version=version)
     model_info = model.get_model_info()
     print(f"[模型信息] {model_info['model_name']}")
     print(f"[设备] {model_info['device']}\n")
 
-    # 批量识别
     results = []
     success_count = 0
     fail_count = 0
@@ -185,10 +144,8 @@ def batch_recognize_images(
         print("-" * 70)
 
         try:
-            # 直接调用VisionModel的recognize_image方法
             result = model.recognize_image(str(image_path))
 
-            # 添加元数据
             result['image_path'] = str(image_path)
             result['image_name'] = image_path.name
             result['model_version'] = version
@@ -215,9 +172,7 @@ def batch_recognize_images(
                 'error': str(e)
             })
 
-    # 确定输出路径
     if output_file is None:
-        # 使用配置中的输出目录
         path_cfg = get_path_config()
         output_dir = path_cfg.IMAGE_RECOGNITION_DIR
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -228,11 +183,9 @@ def batch_recognize_images(
         output_file = Path(output_file)
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    # 保存结果
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
-    # 打印统计信息
     print(f"\n{'='*80}")
     print(f"批量识别完成")
     print(f"{'='*80}")
@@ -247,7 +200,7 @@ def batch_recognize_images(
 
 
 def main():
-    """主函数"""
+    """Run the command-line entry point."""
     args = parse_args()
 
     print("=" * 80)
@@ -259,11 +212,9 @@ def main():
     print("=" * 80 + "\n")
 
     try:
-        # 单图识别模式
         if args.single:
             result = recognize_single_image(args.single, args.version)
 
-            # 保存结果
             path_cfg = get_path_config()
             output_dir = path_cfg.IMAGE_RECOGNITION_DIR
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -276,32 +227,26 @@ def main():
 
             print(f"结果已保存至: {output_file}")
 
-        # 批量识别模式
         else:
-            # 确定输入路径
             if args.input:
                 image_folder = args.input
             else:
-                # 使用配置中的默认测试目录
                 path_cfg = get_path_config()
                 image_folder = path_cfg.COCO_500_DIR
                 print(f"[提示] 使用默认输入目录: {image_folder}")
                 print(f"[提示] 可使用 --input 参数指定其他目录\n")
 
-            # 批量识别
             results = batch_recognize_images(
                 image_folder=image_folder,
                 version=args.version,
                 output_file=args.output
             )
 
-            # 展示部分结果示例
             if results and results[0].get('recognition_status') == 'success':
                 print("\n" + "="*80)
                 print("结果示例（第一张图片）")
                 print("="*80)
                 first_result = results[0]
-                # 只显示关键字段
                 sample = {
                     'image_name': first_result.get('image_name'),
                     'model_version': first_result.get('model_version'),

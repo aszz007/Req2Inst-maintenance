@@ -54,18 +54,14 @@ path_cfg = get_path_config()
 CACHE_DIR = path_cfg.OUTPUTS_DIR / 'inference_cache' / 'lora_moe_exp7'
 EXP_DIR   = path_cfg.OUTPUTS_DIR / 'evaluations' / 'experiments' / 'exp7_uml_hyperparameters'
 
-# -------------------------------------------------------------------------
 # Baseline: the existing UML checkpoint was trained with the post-Exp4
 # LoRATrainer defaults: rank=64, alpha=128, dropout=0.05.
-# -------------------------------------------------------------------------
 BASELINE_RANK    = 64
 BASELINE_ALPHA   = 128
 BASELINE_DROPOUT = 0.05
 
-# -------------------------------------------------------------------------
 # 12 configurations  (rank, alpha, dropout)
 # Alpha = 2 × rank throughout (same scaling convention as Exp4)
-# -------------------------------------------------------------------------
 CONFIGS = [
     (64, 128, 0.05),   # baseline — reuse LORA_MOE_CKPTS['uml'], NO retrain
     (8,  16,  0.05),   # floor: minimum rank to bound the performance curve
@@ -82,9 +78,7 @@ CONFIGS = [
 ]
 
 
-# =========================================================================
 # Helpers
-# =========================================================================
 
 def _is_full_run_cache(cache_dir, filename):
     """Return True if a non-test-mode cache file exists for this config."""
@@ -117,9 +111,7 @@ def _get_ckpt_path(rank, alpha, dropout):
     return path_cfg.CHECKPOINTS_DIR / 'lora_moe_exp7' / _config_name(rank, alpha, dropout)
 
 
-# =========================================================================
 # Training
-# =========================================================================
 
 def train_config(rank, alpha, dropout, args):
     """Train the LoRA config if its checkpoint does not yet exist."""
@@ -153,9 +145,7 @@ def train_config(rank, alpha, dropout, args):
     logger.info(f'训练完成: {ckpt_path}')
 
 
-# =========================================================================
 # Inference
-# =========================================================================
 
 def run_inference(rank, alpha, dropout, test_data, args):
     """
@@ -195,13 +185,11 @@ def run_inference(rank, alpha, dropout, test_data, args):
         inputs, references = inputs[:10], references[:10]
 
     try:
-        # batch_size=2: UML平均序列长度1063 tokens，比Text长3倍，需使用更保守的batch
         predictions = expert.batch_generate_instruction(inputs, batch_size=2)
     except Exception as e:
         logger.error(f'{cfg_name}: 生成失败: {e}')
         return None
     finally:
-        # finally保证无论成功还是异常都释放显存，避免双重unload
         expert.unload_model()
 
     samples = [
@@ -216,9 +204,7 @@ def run_inference(rank, alpha, dropout, test_data, args):
     return load_predictions_cache(CACHE_DIR, filename)
 
 
-# =========================================================================
 # Visualizations
-# =========================================================================
 
 def plot_rank_vs_rouge(config_results, exp_dir):
     """
@@ -496,11 +482,10 @@ def plot_uml_vs_text_transfer(config_results, exp_dir):
     logger.info(f'对比图已保存: {path}')
 
 
-# =========================================================================
 # Main
-# =========================================================================
 
 def run(args):
+    """Run the workflow."""
     logger.info('=' * 80)
     logger.info('实验7: UML专家 LoRA超参数优化')
     logger.info(f'基线: rank={BASELINE_RANK}, alpha={BASELINE_ALPHA}, '
@@ -653,9 +638,7 @@ def run(args):
     logger.info(f'\n结果已保存至: {EXP_DIR}')
 
 
-# =========================================================================
 # CLI
-# =========================================================================
 
 def _delete_caches_for_rerun(rerun_configs_str):
     """Delete inference cache files for the specified config names."""
@@ -670,6 +653,7 @@ def _delete_caches_for_rerun(rerun_configs_str):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
         description='Exp7: UML Expert LoRA hyperparameter optimization'
     )

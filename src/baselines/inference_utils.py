@@ -195,16 +195,7 @@ def save_predictions_cache(
 
 
 def load_predictions_cache(cache_dir: Path, filename: str) -> Optional[Dict]:
-    """
-    加载预测缓存JSON文件。
-
-    Args:
-        cache_dir: 缓存文件所在目录
-        filename: 缓存文件名
-
-    Returns:
-        解析后的字典，若文件不存在则返回None
-    """
+    """Load predictions cache."""
     filepath = Path(cache_dir) / filename
     if not filepath.exists():
         return None
@@ -258,7 +249,6 @@ def compute_all_metrics(
         references=valid_refs
     )
     format_m = metrics.calculate_format_metrics(instructions=valid_preds)
-    # 复用 generate_quality 已计算的 per-sample BERTScore F1，避免 calculate_binary 重复推理
     precomputed_bs = quality.get('bertscore_f1_scores', None)
     binary = metrics.calculate_binary_classification_metrics(
         predictions=valid_preds,

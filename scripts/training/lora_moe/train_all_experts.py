@@ -1,36 +1,5 @@
 #!/usr/bin/env python
-"""
-批量训练所有专家脚本
-
-功能:自动执行所有Expert的训练
-环境:instruction_generator(transformers==4.51.0)
-基础模型:Qwen3-8B（默认）
-
-Expert清单(共4个):
-1. Text Expert (text_dataset - 文本需求转众包指令)
-2. Image Expert (image_dataset - 图像描述转标注指令)
-3. UML Expert (uml_dataset.csv - 1500条数据)
-4. General Expert (text + image + uml数据集 - 通用兜底专家)
-
-使用方法:
-  # 测试模式(快速验证流程,每个Expert仅训练1个epoch)
-  python scripts/training/train_all_experts.py --test
-
-  # 完整训练模式(训练所有4个Expert)
-  python scripts/training/train_all_experts.py --all
-
-  # 训练特定Expert
-  python scripts/training/train_all_experts.py --expert text
-  python scripts/training/train_all_experts.py --expert image
-  python scripts/training/train_all_experts.py --expert uml
-  python scripts/training/train_all_experts.py --expert general
-
-  # 从某个任务继续(例如从任务2开始)
-  python scripts/training/train_all_experts.py --all --resume-from 2
-
-作者:Training System
-日期:2025-02-13
-"""
+"""Run all configured LoRA-MoE expert-training tasks."""
 
 import subprocess
 import sys
@@ -41,11 +10,11 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 
-# 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 class Colors:
+    """Define ANSI terminal color codes."""
     HEADER = '\033[95m'
     BLUE = '\033[94m'
     CYAN = '\033[96m'
@@ -57,29 +26,34 @@ class Colors:
 
 
 def print_header(text: str):
+    """Print header."""
     print(f"\n{Colors.BOLD}{Colors.HEADER}{'=' * 80}{Colors.END}")
     print(f"{Colors.BOLD}{Colors.HEADER}{text.center(80)}{Colors.END}")
     print(f"{Colors.BOLD}{Colors.HEADER}{'=' * 80}{Colors.END}\n")
 
 
 def print_success(message: str):
+    """Print success."""
     print(f"{Colors.GREEN}[SUCCESS] {message}{Colors.END}")
 
 
 def print_error(message: str):
+    """Print error."""
     print(f"{Colors.RED}[ERROR] {message}{Colors.END}")
 
 
 def print_info(message: str):
+    """Print info."""
     print(f"{Colors.CYAN}[INFO] {message}{Colors.END}")
 
 
 def print_warning(message: str):
+    """Print warning."""
     print(f"{Colors.YELLOW}[WARNING] {message}{Colors.END}")
 
 
 class TrainingTask:
-    """单个训练任务配置"""
+    """Describe one training command and its metadata."""
 
     def __init__(self, task_id: int, expert_type: str, description: str = ""):
         self.task_id = task_id
@@ -88,23 +62,20 @@ class TrainingTask:
         self.script_path = PROJECT_ROOT / 'training' / 'lora_moe' / f'train_{expert_type}_expert.py'
 
     def get_command(self, test_mode: bool = False) -> List[str]:
-        """生成训练命令"""
+        """Return command."""
         cmd = [
             sys.executable,
             str(self.script_path)
         ]
 
-        # 默认使用4bit量化以节省显存，无需额外标志
 
         return cmd
 
     def get_env_vars(self, test_mode: bool = False) -> Dict[str, str]:
-        """生成环境变量"""
+        """Return env vars."""
         env_vars = {}
         if test_mode:
-            # 测试模式:1个epoch
             env_vars['TRAIN_EPOCHS'] = '1'
-            # batch_size由expert_trainer根据量化情况自动设置
         return env_vars
 
     def __str__(self):
@@ -112,11 +83,10 @@ class TrainingTask:
 
 
 def create_all_tasks() -> List[TrainingTask]:
-    """创建训练任务（所有4个专家）"""
+    """Create all tasks."""
     tasks = []
     task_id = 1
 
-    # 任务1: Text Expert
     tasks.append(TrainingTask(
         task_id=task_id,
         expert_type='text',
@@ -124,7 +94,6 @@ def create_all_tasks() -> List[TrainingTask]:
     ))
     task_id += 1
 
-    # 任务2: Image Expert
     tasks.append(TrainingTask(
         task_id=task_id,
         expert_type='image',
@@ -132,7 +101,6 @@ def create_all_tasks() -> List[TrainingTask]:
     ))
     task_id += 1
 
-    # 任务3: UML Expert
     tasks.append(TrainingTask(
         task_id=task_id,
         expert_type='uml',
@@ -140,7 +108,6 @@ def create_all_tasks() -> List[TrainingTask]:
     ))
     task_id += 1
 
-    # 任务4: General Expert
     tasks.append(TrainingTask(
         task_id=task_id,
         expert_type='general',
@@ -152,16 +119,7 @@ def create_all_tasks() -> List[TrainingTask]:
 
 
 def run_task(task: TrainingTask, test_mode: bool = False) -> bool:
-    """
-    执行单个训练任务
-
-    Args:
-        task: 训练任务
-        test_mode: 是否为测试模式
-
-    Returns:
-        bool: 训练是否成功
-    """
+    """Run task."""
     print_header(f"训练任务 {task.task_id}/4: {task.description}")
     print_info(str(task))
 
@@ -169,20 +127,16 @@ def run_task(task: TrainingTask, test_mode: bool = False) -> bool:
         print_error(f"训练脚本不存在: {task.script_path}")
         return False
 
-    # 构建命令
     cmd = task.get_command(test_mode)
     env_vars = task.get_env_vars(test_mode)
 
-    # 打印命令
     print_info(f"执行命令: {' '.join(cmd)}")
     if env_vars:
         print_info(f"环境变量: {env_vars}")
 
-    # 执行训练
     start_time = time.time()
 
     try:
-        # 合并环境变量
         import os
         env = os.environ.copy()
         env.update(env_vars)
@@ -211,7 +165,7 @@ def run_task(task: TrainingTask, test_mode: bool = False) -> bool:
 
 
 def save_report(results: List[Dict], output_dir: Path, test_mode: bool):
-    """保存训练报告"""
+    """Save report."""
     report = {
         'mode': 'test' if test_mode else 'full',
         'timestamp': datetime.now().isoformat(),
@@ -221,7 +175,6 @@ def save_report(results: List[Dict], output_dir: Path, test_mode: bool):
         'tasks': results
     }
 
-    # 保存JSON报告
     report_file = output_dir / f"batch_training_report_{'test' if test_mode else 'full'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     with open(report_file, 'w', encoding='utf-8') as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
@@ -232,7 +185,7 @@ def save_report(results: List[Dict], output_dir: Path, test_mode: bool):
 
 
 def print_summary(results: List[Dict]):
-    """打印训练总结"""
+    """Print summary."""
     print_header("批量训练总结")
 
     total = len(results)
@@ -253,9 +206,9 @@ def print_summary(results: List[Dict]):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='批量训练所有Expert')
 
-    # 训练模式
     mode_group = parser.add_mutually_exclusive_group(required=True)
     mode_group.add_argument('--test', action='store_true',
                             help='测试模式:每个Expert仅训练1个epoch,快速验证流程')
@@ -264,16 +217,13 @@ def main():
     mode_group.add_argument('--expert', type=str, choices=['text', 'image', 'uml', 'general'],
                             help='仅训练指定类型的Expert')
 
-    # 其他选项
     parser.add_argument('--resume-from', type=int, metavar='N',
                         help='从第N个任务继续训练(1-4)')
 
     args = parser.parse_args()
 
-    # 创建所有任务
     all_tasks = create_all_tasks()
 
-    # 根据参数筛选任务
     if args.expert:
         tasks = [t for t in all_tasks if t.expert_type == args.expert]
         if not tasks:
@@ -282,7 +232,6 @@ def main():
     else:
         tasks = all_tasks
 
-    # 应用resume-from
     if args.resume_from:
         if args.resume_from < 1 or args.resume_from > len(tasks):
             print_error(f"无效的任务ID: {args.resume_from}")
@@ -290,7 +239,6 @@ def main():
         tasks = [t for t in tasks if t.task_id >= args.resume_from]
         print_info(f"从任务{args.resume_from}开始训练")
 
-    # 打印训练计划
     print_header("批量训练计划")
     mode_text = "测试模式(1 epoch)" if args.test else "完整训练模式"
     print(f"模式: {mode_text}")
@@ -300,14 +248,12 @@ def main():
         print(f"  {task}")
     print()
 
-    # 确认
     if not args.test:
         confirm = input(f"{Colors.YELLOW}确认开始训练? (yes/no): {Colors.END}")
         if confirm.lower() != 'yes':
             print_info("取消训练")
             return 0
 
-    # 执行训练
     start_time = time.time()
     results = []
 
@@ -320,24 +266,19 @@ def main():
             'success': success
         })
 
-        # 任务间休息5秒
         if task != tasks[-1]:
             print_info("等待5秒后继续下一个任务...")
             time.sleep(5)
 
-    # 计算总耗时
     total_time = time.time() - start_time
 
-    # 保存报告
     output_dir = PROJECT_ROOT / 'outputs' / 'reports'
     output_dir.mkdir(parents=True, exist_ok=True)
     save_report(results, output_dir, args.test)
 
-    # 打印总结
     print_summary(results)
     print(f"总耗时: {total_time/3600:.2f}小时")
 
-    # 返回状态
     failed_count = sum(1 for r in results if not r['success'])
     return 0 if failed_count == 0 else 1
 

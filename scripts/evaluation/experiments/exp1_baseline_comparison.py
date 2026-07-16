@@ -77,6 +77,7 @@ def _is_full_run_cache(cache_dir, filename):
 
 
 def run_bm25(train_data, test_data, args):
+    """Run BM25."""
     cache_path = CACHE_DIR / 'baselines' / 'bm25_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
@@ -100,6 +101,7 @@ def run_bm25(train_data, test_data, args):
 
 
 def run_lsa(train_data, test_data, args):
+    """Run lsa."""
     cache_path = CACHE_DIR / 'baselines' / 'lsa_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
@@ -123,6 +125,7 @@ def run_lsa(train_data, test_data, args):
 
 
 def run_template(test_data, args):
+    """Run template."""
     cache_path = CACHE_DIR / 'baselines' / 'template_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
@@ -144,6 +147,7 @@ def run_template(test_data, args):
 
 
 def run_zeroshot(test_data, args):
+    """Run zeroshot."""
     cache_path = CACHE_DIR / 'baselines' / 'zeroshot_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
@@ -173,6 +177,7 @@ def run_zeroshot(test_data, args):
 
 
 def run_lora_moe(test_data, args):
+    """Run LoRA moe."""
     cache_path = CACHE_DIR / 'lora_moe' / 'text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
@@ -204,6 +209,7 @@ def run_lora_moe(test_data, args):
 
 
 def plot_comparison(metrics_by_method, exp_dir, test_mode=False):
+    """Plot comparison."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -259,11 +265,11 @@ def plot_comparison(metrics_by_method, exp_dir, test_mode=False):
 
 
 def run(args):
+    """Run the workflow."""
     logger.info('=' * 80)
     logger.info('实验1: 基线方法对比')
     logger.info('=' * 80)
 
-    # 加载数据
     logger.info('加载文本数据集...')
     loader = TextDatasetLoader()
     all_data = loader.load_csv_files()
@@ -340,17 +346,14 @@ def run(args):
             logger.error(f'{method} 执行失败: {e}')
             logger.error(traceback.format_exc())
 
-    # 保存结果
     EXP_DIR.mkdir(parents=True, exist_ok=True)
     save_experiment_results(results, EXP_DIR, 'results.json')
 
-    # 绘图
     try:
         plot_comparison(metrics_by_method, EXP_DIR, test_mode=args.test_mode)
     except Exception as e:
         logger.warning(f'绘图失败: {e}')
 
-    # 汇总表
     logger.info('\n' + '=' * 80)
     logger.info('结果汇总')
     logger.info('=' * 80)
@@ -368,6 +371,7 @@ def run(args):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp1: Baseline comparison')
     parser.add_argument('--force-regenerate', action='store_true',
                         help='Re-run inference even if cache exists')

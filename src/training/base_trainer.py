@@ -1,17 +1,4 @@
-"""
-基础训练器 - 所有微调方法的共同逻辑
-
-功能：
-  - 数据准备和加载
-  - 训练循环管理
-  - 检查点保存
-  - 训练曲线可视化
-  - RTX 4090优化配置
-  - 早停策略
-
-作者：Training System
-日期：2025-02-15
-"""
+"""Provide shared training orchestration for the supported adaptation methods."""
 
 import os
 import json
@@ -81,7 +68,7 @@ def _remove_qwen_special_tokens(text: str) -> str:
 
 
 def _get_transformers_version():
-    """获取transformers版本号"""
+    """Return transformers version."""
     import transformers
     version_str = transformers.__version__
     major, minor = version_str.split('.')[:2]
@@ -89,7 +76,7 @@ def _get_transformers_version():
 
 
 def _should_use_eval_strategy():
-    """检查是否应该使用eval_strategy参数（transformers >= 4.46.0）"""
+    """Return whether evaluation should run."""
     try:
         major, minor = _get_transformers_version()
         return (major > 4) or (major == 4 and minor >= 46)
@@ -98,12 +85,7 @@ def _should_use_eval_strategy():
 
 
 class NaNAwareEarlyStoppingCallback(TrainerCallback):
-    """
-    NaN-aware早停回调
-
-    标准的EarlyStoppingCallback在遇到NaN时可能错误触发早停。
-    此回调忽略NaN值，只基于有效的eval_loss值判断是否早停。
-    """
+    """Stop training safely when evaluation metrics contain NaN values."""
 
     def __init__(self, early_stopping_patience: int = 1, early_stopping_threshold: float = 0.0):
         self.early_stopping_patience = early_stopping_patience
@@ -113,37 +95,30 @@ class NaNAwareEarlyStoppingCallback(TrainerCallback):
         self.nan_count = 0
 
     def on_evaluate(self, args, state, control, metrics=None, **kwargs):
-        """在每次验证后调用"""
+        """Handle the evaluation callback."""
         if metrics is None:
             return
 
         eval_loss = metrics.get('eval_loss')
 
-        # 检查NaN
         if eval_loss is None or (isinstance(eval_loss, float) and math.isnan(eval_loss)):
             self.nan_count += 1
             logger.warning(f"检测到NaN验证损失（第{self.nan_count}次）- 跳过本次早停检查")
             logger.warning("NaN可能原因: 1) 模型训练不稳定 2) 学习率过大 3) P-Tuning配置问题")
-            # 不更新patience计数器，跳过本次早停检查
             return control
 
-        # 有效的eval_loss
         metric = eval_loss
 
-        # 初始化best_metric
         if self.best_metric is None:
             self.best_metric = metric
             logger.info(f"初始化最佳验证损失: {metric:.4f}")
             return control
 
-        # 检查是否改进
         if metric < (self.best_metric - self.early_stopping_threshold):
-            # 有改进
             self.best_metric = metric
             self.patience_counter = 0
             logger.info(f"验证损失改进: {metric:.4f} (最佳: {self.best_metric:.4f})")
         else:
-            # 无改进
             self.patience_counter += 1
             logger.info(f"验证损失无改进: {metric:.4f} vs 最佳{self.best_metric:.4f} "
                        f"(patience: {self.patience_counter}/{self.early_stopping_patience})")
@@ -162,31 +137,14 @@ class NaNAwareEarlyStoppingCallback(TrainerCallback):
 
 
 class TrainingHistoryCallback(TrainerCallback):
-    """
-    自定义回调函数，用于记录训练过程中的所有日志
-
-    记录内容包括：
-    - loss: 训练损失
-    - grad_norm: 梯度范数
-    - learning_rate: 学习率
-    - epoch: 当前epoch
-    - eval_loss: 验证损失（如果有）
-    """
+    """Record training and evaluation history."""
 
     def __init__(self):
         super().__init__()
         self.training_history = []
 
     def on_log(self, args, state, control, logs=None, **kwargs):
-        """
-        在每次日志记录时调用
-
-        Args:
-            args: TrainingArguments
-            state: TrainerState
-            control: TrainerControl
-            logs: 日志字典
-        """
+        """Handle the logging callback."""
         if logs is not None:
             log_entry = {
                 'step': state.global_step,
@@ -200,23 +158,12 @@ class TrainingHistoryCallback(TrainerCallback):
             self.training_history.append(log_entry)
 
     def get_history(self):
-        """
-        获取完整的训练历史
-
-        Returns:
-            list: 训练历史记录列表
-        """
+        """Return history."""
         return self.training_history
 
 
 class BaseTrainer(ABC):
-    """
-    基础训练器 - 所有微调方法的抽象基类
-
-    子类需要实现：
-    - setup_model(): 设置模型（包括微调方法特定的配置）
-    - _save_weights(): 保存权重的具体实现
-    """
+    """Define shared behavior for training implementations."""
 
     def __init__(self,
                  expert_type: str,
@@ -226,17 +173,7 @@ class BaseTrainer(ABC):
                  use_rtx4090_optimization: bool = True,
                  debug_samples: bool = False,
                  use_domain_templates: bool = False):
-        """
-        初始化基础训练器
-
-        Args:
-            expert_type: 专家类型（'text', 'image', 'uml', 'general'）
-            method_name: 微调方法名称（'lora_moe', 'p_tuning', 'prompt_tuning', 'full_finetuning'）
-            base_model_path: 基础模型路径（None则从配置获取）
-            output_dir: 输出目录（None则从配置获取）
-            use_rtx4090_optimization: 是否启用RTX 4090优化
-            debug_samples: 是否在训练开始前打印前3个训练样本（默认关闭）
-        """
+        """Initialize the instance."""
         valid_types = ['text', 'image', 'uml', 'general']
         if expert_type not in valid_types:
             raise ValueError(f"不支持的专家类型: {expert_type}，支持: {valid_types}")
@@ -247,14 +184,11 @@ class BaseTrainer(ABC):
         self.debug_samples = debug_samples
         self.use_domain_templates = use_domain_templates
 
-        # 获取配置
         self.path_cfg = get_path_config()
         self.train_cfg = get_training_config()
         self.device_cfg = get_device_config()
         self.model_cfg = get_model_config()
 
-        # 从环境变量读取训练参数（优先级最高）
-        # 注意：如果未设置环境变量，epochs将在prepare_data()后根据数据量自动计算
         self.epochs_from_env = False
         if 'TRAIN_EPOCHS' in os.environ:
             try:
@@ -265,38 +199,31 @@ class BaseTrainer(ABC):
             except ValueError:
                 logger.warning(f"无效的TRAIN_EPOCHS环境变量: {os.environ['TRAIN_EPOCHS']}")
 
-        # 设置基础模型路径
         if base_model_path:
             self.base_model_path = base_model_path
         else:
             self.base_model_path = str(self.path_cfg.get_text_model_path())
 
-        # 根据模型路径确定模型版本
         if 'Qwen3-8B' in self.base_model_path or 'qwen3-8B' in self.base_model_path:
             self.model_version = 'qwen3_8b'
         else:
             self.model_version = self.model_cfg.version
             logger.warning(f"无法从路径推断模型版本，使用配置中的版本: {self.model_version}")
 
-        # 设置输出目录（使用新的checkpoints路径）
         if output_dir:
             self.output_dir = Path(output_dir)
         else:
-            # 使用新的路径结构：checkpoints/{method_name}/{expert_type}_expert/
             self.output_dir = self.path_cfg.PROJECT_ROOT / 'checkpoints' / method_name / f"{expert_type}_expert"
 
-        # 设置检查点目录
         checkpoint_name = f"{method_name}_{expert_type}_expert"
         self.checkpoint_dir = self.output_dir / 'training_checkpoints'
 
-        # 初始化模型和数据相关属性
         self.model = None
         self.tokenizer = None
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
 
-        # 初始化训练历史回调
         self.history_callback = TrainingHistoryCallback()
 
         logger.info(f"初始化{expert_type}专家训练器（方法：{method_name}）")
@@ -305,7 +232,7 @@ class BaseTrainer(ABC):
         logger.info(f"RTX 4090优化: {use_rtx4090_optimization}")
 
     def _print_training_config(self):
-        """打印实际训练配置"""
+        """Print training config."""
         batch_size, gradient_accumulation_steps = self._get_batch_config()
 
         logger.info("=" * 80)
@@ -330,24 +257,7 @@ class BaseTrainer(ABC):
         logger.info("=" * 80)
 
     def _load_base_model(self, use_4bit: bool) -> bool:
-        """
-        加载基础模型和Tokenizer（所有微调方法共用）
-
-        负责：
-        - 4bit量化配置（可选）
-        - AutoModelForCausalLM加载
-        - Qwen3-8B思考模式禁用
-        - prepare_model_for_kbit_training（4bit量化后必须调用）
-        - Tokenizer加载与pad_token设置
-
-        子类在 setup_model() 中调用此方法后，仅需追加各自的PEFT配置。
-
-        Args:
-            use_4bit: 是否启用4bit量化
-
-        Returns:
-            bool: 是否成功
-        """
+        """Load base model."""
         try:
             logger.info("加载基础模型...")
 
@@ -423,49 +333,24 @@ class BaseTrainer(ABC):
             return False
 
     def _get_batch_config(self) -> Tuple[int, int]:
-        """
-        获取batch size和gradient accumulation配置
-
-        Returns:
-            (batch_size, gradient_accumulation_steps)
-        """
+        """Return batch config."""
         if self.use_rtx4090_optimization:
             return 8, 2
         else:
             return self.train_cfg.batch_size, self.train_cfg.gradient_accumulation_steps
 
     def _get_max_seq_length(self) -> int:
-        """
-        根据专家类型和训练方法确定最大序列长度
-        4090 (24GB) 配合 batch_size=1, grad_accum=128, 4bit量化
-        完全可以支持 2048 长度的训练。
-        以前限制为 768/1024 会导致 UML 专家 50% 以上的数据被截断，必须修正。
-        【修改后】：统一所有方法使用 2048，确保公平性和数据完整性
-
-        Returns:
-            int: 最大序列长度
-        """
+        """Return max seq length."""
         return 2048
 
     def _get_num_epochs_from_data(self) -> int:
-        """
-        根据实际数据量、专家类型和训练方法确定训练轮数
-
-        基本原则：
-        - 数据量越少，需要更多epochs以充分学习
-        - 不同微调方法收敛速度不同，允许使用不同epochs
-        - 通过早停机制确保公平性
-
-        Returns:
-            int: 训练轮数
-        """
+        """Return num epochs from data."""
         if not self.train_dataset:
             logger.warning("训练数据集未准备，使用默认epochs")
             return self.train_cfg.num_epochs
 
         data_size = len(self.train_dataset)
 
-        # 根据专家类型基础epochs（基于数据量）
         if self.expert_type == 'image':
             base_epochs = 8
         elif self.expert_type == 'text':
@@ -477,7 +362,6 @@ class BaseTrainer(ABC):
         else:
             base_epochs = 5
 
-        # 根据微调方法调整（P-Tuning和Prompt Tuning收敛较慢）
         if self.method_name in ['p_tuning', 'prompt_tuning']:
             method_epochs = base_epochs + 1
         elif self.method_name == 'full_finetuning':
@@ -493,16 +377,10 @@ class BaseTrainer(ABC):
         return method_epochs
 
     def prepare_data(self) -> bool:
-        """
-        准备训练数据
-
-        Returns:
-            bool: 是否成功
-        """
+        """Prepare data."""
         try:
             logger.info(f"准备{self.expert_type}专家的训练数据...")
 
-            # 根据专家类型加载数据
             if self.expert_type == 'text':
                 loader = TextDatasetLoader()
                 all_data = loader.load_csv_files()
@@ -524,17 +402,14 @@ class BaseTrainer(ABC):
 
             logger.info(f"成功加载{len(all_data)}条数据")
 
-            # 划分数据集
             train_data, val_data, test_data = split_dataset_for_expert(
                 all_data, self.expert_type
             )
 
-            # 延迟创建Dataset：prepare_data()调用时tokenizer尚未加载
-            # setup_model()之后tokenizer才就绪，在train()里再创建InstructionDataset
             self._raw_train_data = train_data
             self._raw_val_data = val_data
             self._raw_test_data = test_data
-            self.train_dataset = train_data  # 列表占位，保证len()正常
+            self.train_dataset = train_data
             self.val_dataset = val_data
             self.test_dataset = test_data
 
@@ -543,7 +418,6 @@ class BaseTrainer(ABC):
             logger.info(f"  验证集: {len(self.val_dataset)}条")
             logger.info(f"  测试集: {len(self.test_dataset)}条")
 
-            # 根据实际数据量重新计算epochs（如果未设置环境变量）
             if not self.epochs_from_env:
                 calculated_epochs = self._get_num_epochs_from_data()
                 self.train_cfg.num_epochs = calculated_epochs
@@ -561,21 +435,11 @@ class BaseTrainer(ABC):
 
     @abstractmethod
     def setup_model(self) -> bool:
-        """
-        设置模型（子类必须实现）
-
-        Returns:
-            bool: 是否成功
-        """
+        """Configure the model."""
         pass
 
     def _get_early_stopping_patience(self) -> int:
-        """
-        根据专家类型和数据量确定早停patience
-
-        Returns:
-            int: patience值
-        """
+        """Return early stopping patience."""
         data_size = len(self.train_dataset) if self.train_dataset else 0
 
         if self.expert_type == 'text' or self.expert_type == 'general':
@@ -588,15 +452,7 @@ class BaseTrainer(ABC):
             return 3
 
     def _get_eval_steps(self) -> int:
-        """
-        根据总训练步数动态计算验证步数
-
-        目标：整个训练过程总验证次数约10次，确保eval-loss曲线平滑且开销可控。
-        同时确保每个epoch至少验证1次（eval_steps不超过steps_per_epoch）。
-
-        Returns:
-            int: eval_steps
-        """
+        """Return eval steps."""
         if not self.train_dataset:
             logger.warning("训练数据集未准备，使用默认eval_steps=50")
             return 50
@@ -604,15 +460,12 @@ class BaseTrainer(ABC):
         batch_size, gradient_accumulation_steps = self._get_batch_config()
         num_samples = len(self.train_dataset)
 
-        # 计算每个epoch的步数和总步数
         steps_per_epoch = max(1, num_samples // (batch_size * gradient_accumulation_steps))
         total_steps = steps_per_epoch * self.train_cfg.num_epochs
 
-        # 目标：整个训练过程总验证次数约10次
         target_total_evals = 10
         eval_steps = max(1, round(total_steps / target_total_evals))
 
-        # 确保每个epoch至少验证1次（eval_steps不超过steps_per_epoch）
         eval_steps = min(eval_steps, steps_per_epoch)
         eval_steps = max(1, eval_steps)
 
@@ -632,12 +485,7 @@ class BaseTrainer(ABC):
         return eval_steps
 
     def train(self) -> bool:
-        """
-        执行训练
-
-        Returns:
-            bool: 是否成功
-        """
+        """Run model training."""
         if self.model is None or self.tokenizer is None:
             logger.error("模型未初始化，请先调用setup_model()")
             return False
@@ -647,11 +495,6 @@ class BaseTrainer(ABC):
             return False
 
         try:
-            # ----------------------------------------------------------------
-            # 调试：打印前3个训练样本（放在所有配置代码之前，确保一定能执行）
-            # 注意：此处只读取 .data 原始列表，不调用 tokenizer，与训练顺序无关
-            # ----------------------------------------------------------------
-            # 先打印 debug_samples 实际值，供诊断（无论是否开启均输出）
             logger.info(f"[train() 入口] debug_samples={self.debug_samples}, "
                         f"train_samples={len(self.train_dataset) if self.train_dataset else 0}, "
                         f"method={self.method_name}, expert={self.expert_type}")
@@ -676,9 +519,7 @@ class BaseTrainer(ABC):
                 logger.info("[调试输出结束] 请检查上述样本的prompt是否包含完整JSON结构")
                 logger.info("=" * 80)
 
-            # 训练前强制清空GPU缓存
             if torch.cuda.is_available():
-                # Full Fine-tuning需要更激进的显存清理
                 if self.method_name == 'full_finetuning':
                     for i in range(3):
                         torch.cuda.empty_cache()
@@ -689,14 +530,12 @@ class BaseTrainer(ABC):
                     if self.expert_type in ['uml', 'general']:
                         logger.info(f"{self.expert_type}专家训练前已清空GPU缓存，最大化可用显存")
 
-                # 打印训练前显存状态
                 allocated = torch.cuda.memory_allocated() / 1024**3
                 reserved = torch.cuda.memory_reserved() / 1024**3
                 total = torch.cuda.get_device_properties(0).total_memory / 1024**3
                 free = total - allocated
                 logger.info(f"[训练前] GPU显存: 已用={allocated:.2f}GB, 可用≈{free:.2f}GB, 总计={total:.2f}GB")
 
-                # Full Fine-tuning的显存预警
                 if self.method_name == 'full_finetuning' and allocated > 10.0:
                     logger.error(f"警告: 训练前显存已占用{allocated:.2f}GB，可能导致OOM！")
                     logger.error("建议:")
@@ -704,11 +543,9 @@ class BaseTrainer(ABC):
                     logger.error("  2. 重启Python进程清理显存")
                     logger.error("  3. 关闭不必要的程序")
 
-            # 创建输出目录
             self.output_dir.mkdir(parents=True, exist_ok=True)
             self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-            # tokenizer已由setup_model()加载完毕，安全创建InstructionDataset
             if hasattr(self, '_raw_train_data'):
                 logger.info("创建InstructionDataset（tokenizer已就绪）...")
                 self.train_dataset = InstructionDataset(
@@ -723,19 +560,15 @@ class BaseTrainer(ABC):
                 logger.info(f"InstructionDataset创建完成: "
                             f"train={len(self.train_dataset)}, val={len(self.val_dataset)}")
 
-            # 获取batch配置
             batch_size, gradient_accumulation_steps = self._get_batch_config()
 
-            # 获取早停和验证配置
             early_stopping_patience = self._get_early_stopping_patience()
             eval_steps = self._get_eval_steps()
 
-            # 计算warmup步数
             num_train_samples = len(self.train_dataset)
             steps_per_epoch = num_train_samples // (batch_size * gradient_accumulation_steps)
             total_steps = steps_per_epoch * self.train_cfg.num_epochs
 
-            # P-Tuning v2和Prompt Tuning：标准warmup比例
             warmup_ratio = 0.1
 
             warmup_steps = int(total_steps * warmup_ratio)
@@ -747,7 +580,6 @@ class BaseTrainer(ABC):
             logger.info(f"  验证频率: 每{eval_steps}步")
             logger.info(f"  早停patience: {early_stopping_patience}")
 
-            # 配置TrainingArguments
             training_args_dict = {
                 'output_dir': str(self.checkpoint_dir),
                 'num_train_epochs': self.train_cfg.num_epochs,
@@ -768,9 +600,6 @@ class BaseTrainer(ABC):
                 'remove_unused_columns': False,
             }
 
-            # 梯度裁剪配置
-            # Full Finetuning：较严格裁剪（rank大，需要稳定训练）
-            # 其他方法：标准裁剪
             if self.method_name == 'full_finetuning':
                 training_args_dict['max_grad_norm'] = 0.8
                 logger.info(f"{self.method_name}使用较严格梯度裁剪(0.8)以保证训练稳定性")
@@ -778,29 +607,23 @@ class BaseTrainer(ABC):
                 training_args_dict['max_grad_norm'] = 1.0
                 logger.info(f"{self.method_name}使用标准梯度裁剪(1.0)")
 
-            # load_best_model_at_end（某些方法如P-Tuning v2和Prompt Tuning不支持）
             if not getattr(self, 'disable_load_best_model', False):
                 training_args_dict['load_best_model_at_end'] = True
             else:
                 training_args_dict['load_best_model_at_end'] = False
                 logger.info("load_best_model_at_end已禁用（当前训练方法不支持）")
 
-            # Gradient checkpointing（某些方法如P-Tuning v2不支持）
             if not getattr(self, 'disable_gradient_checkpointing', False):
                 training_args_dict['gradient_checkpointing'] = True
             else:
                 logger.info("Gradient checkpointing已禁用（当前训练方法不支持）")
 
-            # 使用eval_strategy或evaluation_strategy（根据transformers版本）
             if _should_use_eval_strategy():
                 training_args_dict['eval_strategy'] = 'steps'
             else:
                 training_args_dict['evaluation_strategy'] = 'steps'
 
-            # RTX 4090优化配置
             if self.use_rtx4090_optimization:
-                # 检查是否需要减少workers（如P-Tuning v2或Full Fine-tuning）
-                # Full Fine-tuning使用最小worker配置
                 if self.method_name == 'full_finetuning':
                     num_workers = 2
                     prefetch_factor = 1
@@ -846,13 +669,11 @@ class BaseTrainer(ABC):
 
             training_args = TrainingArguments(**training_args_dict)
 
-            # 创建数据收集器
             data_collator = InstructionDataCollator(
                 tokenizer=self.tokenizer,
                 pad_to_multiple_of=8
             )
 
-            # 创建Trainer（使用NaN-aware早停callback）
             early_stopping_callback = NaNAwareEarlyStoppingCallback(
                 early_stopping_patience=early_stopping_patience,
                 early_stopping_threshold=0.0001
@@ -867,19 +688,15 @@ class BaseTrainer(ABC):
                 callbacks=[self.history_callback, early_stopping_callback],
             )
 
-            # 执行训练
             logger.info("开始训练循环...")
             train_result = trainer.train()
 
-            # 保存最终模型
             logger.info("保存最终权重...")
             self._save_weights()
 
-            # 保存训练指标
             metrics = train_result.metrics
             logger.info(f"训练完成！最终损失: {metrics.get('train_loss', 'N/A')}")
 
-            # 报告NaN统计（如果有）
             if early_stopping_callback.nan_count > 0:
                 logger.warning("=" * 80)
                 logger.warning(f"训练期间检测到{early_stopping_callback.nan_count}次NaN验证损失")
@@ -891,20 +708,17 @@ class BaseTrainer(ABC):
                 logger.warning("建议: 检查training_history.json中的eval_loss值")
                 logger.warning("=" * 80)
 
-            # 保存训练指标到文件
             metrics_file = self.output_dir / "training_metrics.json"
             with open(metrics_file, 'w') as f:
                 json.dump(metrics, f, indent=2)
 
-            # 保存训练历史记录
             training_history = self.history_callback.get_history()
             history_file = self.output_dir / "training_history.json"
 
             batch_size, gradient_accumulation_steps = self._get_batch_config()
 
-            # 清理训练历史中的NaN值（NaN不是有效的JSON）
             def clean_nan_values(obj):
-                """递归清理字典/列表中的NaN值，替换为None"""
+                """Clean nan values."""
                 if isinstance(obj, dict):
                     return {k: clean_nan_values(v) for k, v in obj.items()}
                 elif isinstance(obj, list):
@@ -935,7 +749,6 @@ class BaseTrainer(ABC):
             logger.info(f"训练历史已保存至: {history_file}")
             logger.info(f"共记录 {len(training_history)} 个训练步骤的数据")
 
-            # 生成训练曲线可视化
             logger.info("生成训练曲线可视化...")
             try:
                 self._plot_training_curves(training_history, self.expert_type)
@@ -956,11 +769,7 @@ class BaseTrainer(ABC):
             return False
 
     def _save_weights(self):
-        """
-        保存权重（默认实现，子类如有特殊需求可覆盖）
-
-        保存 adapter 权重（PEFT）及 tokenizer 到 output_dir。
-        """
+        """Save weights."""
         if self.model is None or self.tokenizer is None:
             logger.error("模型或tokenizer未初始化，无法保存")
             return
@@ -978,12 +787,7 @@ class BaseTrainer(ABC):
             logger.error(traceback.format_exc())
 
     def get_training_status(self) -> Dict:
-        """
-        获取训练状态
-
-        Returns:
-            dict: 训练状态信息
-        """
+        """Return training status."""
         return {
             'expert_type': self.expert_type,
             'method_name': self.method_name,
@@ -996,13 +800,7 @@ class BaseTrainer(ABC):
         }
 
     def _plot_training_curves(self, training_history: List[Dict], expert_type: str):
-        """
-        生成训练曲线可视化图表
-
-        Args:
-            training_history: 训练历史记录
-            expert_type: 专家类型
-        """
+        """Plot training curves."""
         try:
             import matplotlib
             matplotlib.use('Agg')
@@ -1011,11 +809,9 @@ class BaseTrainer(ABC):
             logger.warning("matplotlib未安装，跳过可视化")
             return
 
-        # 创建输出目录
         curves_dir = self.path_cfg.PROJECT_ROOT / 'outputs' / 'training_curves'
         curves_dir.mkdir(parents=True, exist_ok=True)
 
-        # 提取数据 - 为每个指标单独记录对应的steps，并过滤掉None/NaN值
         loss_steps = []
         losses = []
         eval_steps = []
@@ -1028,35 +824,30 @@ class BaseTrainer(ABC):
         for entry in training_history:
             step = entry.get('step', 0)
 
-            # 处理loss（过滤None和NaN）
             if 'loss' in entry:
                 loss_val = entry['loss']
                 if loss_val is not None and not (isinstance(loss_val, float) and math.isnan(loss_val)):
                     loss_steps.append(step)
                     losses.append(loss_val)
 
-            # 处理eval_loss（过滤None和NaN）
             if 'eval_loss' in entry:
                 eval_val = entry['eval_loss']
                 if eval_val is not None and not (isinstance(eval_val, float) and math.isnan(eval_val)):
                     eval_steps.append(step)
                     eval_losses.append(eval_val)
 
-            # 处理grad_norm（过滤None和NaN）
             if 'grad_norm' in entry:
                 grad_val = entry['grad_norm']
                 if grad_val is not None and not (isinstance(grad_val, float) and math.isnan(grad_val)):
                     grad_norm_steps.append(step)
                     grad_norms.append(grad_val)
 
-            # 处理learning_rate（过滤None和NaN）
             if 'learning_rate' in entry:
                 lr_val = entry['learning_rate']
                 if lr_val is not None and not (isinstance(lr_val, float) and math.isnan(lr_val)):
                     lr_steps.append(step)
                     learning_rates.append(lr_val)
 
-        # 数据质量检查和警告
         total_entries = len(training_history)
         nan_eval_count = sum(1 for e in training_history if 'eval_loss' in e and
                             (e['eval_loss'] is None or (isinstance(e['eval_loss'], float) and math.isnan(e['eval_loss']))))
@@ -1085,7 +876,6 @@ class BaseTrainer(ABC):
 
         logger.info(f"曲线数据统计: Loss={len(losses)}点, EvalLoss={len(eval_losses)}点, GradNorm={len(grad_norms)}点, LR={len(learning_rates)}点")
 
-        # 创建图表
         fig, axes = plt.subplots(2, 2, figsize=(15, 10))
         fig.suptitle(f'Training Curves - {expert_type.upper()} Expert ({self.method_name})',
                      fontsize=16, fontweight='bold')
@@ -1149,7 +939,6 @@ class BaseTrainer(ABC):
 
         plt.tight_layout()
 
-        # 保存图表
         from datetime import datetime
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         plot_path = curves_dir / f'{expert_type}_expert_{self.method_name}_training_curves_{timestamp}.png'

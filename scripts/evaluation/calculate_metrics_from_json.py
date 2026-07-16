@@ -1,24 +1,4 @@
-"""
-Calculate Metrics from JSON - Fast Metric Recalculation
-从JSON快速计算指标 - 无需重新生成预测
-
-功能:
-  - 从保存的predictions JSON文件读取数据
-  - 快速重新计算评估指标
-  - 支持调整评估阈值
-  - 避免重复生成指令，节省时间
-
-环境要求: instruction_generator
-运行方式: python scripts/evaluation/calculate_metrics_from_json.py --input path/to/predictions.json
-
-使用场景:
-  - 调整评估阈值后重新计算指标
-  - 对比不同阈值配置的效果
-  - 快速验证评估逻辑修改
-
-作者: Evaluation System
-日期: 2025-02-12
-"""
+"""Calculate evaluation metrics from saved JSON predictions."""
 
 import sys
 import json
@@ -27,7 +7,6 @@ from pathlib import Path
 from typing import Dict, List
 from datetime import datetime
 
-# 添加项目根目录到路径
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -38,15 +17,7 @@ logger = get_logger('evaluation.calculate_metrics_from_json')
 
 
 def load_predictions_json(filepath: str) -> Dict:
-    """
-    加载预测数据JSON文件
-
-    Args:
-        filepath: JSON文件路径
-
-    Returns:
-        dict: 包含inputs, predictions, references的字典
-    """
+    """Load predictions JSON."""
     filepath = Path(filepath)
 
     if not filepath.exists():
@@ -57,7 +28,6 @@ def load_predictions_json(filepath: str) -> Dict:
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    # 提取samples数据
     samples = data.get('samples', [])
 
     if not samples:
@@ -89,29 +59,13 @@ def calculate_metrics(
         use_and_logic: bool = None,
         format_threshold: float = None
 ) -> Dict:
-    """
-    计算评估指标
-
-    Args:
-        predictions: 预测列表
-        references: 参考列表
-        use_bertscore: 是否使用BERTScore
-        rouge_threshold: ROUGE-L阈值（None使用配置默认值）
-        bertscore_threshold: BERTScore阈值（None使用配置默认值）
-        use_and_logic: 是否使用AND逻辑（None使用配置默认值）
-        format_threshold: 格式阈值（None使用配置默认值）
-
-    Returns:
-        dict: 评估结果
-    """
+    """Calculate metrics."""
     logger.info("=" * 80)
     logger.info("开始计算评估指标")
     logger.info("=" * 80)
 
-    # 创建评估器
     metrics = EnhancedMetrics(use_bertscore=use_bertscore)
 
-    # 过滤空预测
     valid_pairs = [
         (pred, ref) for pred, ref in zip(predictions, references)
         if pred.strip()
@@ -126,20 +80,17 @@ def calculate_metrics(
 
     logger.info(f"有效样本数: {len(valid_predictions)}/{len(predictions)}")
 
-    # 生成质量指标
     logger.info("\n[1/4] 计算生成质量指标...")
     quality_metrics = metrics.calculate_generation_quality(
         predictions=valid_predictions,
         references=valid_references
     )
 
-    # 格式指标
     logger.info("\n[2/4] 计算格式指标...")
     format_metrics = metrics.calculate_format_metrics(
         instructions=valid_predictions
     )
 
-    # 二分类指标
     logger.info("\n[3/4] 计算二分类指标...")
     binary_metrics = metrics.calculate_binary_classification_metrics(
         predictions=valid_predictions,
@@ -150,13 +101,11 @@ def calculate_metrics(
         use_and_logic=use_and_logic
     )
 
-    # 统计指标
     logger.info("\n[4/4] 计算统计指标...")
     statistical_metrics = metrics.calculate_statistical_metrics(
         instructions=valid_predictions
     )
 
-    # 组合结果
     results = {
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'total_samples': len(predictions),
@@ -176,18 +125,11 @@ def calculate_metrics(
 
 
 def print_metrics_summary(results: Dict, expert_name: str):
-    """
-    打印指标摘要
-
-    Args:
-        results: 评估结果
-        expert_name: 专家名称
-    """
+    """Print metrics summary."""
     print("\n" + "=" * 80)
     print(f"评估结果摘要 - {expert_name}")
     print("=" * 80)
 
-    # 生成质量
     print("\n[生成质量指标]")
     quality = results['generation_quality']
     print(f"  BLEU:        {quality['bleu']:.4f}")
@@ -196,13 +138,11 @@ def print_metrics_summary(results: Dict, expert_name: str):
     if 'bertscore_f1' in quality:
         print(f"  BERTScore F1: {quality['bertscore_f1']:.4f}")
 
-    # 格式指标
     print("\n[格式指标]")
     format_m = results['format_metrics']
     print(f"  格式分数:    {format_m['avg_format_score']:.4f}")
     print(f"  通过率:      {format_m['valid_rate']:.2%}")
 
-    # 二分类指标
     print("\n[二分类指标]")
     binary = results['binary_classification']
     print(f"  Precision:   {binary['precision']:.4f}")
@@ -210,7 +150,6 @@ def print_metrics_summary(results: Dict, expert_name: str):
     print(f"  F1 Score:    {binary['f1_score']:.4f}")
     print(f"  TP: {binary['TP']:<6d}  FP: {binary['FP']:<6d}  FN: {binary['FN']:<6d}")
 
-    # 阈值配置
     print("\n[阈值配置]")
     print(f"  ROUGE-L阈值:      {binary['rouge_threshold']:.2f}")
     print(f"  BERTScore阈值:    {binary['bertscore_threshold']:.2f}")
@@ -221,14 +160,7 @@ def print_metrics_summary(results: Dict, expert_name: str):
 
 
 def save_results(results: Dict, expert_name: str, save_dir: str):
-    """
-    保存评估结果
-
-    Args:
-        results: 评估结果
-        expert_name: 专家名称
-        save_dir: 保存目录
-    """
+    """Save results."""
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -248,14 +180,12 @@ def main_single(args):
     Accepts a pre-parsed args namespace so it can be called from the unified
     __main__ entry point without re-parsing sys.argv.
     """
-    # 加载预测数据
     try:
         data = load_predictions_json(args.input)
     except Exception as e:
         logger.error(f"加载预测数据失败: {e}")
         sys.exit(1)
 
-    # 计算指标
     try:
         results = calculate_metrics(
             predictions=data['predictions'],
@@ -272,15 +202,12 @@ def main_single(args):
         logger.error(traceback.format_exc())
         sys.exit(1)
 
-    # 添加原始数据信息
     results['expert_name'] = data['expert_name']
     results['original_timestamp'] = data['original_timestamp']
     results['input_file'] = args.input
 
-    # 打印摘要
     print_metrics_summary(results, data['expert_name'])
 
-    # 保存结果
     save_results(results, data['expert_name'], args.save_dir)
 
     logger.info("完成!")
@@ -334,10 +261,8 @@ def main():
     main_single(args)
 
 
-# ---------------------------------------------------------------------------
 # Batch mode extensions (Phase 2 addition)
 # Do NOT modify anything above this line.
-# ---------------------------------------------------------------------------
 
 def scan_cache_files(cache_dir: Path) -> List[Path]:
     """
@@ -376,7 +301,6 @@ def main_batch(args):
                 print(f)
         return
 
-    # 确定要处理的文件列表
     files = scan_cache_files(cache_dir)
 
     if args.exp:

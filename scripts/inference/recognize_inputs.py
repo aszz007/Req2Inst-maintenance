@@ -1,29 +1,4 @@
-"""
-Unified Recognition Script for Inference
-推理阶段的统一识别脚本
-
-功能:
-  - 识别inputs/目录中的原始图像和UML图
-  - 支持单文件或批量处理
-  - 自动判断图像类型（普通图像/UML图）
-  - 输出JSON格式的识别结果到outputs/recognition_results/
-
-环境要求: instruction_generator (统一Conda环境，transformers==4.57.0)
-  运行前请先激活环境: conda activate instruction_generator
-
-用法:
-  # 识别单个文件
-  python scripts/inference/recognize_inputs.py --input path/to/image.jpg --type image
-
-  # 批量识别目录
-  python scripts/inference/recognize_inputs.py --input path/to/dir --type uml
-
-  # 指定视觉模型版本
-  python scripts/inference/recognize_inputs.py --input path/to/image.jpg --type image --version qwen2.5
-
-作者: Inference System
-日期: 2025-02-06
-"""
+"""Recognize image and UML inputs with the configured vision model."""
 
 import argparse
 import json

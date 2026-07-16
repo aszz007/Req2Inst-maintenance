@@ -1,16 +1,4 @@
-"""
-Text众包指令批次修复脚本
-基于generate_instructions_text.py的稳定生成逻辑
-核心特性:
-1. 继承稳定的浏览器自动化功能
-2. 批次完整性检查:如果批次中有任何ERROR,整个批次重新生成
-3. 自动检测需要修复的批次范围
-4. 精准检测"ERROR: 生成失败",支持多种引号格式
-5. 三段式完整性检查(Definition/Emphasis/Things to Avoid)
-6. 句号检查(可通过ENABLE_PERIOD_CHECK参数配置,默认关闭)
-7. 详细错误报告,列出每条错误数据及具体问题
-8. 使用与generate文件完全一致的硬编码Prompt
-"""
+"""Repair failed text-domain instruction batches."""
 
 import os
 import time
@@ -25,39 +13,34 @@ import re
 from datetime import datetime
 import chardet
 
-# ==================== 配置参数 ====================
 CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 DATASET_PATH = r"D:\MyPyProject\crowdsourcing_instruction_generator\dataset\Requirements_data\Text_data"
 GPT_URL = "https://sass-node1.chatshare.biz/"
 
-# 目标文件
-CSV_FILE = "enhanced_CCHIT.csv"  # 可修改为需要修复的文件
+CSV_FILE = "enhanced_CCHIT.csv"
 
-# 批次参数
-BATCH_SIZE = 10  # 批次大小(与首次生成保持一致)
+BATCH_SIZE = 10
 CHECK_INTERVAL = 100
-WAIT_NEW_RESPONSE_TIMEOUT = 60  # 等待新回复最多60秒
-CONTENT_STABLE_CHECKS = 3  # 内容稳定性检查次数
-ENABLE_PERIOD_CHECK = False  # 句号检测开关（默认关闭）
+WAIT_NEW_RESPONSE_TIMEOUT = 60
+CONTENT_STABLE_CHECKS = 3
+ENABLE_PERIOD_CHECK = False
 
-# ==================== 工具函数 ====================
 class TextBatchRepairer:
+    """Repair failed text-instruction batches."""
     def __init__(self):
         self.driver = None
         self.current_tab = None
         self.repaired_count = 0
         self.error_log = []
-        self.error_details = []  # 存储详细错误信息
+        self.error_details = []
 
-        # 缓存成功的选择器
         self.cached_input_selector = None
         self.cached_button_selector = None
 
-        # 记录发送前的回复数量
         self.response_count_before_send = 0
 
     def init_driver(self):
-        """初始化Chrome浏览器"""
+        """Initialize the browser driver."""
         print("\n" + "="*60)
         print("正在初始化浏览器...")
         print("="*60)
@@ -101,11 +84,10 @@ class TextBatchRepairer:
             raise
 
     def find_input_box(self, debug=False):
-        """定位输入框 - 优化版,使用缓存"""
+        """Find input box."""
         if debug:
             print("🔍 定位输入框...")
 
-        # 如果有缓存的选择器,优先使用
         if self.cached_input_selector:
             try:
                 element = WebDriverWait(self.driver, 5).until(
@@ -150,7 +132,7 @@ class TextBatchRepairer:
         raise NoSuchElementException("无法找到输入框")
 
     def find_submit_button(self):
-        """定位提交按钮 - 优化版,使用缓存"""
+        """Find submit button."""
         if self.cached_button_selector:
             try:
                 button = self.driver.find_element(By.CSS_SELECTOR, self.cached_button_selector)
@@ -182,10 +164,7 @@ class TextBatchRepairer:
         return None
 
     def get_current_response_count(self):
-        """
-        基于实际DOM结构获取assistant回复数量
-        使用data-message-author-role="assistant"作为准确标记
-        """
+        """Return current response count."""
         try:
             response_selectors = [
                 "div[data-message-author-role='assistant']",
@@ -225,10 +204,7 @@ class TextBatchRepairer:
             return 0
 
     def wait_for_response(self, timeout=60):
-        """
-        等待新回复生成,支持长响应和瞬间生成
-        返回: 新回复的文本 或 空字符串
-        """
+        """Wait for a browser response."""
         print(f"\n⏳ 等待回复生成...")
         start_time = time.time()
 
@@ -283,13 +259,7 @@ class TextBatchRepairer:
         return ""
 
     def _clean_and_merge_content(self, text):
-        """
-        清理和合并内容：
-        1. 移除换行符
-        2. 处理bullet points，用分号分隔
-        3. 清理多余空格
-        4. 保留单独的"-"（表示无内容）
-        """
+        """Clean and merge content."""
         if not text:
             return ""
 
@@ -322,9 +292,7 @@ class TextBatchRepairer:
         return result
 
     def normalize_three_part_format(self, text):
-        """
-        标准化三段式格式：解析并合并多行内容
-        """
+        """Normalize three part format."""
         if not text:
             return text
 
@@ -350,11 +318,7 @@ class TextBatchRepairer:
         return result
 
     def parse_text_instruction(self, response_text):
-        """
-        解析Text指令 - 三段式格式
-        适配【需求N】格式和普通格式
-        返回: instruction字符串 或 None
-        """
+        """Parse text instruction."""
         pattern = r'【需求\d+】\s*\n(.*?)(?=【需求\d+】|$)'
         matches = re.findall(pattern, response_text, re.DOTALL)
 
@@ -389,7 +353,7 @@ class TextBatchRepairer:
             return None
 
     def send_prompt(self, prompt_text, max_retries=3):
-        """发送提示词到LLM"""
+        """Submit a prompt to the browser session."""
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
@@ -472,10 +436,7 @@ class TextBatchRepairer:
         return False
 
     def process_batch(self, batch_data, start_idx):
-        """
-        处理单个批次的Text数据
-        返回是否发生重试的标志
-        """
+        """Process batch."""
         print(f"\n{'=' * 60}")
         print(f"处理批次 {start_idx + 1}-{start_idx + len(batch_data)}")
         print(f"{'=' * 60}")
@@ -572,7 +533,7 @@ Things to Avoid: ..."""
         return instructions, retry_happened
 
     def start_new_chat(self):
-        """使用 Ctrl+Shift+O 快捷键开启新对话"""
+        """Start a new browser chat."""
         print("\n>>> 开启新对话...")
         try:
             from selenium.webdriver.common.action_chains import ActionChains
@@ -596,7 +557,7 @@ Things to Avoid: ..."""
             print("  ℹ 将继续在当前对话中处理")
 
     def validate_instruction_format(self, instruction):
-        """验证指令格式完整性"""
+        """Validate instruction format."""
         errors = []
 
         if not instruction or instruction.strip() == "":
@@ -645,7 +606,7 @@ Things to Avoid: ..."""
         return is_valid, errors
 
     def detect_error_batches(self, df):
-        """检测需要修复的批次"""
+        """Detect error batches."""
         print("\n" + "="*60)
         print("开始检测错误数据...")
         print("="*60)
@@ -704,7 +665,7 @@ Things to Avoid: ..."""
         return error_batches
 
     def print_error_report(self):
-        """打印详细错误报告"""
+        """Print error report."""
         if not self.error_details:
             return
 
@@ -719,7 +680,7 @@ Things to Avoid: ..."""
         print("\n" + "="*60)
 
     def repair_file(self, csv_path):
-        """修复文件中的错误批次"""
+        """Repair failed records in one file."""
         print(f"\n{'#' * 60}")
         print(f"# 处理文件: {os.path.basename(csv_path)}")
         print(f"{'#' * 60}")
@@ -799,7 +760,7 @@ Things to Avoid: ..."""
         return self.repaired_count
 
     def run(self):
-        """主运行函数"""
+        """Run the workflow."""
         start_time = datetime.now()
         print(f"\n{'=' * 60}")
         print(f"{'Text批次完整性修复系统':^60}")
@@ -849,7 +810,6 @@ Things to Avoid: ..."""
                 print("✓ 浏览器已关闭")
 
 
-# ==================== 主程序 ====================
 if __name__ == "__main__":
     repairer = TextBatchRepairer()
     repairer.run()

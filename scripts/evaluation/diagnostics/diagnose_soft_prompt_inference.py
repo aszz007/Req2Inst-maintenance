@@ -150,6 +150,7 @@ def _run_config(expert_type, ckpt_path, samples, use_4bit):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Diagnose p_tuning/prompt_tuning inference precision')
     parser.add_argument('--method', required=True, choices=['p_tuning', 'prompt_tuning'])
     parser.add_argument('--expert-type', required=True, choices=['text', 'image', 'uml', 'general'])
