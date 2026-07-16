@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: >-
+  This software accompanies a paper under review. Please check this file again
+  after the public release for the final author list, paper title, and DOI.
+title: Req2Inst
+type: software
+version: 0.1.0
+authors:
+  - name: Req2Inst Authors
+repository-code: https://github.com/aszz007/Req2Inst
+abstract: >-
+  A multimodal crowdsourcing instruction generation research prototype using
+  Qwen3 models, domain LoRA experts, and routing strategies.
