@@ -58,9 +58,9 @@ class EnhancedMetrics:
         self.meteor_metric = None
         self.bertscore_metric = None
 
-        logger.info("初始化增强评估指标模块")
+        logger.info("Initializing enhanced evaluation metrics")
         if use_bertscore:
-            logger.info("BERTScore已启用（默认）- 用于评估生成指令的语义相似度")
+            logger.info("BERTScore enabled by default for semantic-similarity evaluation")
 
     def cleanup(self):
         """Release temporary resources."""
@@ -78,7 +78,7 @@ class EnhancedMetrics:
             import torch
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                logger.debug("评估指标显存已释放")
+                logger.debug("GPU memory used by evaluation metrics has been released")
         except ImportError:
             pass
 
@@ -90,28 +90,28 @@ class EnhancedMetrics:
 
                 self._ensure_nltk_data()
 
-                logger.info("加载BLEU指标...")
+                logger.info("Loading BLEU metric...")
                 self.bleu_metric = load('bleu')
 
-                logger.info("加载ROUGE指标...")
+                logger.info("Loading ROUGE metric...")
                 self.rouge_metric = load('rouge')
 
-                logger.info("加载METEOR指标...")
+                logger.info("Loading METEOR metric...")
                 self.meteor_metric = load('meteor')
 
                 if self.use_bertscore:
                     try:
-                        logger.info("加载BERTScore指标...")
+                        logger.info("Loading BERTScore metric...")
                         self.bertscore_metric = load('bertscore')
-                        logger.info("BERTScore加载成功")
+                        logger.info("BERTScore metric loaded successfully")
                     except Exception as e:
-                        logger.warning(f"BERTScore加载失败: {e}")
-                        logger.warning("将跳过BERTScore计算")
+                        logger.warning(f"Failed to load BERTScore metric: {e}")
+                        logger.warning("BERTScore computation will be skipped")
                         self.use_bertscore = False
 
-                logger.info("评估指标加载完成")
+                logger.info("Evaluation metrics loaded")
             except Exception as e:
-                logger.error(f"评估指标加载失败: {e}")
+                logger.error(f"Failed to load evaluation metrics: {e}")
                 raise
 
     def _ensure_nltk_data(self):
@@ -127,28 +127,28 @@ class EnhancedMetrics:
                 ('tokenizers/punkt_tab', 'punkt_tab')
             ]
 
-            logger.info("检查NLTK数据包...")
+            logger.info("Checking NLTK resources...")
 
             for data_path, data_name in required_data:
                 try:
                     find(data_path)
-                    logger.debug(f"NLTK数据包已存在: {data_name}")
+                    logger.debug(f"NLTK resource is already available: {data_name}")
                 except LookupError:
-                    logger.warning(f"NLTK数据包缺失: {data_name}, 尝试下载...")
+                    logger.warning(f"NLTK resource is missing: {data_name}; attempting download...")
                     try:
                         nltk.download(data_name, quiet=True)
-                        logger.info(f"NLTK数据包下载成功: {data_name}")
+                        logger.info(f"NLTK resource downloaded successfully: {data_name}")
                     except Exception as e:
-                        logger.warning(f"NLTK数据包下载失败: {data_name} - {e}")
-                        logger.warning(f"METEOR计算可能会失败或变慢")
+                        logger.warning(f"Failed to download NLTK resource {data_name}: {e}")
+                        logger.warning("METEOR computation may fail or run slowly")
 
-            logger.info("NLTK数据检查完成")
+            logger.info("NLTK resource check complete")
 
         except ImportError:
-            logger.warning("NLTK未安装, METEOR计算可能会失败")
+            logger.warning("NLTK is not installed; METEOR computation may fail")
         except Exception as e:
-            logger.warning(f"NLTK数据检查失败: {e}")
-            logger.warning("继续执行, 但METEOR计算可能会失败")
+            logger.warning(f"NLTK resource check failed: {e}")
+            logger.warning("Continuing, but METEOR computation may fail")
 
     def calculate_generation_quality(
         self,
@@ -160,29 +160,29 @@ class EnhancedMetrics:
 
         if len(predictions) != len(references):
             raise ValueError(
-                f"预测和参考数量不匹配: {len(predictions)} vs {len(references)}"
+                f"Prediction and reference counts do not match: {len(predictions)} vs {len(references)}"
             )
 
-        logger.info(f"计算生成质量指标 - 样本数: {len(predictions)}")
+        logger.info(f"Computing generation-quality metrics - samples: {len(predictions)}")
 
         results = {}
 
         # BLEU
         try:
-            logger.info("开始计算BLEU指标...")
+            logger.info("Computing BLEU...")
             bleu_result = self.bleu_metric.compute(
                 predictions=predictions,
                 references=[[ref] for ref in references]
             )
             results['bleu'] = bleu_result['bleu']
-            logger.info(f"BLEU计算完成: {results['bleu']:.4f}")
+            logger.info(f"BLEU computation complete: {results['bleu']:.4f}")
         except Exception as e:
-            logger.error(f"BLEU计算失败: {e}")
+            logger.error(f"BLEU computation failed: {e}")
             results['bleu'] = 0.0
 
         # ROUGE
         try:
-            logger.info("开始计算ROUGE指标...")
+            logger.info("Computing ROUGE...")
             rouge_result = self.rouge_metric.compute(
                 predictions=predictions,
                 references=references
@@ -190,33 +190,33 @@ class EnhancedMetrics:
             results['rouge1'] = rouge_result['rouge1']
             results['rouge2'] = rouge_result['rouge2']
             results['rougeL'] = rouge_result['rougeL']
-            logger.info(f"ROUGE计算完成 - ROUGE-L: {results['rougeL']:.4f}")
+            logger.info(f"ROUGE computation complete - ROUGE-L: {results['rougeL']:.4f}")
         except Exception as e:
-            logger.error(f"ROUGE计算失败: {e}")
+            logger.error(f"ROUGE computation failed: {e}")
             results['rouge1'] = results['rouge2'] = results['rougeL'] = 0.0
 
         # METEOR
         try:
-            logger.info("开始计算METEOR指标...")
-            logger.info(f"METEOR计算中 - 样本数: {len(predictions)}, 请耐心等待...")
+            logger.info("Computing METEOR...")
+            logger.info(f"METEOR computation in progress - samples: {len(predictions)}; this may take a while...")
 
             meteor_result = self.meteor_metric.compute(
                 predictions=predictions,
                 references=references
             )
             results['meteor'] = meteor_result['meteor']
-            logger.info(f"METEOR计算完成: {results['meteor']:.4f}")
+            logger.info(f"METEOR computation complete: {results['meteor']:.4f}")
         except Exception as e:
-            logger.error(f"METEOR计算失败: {e}")
-            logger.error(f"可能原因: NLTK数据缺失或网络问题")
-            logger.error(f"建议: 手动下载NLTK数据或禁用METEOR")
+            logger.error(f"METEOR computation failed: {e}")
+            logger.error("Possible cause: missing NLTK resources or a network problem")
+            logger.error("Suggested action: download the required NLTK resources manually or disable METEOR")
             results['meteor'] = 0.0
 
         # BERTScore
         if self.use_bertscore and self.bertscore_metric is not None:
             try:
-                logger.info("开始计算BERTScore指标...")
-                logger.info(f"BERTScore计算中 - 这可能需要几分钟...")
+                logger.info("Computing BERTScore...")
+                logger.info("BERTScore computation in progress; this may take several minutes...")
 
                 bertscore_result = self.bertscore_metric.compute(
                     predictions=predictions,
@@ -227,15 +227,15 @@ class EnhancedMetrics:
                 results['bertscore_recall'] = sum(bertscore_result['recall']) / len(predictions)
                 results['bertscore_f1'] = sum(bertscore_result['f1']) / len(predictions)
                 results['bertscore_f1_scores'] = list(bertscore_result['f1'])
-                logger.info(f"BERTScore计算完成 - F1: {results['bertscore_f1']:.4f}")
+                logger.info(f"BERTScore computation complete - F1: {results['bertscore_f1']:.4f}")
             except Exception as e:
-                logger.error(f"BERTScore计算失败: {e}")
+                logger.error(f"BERTScore computation failed: {e}")
                 results['bertscore_precision'] = 0.0
                 results['bertscore_recall'] = 0.0
                 results['bertscore_f1'] = 0.0
                 results['bertscore_f1_scores'] = []
 
-        logger.info("所有生成质量指标计算完成")
+        logger.info("All generation-quality metrics computed")
         return results
 
     def calculate_format_metrics(
@@ -243,7 +243,7 @@ class EnhancedMetrics:
         instructions: List[str]
     ) -> Dict[str, Any]:
         """Calculate format metrics."""
-        logger.info(f"计算格式指标 - 样本数: {len(instructions)}")
+        logger.info(f"Computing format metrics - samples: {len(instructions)}")
 
         format_results = []
 
@@ -273,8 +273,8 @@ class EnhancedMetrics:
             'detailed_results': format_results
         }
 
-        logger.info(f"格式验证通过率: {summary['valid_rate']:.2%}")
-        logger.info(f"平均格式分数: {summary['avg_format_score']:.4f}")
+        logger.info(f"Format-validation pass rate: {summary['valid_rate']:.2%}")
+        logger.info(f"Average format score: {summary['avg_format_score']:.4f}")
 
         return summary
 
@@ -366,7 +366,7 @@ class EnhancedMetrics:
         expert_usage: Optional[Dict[str, int]] = None
     ) -> Dict[str, Any]:
         """Calculate statistical metrics."""
-        logger.info(f"计算统计指标 - 样本数: {len(instructions)}")
+        logger.info(f"Computing statistical metrics - samples: {len(instructions)}")
 
         lengths = [len(inst) for inst in instructions]
         word_counts = [len(inst.split()) for inst in instructions]
@@ -406,8 +406,8 @@ class EnhancedMetrics:
                 }
             }
 
-        logger.info(f"平均字符长度: {stats['char_length']['mean']:.1f}")
-        logger.info(f"平均单词数: {stats['word_count']['mean']:.1f}")
+        logger.info(f"Average character length: {stats['char_length']['mean']:.1f}")
+        logger.info(f"Average word count: {stats['word_count']['mean']:.1f}")
 
         return stats
 
@@ -431,16 +431,16 @@ class EnhancedMetrics:
         if use_and_logic is None:
             use_and_logic = EvaluationThresholds.USE_AND_LOGIC
 
-        logger.info(f"计算二分类指标 - 样本数: {len(predictions)}")
-        logger.info(f"阈值配置:")
-        logger.info(f"  格式分数阈值: {format_threshold}")
-        logger.info(f"  ROUGE-L阈值: {rouge_threshold}")
-        logger.info(f"  BERTScore F1阈值: {bertscore_threshold}")
-        logger.info(f"  组合逻辑: {'AND (两者都需满足)' if use_and_logic else 'OR (满足一个即可)'}")
+        logger.info(f"Computing binary-classification metrics - samples: {len(predictions)}")
+        logger.info("Threshold configuration:")
+        logger.info(f"  Format-score threshold: {format_threshold}")
+        logger.info(f"  ROUGE-L threshold: {rouge_threshold}")
+        logger.info(f"  BERTScore F1 threshold: {bertscore_threshold}")
+        logger.info(f"  Combination rule: {'AND (both must pass)' if use_and_logic else 'OR (either may pass)'}")
 
         if len(predictions) != len(references):
             raise ValueError(
-                f"预测和参考数量不匹配: {len(predictions)} vs {len(references)}"
+                f"Prediction and reference counts do not match: {len(predictions)} vs {len(references)}"
             )
 
         format_results = self.calculate_format_metrics(predictions)
@@ -454,25 +454,25 @@ class EnhancedMetrics:
             )
             rouge_l_scores = per_sample_rouge['rougeL']
         except Exception as e:
-            logger.error(f"ROUGE-L计算失败: {e}")
+            logger.error(f"ROUGE-L computation failed: {e}")
             rouge_l_scores = [0.0] * len(predictions)
 
         bertscore_f1_scores = []
         if precomputed_bertscore_f1 is not None and len(precomputed_bertscore_f1) == len(predictions):
             bertscore_f1_scores = precomputed_bertscore_f1
-            logger.info(f"复用预计算BERTScore - 平均F1: {sum(bertscore_f1_scores)/len(bertscore_f1_scores):.4f}")
+            logger.info(f"Using precomputed BERTScore - mean F1: {sum(bertscore_f1_scores)/len(bertscore_f1_scores):.4f}")
         elif self.use_bertscore and self.bertscore_metric is not None:
             try:
-                logger.info("使用BERTScore计算语义相似度...")
+                logger.info("Computing semantic similarity with BERTScore...")
                 bertscore_result = self.bertscore_metric.compute(
                     predictions=predictions,
                     references=references,
                     lang='en'
                 )
                 bertscore_f1_scores = bertscore_result['f1']
-                logger.info(f"BERTScore F1平均值: {sum(bertscore_f1_scores)/len(bertscore_f1_scores):.4f}")
+                logger.info(f"Mean BERTScore F1: {sum(bertscore_f1_scores)/len(bertscore_f1_scores):.4f}")
             except Exception as e:
-                logger.error(f"BERTScore计算失败: {e}")
+                logger.error(f"BERTScore computation failed: {e}")
                 bertscore_f1_scores = [0.0] * len(predictions)
 
         tp = 0  # True Positive
@@ -544,10 +544,10 @@ class EnhancedMetrics:
             'use_bertscore': self.use_bertscore and len(bertscore_f1_scores) > 0
         }
 
-        logger.info(f"二分类指标计算完成:")
+        logger.info("Binary-classification metrics computed:")
         logger.info(f"  TP: {tp}, FP: {fp}, FN: {fn}, TN: {tn}")
-        logger.info(f"  精确率: {precision:.4f}, 召回率: {recall:.4f}")
-        logger.info(f"  F1分数: {f1_score:.4f}, 准确率: {accuracy:.4f}")
+        logger.info(f"  Precision: {precision:.4f}, recall: {recall:.4f}")
+        logger.info(f"  F1 score: {f1_score:.4f}, accuracy: {accuracy:.4f}")
 
         return results
 
@@ -635,9 +635,7 @@ class EnhancedMetrics:
         include_binary_metrics: bool = True
     ) -> Dict[str, Any]:
         """Generate comprehensive report."""
-        logger.info("=" * 80)
-        logger.info("生成综合评估报告")
-        logger.info("=" * 80)
+        logger.info("Generating comprehensive evaluation report")
 
         report = {
             'metadata': {
@@ -646,25 +644,25 @@ class EnhancedMetrics:
             }
         }
 
-        logger.info("\n[1/4] 计算生成质量指标...")
+        logger.info("\n[1/4] Computing generation-quality metrics...")
         report['generation_quality'] = self.calculate_generation_quality(
             predictions, references
         )
 
-        logger.info("\n[2/4] 计算格式指标...")
+        logger.info("\n[2/4] Computing format metrics...")
         report['format_metrics'] = self.calculate_format_metrics(predictions)
 
         if include_binary_metrics:
-            logger.info("\n[3/4] 计算二分类指标（TP/TN/FP/FN）...")
+            logger.info("\n[3/4] Computing binary-classification metrics (TP/TN/FP/FN)...")
             precomputed_bs = report['generation_quality'].get('bertscore_f1_scores', None)
             report['binary_classification'] = self.calculate_binary_classification_metrics(
                 predictions, references,
                 precomputed_bertscore_f1=precomputed_bs
             )
         else:
-            logger.info("\n[3/4] 跳过二分类指标计算")
+            logger.info("\n[3/4] Skipping binary-classification metrics")
 
-        logger.info("\n[4/4] 计算统计指标...")
+        logger.info("\n[4/4] Computing statistical metrics...")
         report['statistical_metrics'] = self.calculate_statistical_metrics(
             predictions, expert_usage
         )
@@ -672,9 +670,7 @@ class EnhancedMetrics:
         if save_path:
             self._save_report(report, save_path)
 
-        logger.info("=" * 80)
-        logger.info("综合评估报告生成完成")
-        logger.info("=" * 80)
+        logger.info("Comprehensive evaluation report generated")
 
         return report
 
@@ -694,7 +690,7 @@ class EnhancedMetrics:
         with open(save_path, 'w', encoding='utf-8') as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"评估报告已保存至: {save_path}")
+        logger.info(f"Evaluation report saved to: {save_path}")
 
     def print_report_summary(self, report: Dict):
         """Print report summary."""

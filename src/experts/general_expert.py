@@ -49,19 +49,19 @@ class GeneralExpert(BaseExpert):
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get(expert_name)
             if lora_weight_path is None:
-                logger.warning(f"配置中未找到{expert_name}的LoRA权重路径,将使用基础模型")
+                logger.warning(f"No LoRA weight path is configured for {expert_name}; using the base model")
                 lora_path = None
             else:
                 lora_path_obj = Path(lora_weight_path)
                 if not lora_path_obj.exists():
-                    logger.warning(f"LoRA权重路径不存在: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path does not exist: {lora_path_obj}; using the base model")
                     lora_path = None
                 elif not lora_path_obj.is_dir():
-                    logger.warning(f"LoRA权重路径不是目录: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path is not a directory: {lora_path_obj}; using the base model")
                     lora_path = None
                 else:
                     lora_path = str(lora_path_obj)
-                    logger.info(f"找到LoRA权重路径: {lora_path}")
+                    logger.info(f"Found LoRA weight path: {lora_path}")
 
         super().__init__(
             expert_name=expert_name,
@@ -70,34 +70,31 @@ class GeneralExpert(BaseExpert):
             use_4bit=use_4bit
         )
 
-        logger.info("通用专家初始化完成")
+        logger.info("General expert initialized")
 
     def generate_instruction(self, input_data: Union[str, dict], sample_index: int = None) -> str:
         """Generate instruction."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return ""
 
         try:
             show_debug = sample_index is None or sample_index < 3
 
             if show_debug:
-                logger.info("=" * 80)
-                logger.info("[调试] 原始输入数据:")
-                logger.info("-" * 80)
+                logger.info("[Debug] Raw input data:")
                 if isinstance(input_data, dict):
-                    logger.info(f"输入类型: dict")
-                    logger.info(f"输入内容（前500字符）: {str(input_data)[:500]}")
+                    logger.info("Input type: dict")
+                    logger.info(f"First 500 characters of input: {str(input_data)[:500]}")
                 else:
-                    logger.info(f"输入类型: {type(input_data).__name__}")
-                    logger.info(f"输入内容（前500字符）: {str(input_data)[:500]}")
-                logger.info("=" * 80)
+                    logger.info(f"Input type: {type(input_data).__name__}")
+                    logger.info(f"First 500 characters of input: {str(input_data)[:500]}")
 
             if show_debug:
                 input_type = self._detect_input_type(input_data)
-                logger.info(f"[调试] 识别输入类型: {input_type}")
+                logger.info(f"[Debug] Detected input type: {input_type}")
 
             prompt, _ = _build_prompt_for_domain(input_data)
 
@@ -116,39 +113,36 @@ class GeneralExpert(BaseExpert):
             instruction = self._normalize_instruction(instruction)
 
             if show_debug:
-                logger.info("=" * 80)
-                logger.info("模型原始输出:")
-                logger.info("-" * 80)
+                logger.info("Raw model output:")
                 logger.info(instruction)
-                logger.info("=" * 80)
 
             if self.validate_output(instruction):
-                logger.info("指令生成成功,格式验证通过")
+                logger.info("Instruction generated successfully and passed format validation")
                 return instruction
             else:
                 if show_debug:
-                    logger.warning(f"指令格式验证未通过，直接使用normalize后的输出")
+                    logger.warning("Instruction failed format validation; using the normalized output directly")
                 if not instruction or not instruction.strip():
-                    logger.warning("输出为空，使用fallback兜底")
+                    logger.warning("Output is empty; using fallback generation")
                     return self._fallback_generation(input_data)
                 return instruction
 
         except Exception as e:
-            logger.error(f"指令生成失败: {e}")
+            logger.error(f"Instruction generation failed: {e}")
             import traceback
-            logger.error(f"异常详情: {traceback.format_exc()}")
+            logger.error(f"Exception details: {traceback.format_exc()}")
             return ""
 
     def batch_generate_instruction(self, input_data_list: list, batch_size: int = 8) -> list:
         """Generate instructions in batches."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return [""] * len(input_data_list)
 
         try:
-            logger.info(f"批量生成指令 - 共{len(input_data_list)}个样本，batch_size={batch_size}")
+            logger.info(f"Batch instruction generation - {len(input_data_list)} samples, batch_size={batch_size}")
 
             prompts = [_build_prompt_for_domain(data)[0] for data in input_data_list]
 
@@ -166,11 +160,8 @@ class GeneralExpert(BaseExpert):
             )
 
             for i in range(min(3, len(instructions))):
-                logger.info("=" * 80)
-                logger.info(f"[样本 {i+1}/{len(input_data_list)}] 生成的指令:")
-                logger.info("-" * 80)
+                logger.info(f"[Sample {i+1}/{len(input_data_list)}] Generated instruction:")
                 logger.info(instructions[i])
-                logger.info("=" * 80)
 
             validated_instructions = []
             for i, instruction in enumerate(instructions):
@@ -178,19 +169,19 @@ class GeneralExpert(BaseExpert):
                 if not self.validate_output(instruction):
                     if i < 3:
                         logger.warning(
-                            f"样本{i+1}格式验证未通过，直接使用normalize后的输出"
+                            f"Sample {i+1} failed format validation; using the normalized output directly"
                         )
                     if not instruction or not instruction.strip():
-                        logger.warning(f"样本{i+1}输出为空，使用fallback兜底")
+                        logger.warning(f"Sample {i+1} output is empty; using fallback generation")
                         instruction = self._fallback_generation(input_data_list[i])
                 validated_instructions.append(instruction)
 
             return validated_instructions
 
         except Exception as e:
-            logger.error(f"批量生成失败: {e}")
+            logger.error(f"Batch generation failed: {e}")
             import traceback
-            logger.error(f"异常详情: {traceback.format_exc()}")
+            logger.error(f"Exception details: {traceback.format_exc()}")
             return [""] * len(input_data_list)
 
     def _detect_input_type(self, input_data: Union[str, dict]) -> str:
@@ -215,20 +206,20 @@ class GeneralExpert(BaseExpert):
     def validate_output(self, instruction: str) -> bool:
         """Validate output."""
         if not instruction or len(instruction.strip()) < 50:
-            logger.debug("指令内容过短")
+            logger.debug("Instruction is too short")
             return False
 
         result = GeneralInstructionTemplate.validate_instruction(instruction)
 
         if not result['is_valid']:
-            logger.debug(f"格式验证失败: {result['errors']}")
+            logger.debug(f"Format validation failed: {result['errors']}")
             return False
 
         return True
 
     def _fallback_generation(self, input_data: Union[str, dict]) -> str:
         """Generate fallback output."""
-        logger.info("使用回退方案生成指令")
+        logger.info("Using fallback instruction generation")
 
         fallback_instruction = """Definition: In this task, implement or test the specified requirement.
 Emphasis & Caution: Ensure comprehensive testing and validation of all functionality.

@@ -16,7 +16,7 @@ def get_vision_model() -> VisionModel:
     """Return vision model."""
     global _vision_model
     if _vision_model is None:
-        logger.info("初始化视觉模型（Qwen3-VL-8B for image recognition）...")
+        logger.info("Initializing the vision model (Qwen3-VL-8B for image recognition)...")
         _vision_model = VisionModel(version='qwen3')
     return _vision_model
 
@@ -27,7 +27,7 @@ def convert_image_to_json(
     return_processing_time: bool = True
 ) -> Dict:
     """Convert image to JSON."""
-    logger.info(f"处理图像: {Path(image_path).name}")
+    logger.info(f"Processing image: {Path(image_path).name}")
 
     try:
         start_time = time.time()
@@ -41,12 +41,12 @@ def convert_image_to_json(
         if save_path:
             from src.utils.file_utils import save_json
             save_json(result, save_path)
-            logger.info(f"结果已保存至: {save_path}")
+            logger.info(f"Result saved to: {save_path}")
 
         return result
 
     except Exception as e:
-        logger.error(f"图像处理失败: {e}")
+        logger.error(f"Image processing failed: {e}")
         return {
             "description": "",
             "details": {"objects": [], "scene": "unknown", "spatial_info": ""},

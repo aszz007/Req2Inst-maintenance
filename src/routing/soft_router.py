@@ -30,12 +30,12 @@ def check_peft_version():
         major, minor = [int(x) for x in version.split('.')[:2]]
         supported = (major > 0) or (major == 0 and minor >= 6)
         if not supported:
-            logger.error(f"PEFT版本过低: {version}，需要 >= 0.6.0")
+            logger.error(f"PEFT version is too old: {version}; version 0.6.0 or later is required")
         else:
-            logger.info(f"PEFT版本检查通过: {version}")
+            logger.info(f"PEFT version check passed: {version}")
         return supported
     except Exception as e:
-        logger.error(f"PEFT版本检查失败: {e}")
+        logger.error(f"PEFT version check failed: {e}")
         return False
 
 
@@ -69,7 +69,7 @@ def _clean_adapter_config(adapter_path: Path) -> Path:
     with open(temp_dir / "adapter_config.json", 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
 
-    logger.info(f"已清理adapter配置: {adapter_path.name}")
+    logger.info(f"Cleaned adapter configuration: {adapter_path.name}")
     return temp_dir
 
 
@@ -98,7 +98,7 @@ class SoftRouter:
         try:
             adapter_names = list(self.adapter_paths.keys())
             if not adapter_names:
-                logger.error("没有可用的adapter路径")
+                logger.error("No valid adapter paths are available")
                 return False
 
             first_name = adapter_names[0]
@@ -107,7 +107,7 @@ class SoftRouter:
             if cleaned_path != first_path:
                 self._temp_dirs.append(cleaned_path)
 
-            logger.info(f"加载第一个adapter: {first_name} <- {first_path}")
+            logger.info(f"Loading first adapter: {first_name} <- {first_path}")
             self.peft_model = PeftModel.from_pretrained(
                 self.base_model,
                 str(cleaned_path),
@@ -121,18 +121,18 @@ class SoftRouter:
                 if cleaned_path != adapter_path:
                     self._temp_dirs.append(cleaned_path)
 
-                logger.info(f"加载adapter: {name} <- {adapter_path}")
+                logger.info(f"Loading adapter: {name} <- {adapter_path}")
                 self.peft_model.load_adapter(
                     str(cleaned_path),
                     adapter_name=name,
                 )
 
             self._adapters_loaded = True
-            logger.info(f"全部 {len(adapter_names)} 个adapter加载完成")
+            logger.info(f"All {len(adapter_names)} adapters loaded")
             return True
 
         except Exception as e:
-            logger.error(f"加载adapter失败: {e}")
+            logger.error(f"Failed to load adapters: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
@@ -140,7 +140,7 @@ class SoftRouter:
     def merge_adapters(self, weights: Dict[str, float], merged_name: str = "merged") -> bool:
         """Merge weighted LoRA adapters."""
         if not self._adapters_loaded:
-            logger.error("adapter未加载，请先调用 load_all_adapters()")
+            logger.error("Adapters are not loaded; call load_all_adapters() first")
             return False
 
         try:
@@ -153,7 +153,7 @@ class SoftRouter:
             adapter_names = list(weights.keys())
             adapter_weights = [weights[name] for name in adapter_names]
 
-            logger.info(f"融合adapter: {dict(zip(adapter_names, adapter_weights))}")
+            logger.info(f"Merging adapters: {dict(zip(adapter_names, adapter_weights))}")
 
             self.peft_model.add_weighted_adapter(
                 adapters=adapter_names,
@@ -164,11 +164,11 @@ class SoftRouter:
 
             self.peft_model.set_adapter(merged_name)
             self._current_merged_name = merged_name
-            logger.info(f"adapter融合完成，已切换到: {merged_name}")
+            logger.info(f"Adapter merge complete; switched to: {merged_name}")
             return True
 
         except Exception as e:
-            logger.error(f"adapter融合失败: {e}")
+            logger.error(f"Failed to merge adapters: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
@@ -176,15 +176,15 @@ class SoftRouter:
     def set_single_adapter(self, adapter_name: str) -> bool:
         """Activate one LoRA adapter."""
         if not self._adapters_loaded:
-            logger.error("adapter未加载")
+            logger.error("Adapters are not loaded")
             return False
 
         try:
             self.peft_model.set_adapter(adapter_name)
-            logger.info(f"已切换到单adapter: {adapter_name}")
+            logger.info(f"Switched to a single adapter: {adapter_name}")
             return True
         except Exception as e:
-            logger.error(f"切换adapter失败: {e}")
+            logger.error(f"Failed to switch adapters: {e}")
             return False
 
     def cleanup(self):
@@ -194,7 +194,7 @@ class SoftRouter:
                 if temp_dir.exists():
                     shutil.rmtree(temp_dir)
             except Exception as e:
-                logger.warning(f"清理临时目录失败: {e}")
+                logger.warning(f"Failed to remove temporary directory: {e}")
         self._temp_dirs.clear()
 
         self._current_merged_name = None
@@ -221,7 +221,7 @@ def build_type_aware_weights(
 
     specialized_expert = type_to_expert.get(data_type)
     if specialized_expert is None:
-        logger.warning(f"未知数据类型: {data_type}，使用纯general权重")
+        logger.warning(f"Unknown data type: {data_type}; using general-only weights")
         return {'general_expert': 1.0}
 
     return {
@@ -242,6 +242,6 @@ def group_general_samples_by_type(
         groups[dt].append(idx)
 
     for dt, indices in groups.items():
-        logger.info(f"  General样本分组: {dt} -> {len(indices)} 条")
+        logger.info(f"  General sample group: {dt} -> {len(indices)} samples")
 
     return groups

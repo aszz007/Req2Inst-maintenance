@@ -21,11 +21,11 @@ DATASET_TOTAL = 2472
 def load_text_dataset(dataset_dir: Path) -> pd.DataFrame:
     """Load text dataset."""
     if not dataset_dir.exists():
-        raise FileNotFoundError(f"文本数据集目录不存在: {dataset_dir}")
+        raise FileNotFoundError(f"Text dataset directory not found: {dataset_dir}")
 
     csv_files = sorted(dataset_dir.glob("*.csv"))
     if not csv_files:
-        raise FileNotFoundError(f"数据集目录中未找到任何CSV文件: {dataset_dir}")
+        raise FileNotFoundError(f"No CSV files found in the dataset directory: {dataset_dir}")
 
     print(f"发现 {len(csv_files)} 个CSV文件:")
     dfs = []

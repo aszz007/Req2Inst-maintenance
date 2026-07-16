@@ -311,7 +311,7 @@ class GPTAutomator:
         print("="*60)
 
         if not os.path.exists(CHROME_PATH):
-            raise FileNotFoundError(f"Chrome浏览器路径不存在: {CHROME_PATH}")
+            raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
         print(f"✓ Chrome路径验证成功")
 
         try:
@@ -465,7 +465,7 @@ class GPTAutomator:
             except:
                 continue
 
-        raise NoSuchElementException("无法找到输入框")
+        raise NoSuchElementException("Unable to locate the input field")
 
     def find_submit_button(self):
         """Find submit button."""
@@ -1003,7 +1003,7 @@ class GPTAutomator:
                     except:
                         continue
                 else:
-                    raise Exception("无法读取文件")
+                    raise Exception("Failed to read the file")
 
         except Exception as e:
             print(f"✗ 读取文件失败: {e}")

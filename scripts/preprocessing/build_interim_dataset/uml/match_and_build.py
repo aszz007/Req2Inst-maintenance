@@ -26,7 +26,7 @@ class DatasetBuilder:
     def get_all_images(self, image_folder: Path) -> Set[str]:
         """Return all images."""
         if not image_folder.exists():
-            raise FileNotFoundError(f"图片文件夹不存在: {image_folder}")
+            raise FileNotFoundError(f"Image folder not found: {image_folder}")
 
         image_names = set()
 
@@ -42,7 +42,7 @@ class DatasetBuilder:
     def load_json_results(self, json_file: Path) -> Dict[str, Dict]:
         """Load JSON results."""
         if not json_file.exists():
-            raise FileNotFoundError(f"JSON文件不存在: {json_file}")
+            raise FileNotFoundError(f"JSON file not found: {json_file}")
 
         with open(json_file, 'r', encoding='utf-8') as f:
             results = json.load(f)

@@ -24,7 +24,7 @@ DATASET_TOTAL = 1500
 def load_uml_dataset(dataset_path: Path) -> pd.DataFrame:
     """Load UML dataset."""
     if not dataset_path.exists():
-        raise FileNotFoundError(f"UML数据集文件不存在: {dataset_path}")
+        raise FileNotFoundError(f"UML dataset file not found: {dataset_path}")
 
     df = pd.read_csv(dataset_path, encoding="utf-8")
     print(f"加载UML数据集: {dataset_path.name}")

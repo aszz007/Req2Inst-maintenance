@@ -16,7 +16,7 @@ def get_vision_model() -> VisionModel:
     """Return vision model."""
     global _vision_model
     if _vision_model is None:
-        logger.info("初始化视觉模型（Qwen3-VL-8B for UML recognition）...")
+        logger.info("Initializing the vision model (Qwen3-VL-8B for UML recognition)...")
         _vision_model = VisionModel(version='qwen3')
     return _vision_model
 
@@ -27,7 +27,7 @@ def convert_uml_to_json(
     max_retries: int = 2
 ) -> Dict:
     """Convert UML to JSON."""
-    logger.info(f"处理UML图: {Path(uml_path).name}")
+    logger.info(f"Processing UML diagram: {Path(uml_path).name}")
 
     try:
         start_time = time.time()
@@ -54,12 +54,12 @@ def convert_uml_to_json(
         if save_path:
             from src.utils.file_utils import save_json
             save_json({"description": output_data["description"]}, save_path)
-            logger.info(f"结果已保存至: {save_path}")
+            logger.info(f"Result saved to: {save_path}")
 
         return output_data
 
     except Exception as e:
-        logger.error(f"UML处理失败: {e}")
+        logger.error(f"UML processing failed: {e}")
         return {
             "description": "",
             "recognition_status": "failed",

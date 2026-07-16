@@ -132,13 +132,13 @@ def _run_single_inference(expert_type, eval_domain, test_data, args):
     if cached and not args.force_regenerate:
         n = cached.get('total_samples', 0)
         if n > 15 or args.test_mode:
-            logger.info(f"缓存命中: {expert_type}->{eval_domain} ({n}条)")
+            logger.info(f"Cache hit: {expert_type}->{eval_domain} ({n} samples)")
             return cached
 
-    logger.info(f"执行推理: {expert_type}->{eval_domain}")
+    logger.info(f"Running inference: {expert_type}->{eval_domain}")
     expert = _get_expert(expert_type)
     if not expert.load_model():
-        logger.error(f"加载 {expert_type} 专家失败")
+        logger.error(f"Failed to load {expert_type} expert")
         return None
 
     data_subset = test_data[:10] if args.test_mode else test_data
@@ -148,7 +148,7 @@ def _run_single_inference(expert_type, eval_domain, test_data, args):
     try:
         preds = expert.batch_generate_instruction(inputs, batch_size=4)
     except Exception as e:
-        logger.error(f"推理失败 {expert_type}->{eval_domain}: {e}")
+        logger.error(f"Inference failed for {expert_type}->{eval_domain}: {e}")
         preds = [''] * len(inputs)
     finally:
         expert.unload_model()
@@ -170,20 +170,18 @@ def _run_single_inference(expert_type, eval_domain, test_data, args):
 
 def run_phase1(args):
     """Run phase1."""
-    logger.info("=" * 80)
-    logger.info("Phase 1: Oracle上下界分析")
-    logger.info("=" * 80)
+    logger.info("Phase 1: Oracle upper- and lower-bound analysis")
 
-    logger.info("加载测试集...")
+    logger.info("Loading test sets...")
     test_datasets = {}
     for et in ALL_TYPES:
         try:
             test_datasets[et] = _load_test_data(et)
-            logger.info(f"  {et}: {len(test_datasets[et])} 条")
+            logger.info(f"  {et}: {len(test_datasets[et])} samples")
         except Exception as e:
-            logger.error(f"  加载 {et} 测试集失败: {e}")
+            logger.error(f"  Failed to load {et} test set: {e}")
 
-    logger.info("\n--- 步骤1: 收集16组推理结果 ---")
+    logger.info("\n--- Step 1: Collecting 16 sets of inference results ---")
 
     # all_caches[expert_type][eval_domain] = cached_data
     all_caches = {}
@@ -204,8 +202,8 @@ def run_phase1(args):
             ):
                 all_caches[expert_type][eval_domain] = cached
                 reused_count += 1
-                logger.info(f"  [复用] {expert_type}->{eval_domain}: "
-                          f"{cached.get('total_samples', 0)}条")
+                logger.info(f"  [Reused] {expert_type}->{eval_domain}: "
+                          f"{cached.get('total_samples', 0)} samples")
             else:
                 cached = _run_single_inference(
                     expert_type, eval_domain,
@@ -214,10 +212,10 @@ def run_phase1(args):
                 all_caches[expert_type][eval_domain] = cached
                 new_inference_count += 1
 
-    logger.info(f"\n推理统计: 复用={reused_count}, 新增={new_inference_count}, "
-              f"总计={reused_count + new_inference_count}")
+    logger.info(f"\nInference summary: reused={reused_count}, new={new_inference_count}, "
+              f"total={reused_count + new_inference_count}")
 
-    logger.info("\n--- 步骤2: 计算指标 ---")
+    logger.info("\n--- Step 2: Computing metrics ---")
 
     # score_matrix[expert_type][eval_domain] = rougeL
     score_matrix = {}
@@ -238,7 +236,7 @@ def run_phase1(args):
             logger.info(f"  {expert_type}->{eval_domain}: "
                       f"ROUGE-L={score_matrix[expert_type][eval_domain]:.4f}")
 
-    logger.info("\n--- 步骤3: 计算5种路由策略得分 ---")
+    logger.info("\n--- Step 3: Scoring five routing strategies ---")
 
     strategies = {}
 
@@ -250,7 +248,7 @@ def run_phase1(args):
         'per_domain': hard_scores,
         'average': float(hard_avg),
     }
-    logger.info(f"Hard Routing: 平均ROUGE-L={hard_avg:.4f}")
+    logger.info(f"Hard Routing: mean ROUGE-L={hard_avg:.4f}")
 
     oracle_scores = {}
     oracle_selections = {}  # domain -> {expert: count}
@@ -306,7 +304,7 @@ def run_phase1(args):
         'average': float(oracle_avg),
         'selections': oracle_selections,
     }
-    logger.info(f"Oracle Routing: 平均ROUGE-L={oracle_avg:.4f}")
+    logger.info(f"Oracle Routing: mean ROUGE-L={oracle_avg:.4f}")
 
     worst_scores = {}
     for domain in ALL_TYPES:
@@ -355,7 +353,7 @@ def run_phase1(args):
         'per_domain': worst_scores,
         'average': float(worst_avg),
     }
-    logger.info(f"Worst Routing: 平均ROUGE-L={worst_avg:.4f}")
+    logger.info(f"Worst Routing: mean ROUGE-L={worst_avg:.4f}")
 
     random_seeds = [42, 43, 44]
     random_runs = []
@@ -418,7 +416,7 @@ def run_phase1(args):
         'std': random_std,
         'runs': random_runs,
     }
-    logger.info(f"Random Routing: 平均ROUGE-L={random_mean:.4f} +/- {random_std:.4f}")
+    logger.info(f"Random Routing: mean ROUGE-L={random_mean:.4f} +/- {random_std:.4f}")
 
     general_only_scores = {}
     for domain in ALL_TYPES:
@@ -428,25 +426,23 @@ def run_phase1(args):
         'per_domain': general_only_scores,
         'average': float(general_only_avg),
     }
-    logger.info(f"General-Only: 平均ROUGE-L={general_only_avg:.4f}")
+    logger.info(f"General-Only: mean ROUGE-L={general_only_avg:.4f}")
 
     gap = oracle_avg - hard_avg
-    logger.info("\n" + "=" * 60)
-    logger.info("Phase 1 决策点分析")
-    logger.info("=" * 60)
+    logger.info("Phase 1 decision analysis")
     logger.info(f"Oracle ROUGE-L: {oracle_avg:.4f}")
     logger.info(f"Hard   ROUGE-L: {hard_avg:.4f}")
     logger.info(f"Gap (Oracle - Hard): {gap:.4f} ({gap*100:.2f}%)")
 
     if gap >= 0.02:
-        logger.info(">> Gap >= 2%: 建议执行 Phase 2（Soft Routing）")
+        logger.info(">> Gap >= 2%: Phase 2 (Soft Routing) is recommended")
         phase2_recommended = True
     else:
-        logger.info(">> Gap < 2%: Hard Routing已接近理论最优，Phase 2为可选项")
+        logger.info(">> Gap < 2%: Hard Routing is close to the theoretical optimum; Phase 2 is optional")
         phase2_recommended = False
 
     general_gap = oracle_scores.get('general', 0) - hard_scores.get('general', 0)
-    logger.info(f"\nGeneral域 Oracle-Hard Gap: {general_gap:.4f} ({general_gap*100:.2f}%)")
+    logger.info(f"\nGeneral-domain Oracle-Hard gap: {general_gap:.4f} ({general_gap*100:.2f}%)")
 
     results = {
         'phase': 'phase1',
@@ -468,7 +464,7 @@ def run_phase1(args):
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
     save_experiment_results(results, EXP_DIR, 'phase1_results.json')
-    logger.info(f"\nPhase 1 结果已保存: {EXP_DIR / 'phase1_results.json'}")
+    logger.info(f"\nPhase 1 results saved to: {EXP_DIR / 'phase1_results.json'}")
 
     return results
 
@@ -477,25 +473,23 @@ def run_phase1(args):
 
 def run_phase2(args, phase1_results=None):
     """Run phase2."""
-    logger.info("=" * 80)
-    logger.info("Phase 2: Soft Routing验证（General域）")
-    logger.info("=" * 80)
+    logger.info("Phase 2: Soft Routing validation on the general domain")
 
     from src.routing.soft_router import check_peft_version, SoftRouter, \
         build_type_aware_weights, group_general_samples_by_type
 
     if not check_peft_version():
-        logger.error("PEFT版本不支持 add_weighted_adapter，跳过Phase 2")
+        logger.error("The installed PEFT version does not support add_weighted_adapter; skipping Phase 2")
         return {'phase': 'phase2', 'status': 'skipped', 'reason': 'peft_version'}
 
-    logger.info("加载General测试集...")
+    logger.info("Loading general test set...")
     general_data = GeneralDatasetLoader().load_all_data()
     _, _, general_test = split_dataset_for_expert(general_data, 'general')
-    logger.info(f"General测试集: {len(general_test)} 条")
+    logger.info(f"General test set: {len(general_test)} samples")
 
     if args.test_mode:
         general_test = general_test[:10]
-        logger.info(f"测试模式: 截取 {len(general_test)} 条")
+        logger.info(f"Test mode: limited to {len(general_test)} samples")
 
     type_groups = group_general_samples_by_type(general_test)
 
@@ -505,7 +499,7 @@ def run_phase2(args, phase1_results=None):
         adapter_paths[f'{expert_name}_expert'] = str(adapter_path)
         logger.info(f"  {expert_name}_expert: {adapter_path}")
 
-    logger.info("\n加载基础模型...")
+    logger.info("\nLoading base model...")
     from models.language_model import LanguageModel
     lm = LanguageModel(use_4bit=True)
 
@@ -516,14 +510,14 @@ def run_phase2(args, phase1_results=None):
     )
 
     if not soft_router.load_all_adapters():
-        logger.error("加载adapter失败，跳过Phase 2")
+        logger.error("Failed to load adapters; skipping Phase 2")
         return {'phase': 'phase2', 'status': 'failed', 'reason': 'adapter_load'}
 
     alpha_values = [0.3, 0.5, 0.7]
     all_alpha_results = {}
 
     for alpha in alpha_values:
-        logger.info(f"\n--- 融合比例 alpha={alpha} ---")
+        logger.info(f"\n--- Fusion ratio alpha={alpha} ---")
 
         predictions = [''] * len(general_test)
 
@@ -532,10 +526,10 @@ def run_phase2(args, phase1_results=None):
                 continue
 
             weights = build_type_aware_weights(data_type, alpha=alpha)
-            logger.info(f"  {data_type}类型 ({len(indices)}条): 权重={weights}")
+            logger.info(f"  {data_type} type ({len(indices)} samples): weights={weights}")
 
             if not soft_router.merge_adapters(weights, merged_name=f"merged_{data_type}"):
-                logger.error(f"  融合失败: {data_type}")
+                logger.error(f"  Adapter fusion failed for {data_type}")
                 continue
 
             batch_inputs = [general_test[i]['input'] for i in indices]
@@ -562,7 +556,7 @@ def run_phase2(args, phase1_results=None):
                         batch_size=len(prompts),
                     )
                 except Exception as e:
-                    logger.error(f"  生成失败: {e}")
+                    logger.error(f"  Generation failed: {e}")
                     batch_preds = [''] * len(prompts)
 
                 for j, pred in enumerate(batch_preds):
@@ -607,10 +601,10 @@ def run_phase2(args, phase1_results=None):
 
     improvement = best_rougeL - hard_general_rougeL
 
-    logger.info(f"\n最优融合比例: alpha={best_alpha}")
+    logger.info(f"\nBest fusion ratio: alpha={best_alpha}")
     logger.info(f"Soft Routing ROUGE-L: {best_rougeL:.4f}")
     logger.info(f"Hard Routing ROUGE-L: {hard_general_rougeL:.4f}")
-    logger.info(f"提升: {improvement:.4f} ({improvement*100:.2f}%)")
+    logger.info(f"Improvement: {improvement:.4f} ({improvement*100:.2f}%)")
 
     results = {
         'phase': 'phase2',
@@ -625,7 +619,7 @@ def run_phase2(args, phase1_results=None):
     }
 
     save_experiment_results(results, EXP_DIR, 'phase2_results.json')
-    logger.info(f"Phase 2 结果已保存: {EXP_DIR / 'phase2_results.json'}")
+    logger.info(f"Phase 2 results saved to: {EXP_DIR / 'phase2_results.json'}")
 
     return results
 
@@ -633,9 +627,7 @@ def run_phase2(args, phase1_results=None):
 
 def run_phase3(args, phase1_results=None, phase2_results=None):
     """Run phase3."""
-    logger.info("=" * 80)
-    logger.info("Phase 3: 贡献度分析与可视化")
-    logger.info("=" * 80)
+    logger.info("Phase 3: Contribution analysis and visualization")
 
     PLOT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -646,7 +638,7 @@ def run_phase3(args, phase1_results=None, phase2_results=None):
             with open(p1_path, 'r') as f:
                 phase1_results = json.load(f)
         else:
-            logger.error("Phase 1结果文件不存在，无法进行可视化")
+            logger.error("Phase 1 results file not found; visualization cannot proceed")
             return
 
     if phase2_results is None:
@@ -679,7 +671,7 @@ def run_phase3(args, phase1_results=None, phase2_results=None):
 
     _generate_report(phase1_results, phase2_results)
 
-    logger.info(f"\n全部图表已保存至: {PLOT_DIR}")
+    logger.info(f"\nAll plots saved to: {PLOT_DIR}")
 
 
 def _plot_contribution_band(strategies, phase2_results=None):
@@ -1022,7 +1014,7 @@ def _generate_report(phase1_results, phase2_results=None):
     report_path = EXP_DIR / 'report.md'
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
-    logger.info(f"报告已保存: {report_path}")
+    logger.info(f"Report saved to: {report_path}")
 
 
 
@@ -1043,12 +1035,10 @@ def main():
                         help='跳过Phase 2的Gap检查，强制执行')
     args = parser.parse_args()
 
-    logger.info("=" * 80)
-    logger.info("实验9：路由策略对比与路由器贡献度分析")
-    logger.info(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"参数: phase={args.phase}, all={args.all}, "
+    logger.info("Experiment 9: Routing strategy comparison and router contribution analysis")
+    logger.info(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Arguments: phase={args.phase}, all={args.all}, "
               f"test_mode={args.test_mode}, no_bertscore={args.no_bertscore}")
-    logger.info("=" * 80)
 
     phase1_results = None
     phase2_results = None
@@ -1065,19 +1055,19 @@ def main():
                     phase1_results = json.load(f)
 
         if args.skip_phase2_check:
-            logger.info("跳过Gap检查，强制执行Phase 2")
+            logger.info("Skipping the gap check and forcing Phase 2")
             phase2_results = run_phase2(args, phase1_results)
         elif phase1_results:
             gap = phase1_results.get('gap_analysis', {}).get('overall_gap', 0)
             general_gap = phase1_results.get('gap_analysis', {}).get('general_domain_gap', 0)
             if gap >= 0.02 or general_gap >= 0.02:
-                logger.info(f"Gap={gap:.4f} >= 0.02，执行Phase 2")
+                logger.info(f"Gap={gap:.4f} >= 0.02; running Phase 2")
                 phase2_results = run_phase2(args, phase1_results)
             else:
-                logger.info(f"Gap={gap:.4f} < 0.02，跳过Phase 2（Hard Routing已接近理论最优）")
-                logger.info("如需强制执行，请使用 --skip-phase2-check")
+                logger.info(f"Gap={gap:.4f} < 0.02; skipping Phase 2 because Hard Routing is close to the theoretical optimum")
+                logger.info("Use --skip-phase2-check to force Phase 2")
         else:
-            logger.warning("Phase 1结果不可用，跳过Phase 2")
+            logger.warning("Phase 1 results are unavailable; skipping Phase 2")
 
     if args.phase == 3 or args.all:
         run_phase3(args, phase1_results, phase2_results)
@@ -1093,10 +1083,8 @@ def main():
             final_results['phase2'] = phase2_results
         save_experiment_results(final_results, EXP_DIR, 'results.json')
 
-    logger.info("\n" + "=" * 80)
-    logger.info(f"实验9完成 | 时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"结果目录: {EXP_DIR}")
-    logger.info("=" * 80)
+    logger.info(f"Experiment 9 completed | time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Results directory: {EXP_DIR}")
 
 
 if __name__ == '__main__':

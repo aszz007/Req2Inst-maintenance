@@ -51,26 +51,26 @@ def main():
     print("=" * 80)
     print()
 
-    logger.info("初始化Full Fine-tuning Image Expert训练器...")
+    logger.info("Initializing full fine-tuning image expert trainer...")
     trainer = FullFineTuningTrainer(
         expert_type='image',
         use_4bit=args.use_4bit,
         use_rtx4090_optimization=True,
     )
 
-    logger.info("设置模型...")
+    logger.info("Setting up model...")
     if not trainer.setup_model():
-        logger.error("模型设置失败")
+        logger.error("Model setup failed")
         return 1
 
-    logger.info("准备数据...")
+    logger.info("Preparing data...")
     if not trainer.prepare_data():
-        logger.error("数据准备失败")
+        logger.error("Data preparation failed")
         return 1
 
-    logger.info("开始训练...")
+    logger.info("Starting training...")
     if not trainer.train():
-        logger.error("训练失败")
+        logger.error("Training failed")
         return 1
 
     print()

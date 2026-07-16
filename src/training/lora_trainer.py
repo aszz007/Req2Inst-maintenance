@@ -49,13 +49,13 @@ class LoRATrainer(BaseTrainer):
 
         self.target_modules = self._get_target_modules()
 
-        logger.info(f"4bit量化: {use_4bit}")
-        logger.info(f"LoRA配置: rank={self.lora_rank}, alpha={self.lora_alpha}, dropout={self.lora_dropout}")
+        logger.info(f"4-bit quantization: {use_4bit}")
+        logger.info(f"LoRA configuration: rank={self.lora_rank}, alpha={self.lora_alpha}, dropout={self.lora_dropout}")
         logger.info(f"Target modules: {self.target_modules}")
-        logger.info("训练稳定性配置:")
-        logger.info("  - 梯度裁剪: max_grad_norm=1.0 (标准设置)")
-        logger.info("  - Warmup比例: 10% (标准设置)")
-        logger.info("  - NaN-aware早停: 自动忽略NaN验证损失")
+        logger.info("Training-stability configuration:")
+        logger.info("  - Gradient clipping: max_grad_norm=1.0 (standard setting)")
+        logger.info("  - Warmup ratio: 10% (standard setting)")
+        logger.info("  - NaN-aware early stopping: automatically ignores NaN validation loss")
 
         self._print_training_config()
 
@@ -76,7 +76,7 @@ class LoRATrainer(BaseTrainer):
         if self.model_version == 'qwen3_8b':
             return ["q_proj", "k_proj", "v_proj", "o_proj"]
         else:
-            logger.warning(f"未知模型版本 {self.model_version}，使用Qwen3默认配置")
+            logger.warning(f"Unknown model version {self.model_version}; using the default Qwen3 configuration")
             return ["q_proj", "k_proj", "v_proj", "o_proj"]
 
     def setup_model(self) -> bool:
@@ -85,7 +85,7 @@ class LoRATrainer(BaseTrainer):
             if not self._load_base_model(self.use_4bit):
                 return False
 
-            logger.info("配置LoRA...")
+            logger.info("Configuring LoRA...")
             lora_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
                 r=self.lora_rank,
@@ -101,21 +101,18 @@ class LoRATrainer(BaseTrainer):
             total_params = sum(p.numel() for p in self.model.parameters())
             trainable_ratio = 100 * trainable_params / total_params
 
-            logger.info("=" * 80)
-            logger.info("LoRA配置完成")
-            logger.info("=" * 80)
-            logger.info(f"可训练参数: {trainable_params:,} ({trainable_ratio:.2f}%)")
-            logger.info(f"总参数: {total_params:,}")
+            logger.info("LoRA configuration complete")
+            logger.info(f"Trainable parameters: {trainable_params:,} ({trainable_ratio:.2f}%)")
+            logger.info(f"Total parameters: {total_params:,}")
             logger.info(f"LoRA Rank: {self.lora_rank}")
             logger.info(f"LoRA Alpha: {self.lora_alpha}")
             logger.info(f"LoRA Dropout: {self.lora_dropout}")
             logger.info(f"Target Modules: {self.target_modules}")
-            logger.info("=" * 80)
 
             return True
 
         except Exception as e:
-            logger.error(f"模型设置失败: {e}")
+            logger.error(f"Model setup failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False

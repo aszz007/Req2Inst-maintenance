@@ -50,7 +50,7 @@ def main():
     use_rtx4090_opt = is_rtx4090
 
     if is_rtx4090:
-        logger.info("检测到RTX 4090，启用优化配置")
+        logger.info("Detected RTX 4090; enabling optimized settings")
 
     ptuning_cfg = get_ptuning_config()
     print("=" * 80)
@@ -64,7 +64,7 @@ def main():
     print("=" * 80)
     print()
 
-    logger.info("创建P-Tuning v2文本专家训练器...")
+    logger.info("Creating P-Tuning v2 text expert trainer...")
     try:
         trainer = PTuningTrainer(
             expert_type='text',
@@ -72,19 +72,19 @@ def main():
             use_rtx4090_optimization=use_rtx4090_opt
         )
     except Exception as e:
-        logger.error(f"创建训练器失败: {e}")
+        logger.error(f"Failed to create trainer: {e}")
         import traceback
         logger.error(traceback.format_exc())
         return 1
 
-    logger.info("设置模型和P-Tuning v2配置...")
+    logger.info("Setting up model and P-Tuning v2 configuration...")
     if not trainer.setup_model():
-        logger.error("模型设置失败")
+        logger.error("Model setup failed")
         return 1
 
-    logger.info("准备训练数据...")
+    logger.info("Preparing training data...")
     if not trainer.prepare_data():
-        logger.error("数据准备失败")
+        logger.error("Training data preparation failed")
         return 1
 
     status = trainer.get_training_status()
@@ -93,7 +93,7 @@ def main():
     print(f"  - 验证样本: {status['val_samples']}")
     print()
 
-    logger.info("开始训练...")
+    logger.info("Starting training...")
     print("=" * 80)
     print("训练开始 - 这可能需要较长时间，请耐心等待...")
     print("=" * 80)
@@ -125,7 +125,7 @@ def main():
         print(" " * 28 + "训练失败")
         print("=" * 80)
         print()
-        logger.error("训练过程中出现错误，请查看日志")
+        logger.error("An error occurred during training; check the logs")
         return 1
 
 

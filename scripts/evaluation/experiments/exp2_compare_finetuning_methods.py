@@ -200,9 +200,7 @@ def plot_grouped_bar(results_table, exp_dir):
 
 def run(args):
     """Run the workflow."""
-    logger.info('=' * 80)
     logger.info('Exp2: Fine-tuning Method Comparison')
-    logger.info('=' * 80)
 
     results = {
         'experiment': 'exp2_finetuning_methods',
@@ -302,11 +300,8 @@ def run(args):
         logger.warning(f'plot failed: {e}')
 
     # summary table
-    logger.info('\n' + '=' * 80)
     logger.info('Results Summary')
-    logger.info('=' * 80)
     logger.info(f'{"Method+Expert":<28} {"ROUGE-L":>8} {"BLEU":>8} {"F1":>8}')
-    logger.info('-' * 56)
     for key, m in results['results'].items():
         q = m.get('generation_quality', {})
         b = m.get('binary_classification', {})

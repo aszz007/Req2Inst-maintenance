@@ -177,16 +177,12 @@ def main():
     report = {}
     for use_4bit in configs_to_test:
         label = '4bit' if use_4bit else 'FP16'
-        logger.info(f'\n{"="*60}')
         logger.info(f'Testing config: {label}')
-        logger.info('='*60)
         result = _run_config(args.expert_type, ckpt_path, samples, use_4bit)
         if result:
             report[label] = result
 
-    logger.info(f'\n{"="*60}')
     logger.info('DIAGNOSIS SUMMARY')
-    logger.info('='*60)
     for label, r in report.items():
         verdict = 'PASS' if r['avg_score'] >= 2.5 else 'FAIL'
         logger.info(f'  {label}: avg_score={r["avg_score"]:.1f}/4  [{verdict}]')

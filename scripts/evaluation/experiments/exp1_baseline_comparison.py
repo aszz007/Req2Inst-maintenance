@@ -81,10 +81,10 @@ def run_bm25(train_data, test_data, args):
     cache_path = CACHE_DIR / 'baselines' / 'bm25_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
-        logger.info('BM25: 从缓存加载')
+        logger.info('BM25: loading from cache')
         return cached
 
-    logger.info('BM25: 构建索引并检索...')
+    logger.info('BM25: building index and retrieving...')
     retriever = BM25Retriever()
     retriever.build_index(train_data)
 
@@ -105,10 +105,10 @@ def run_lsa(train_data, test_data, args):
     cache_path = CACHE_DIR / 'baselines' / 'lsa_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
-        logger.info('LSA: 从缓存加载')
+        logger.info('LSA: loading from cache')
         return cached
 
-    logger.info('LSA: 构建索引并检索...')
+    logger.info('LSA: building index and retrieving...')
     retriever = LSARetriever(n_components=100)
     retriever.build_index(train_data)
 
@@ -129,10 +129,10 @@ def run_template(test_data, args):
     cache_path = CACHE_DIR / 'baselines' / 'template_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
-        logger.info('模板填充: 从缓存加载')
+        logger.info('Template filling: loading from cache')
         return cached
 
-    logger.info('模板填充: 生成中...')
+    logger.info('Template filling: generating...')
     filler = TemplateFiller()
     inputs = [d['input'] for d in test_data]
     references = [d['output'] for d in test_data]
@@ -151,13 +151,13 @@ def run_zeroshot(test_data, args):
     cache_path = CACHE_DIR / 'baselines' / 'zeroshot_text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
-        logger.info('零样本: 从缓存加载')
+        logger.info('Zero-shot: loading from cache')
         return cached
 
-    logger.info('零样本: 加载模型并生成...')
+    logger.info('Zero-shot: loading model and generating...')
     generator = ZeroShotGenerator(use_4bit=True)
     if not generator.load_model():
-        logger.error('零样本模型加载失败')
+        logger.error('Failed to load zero-shot model')
         return None
 
     inputs = [d['input'] for d in test_data]
@@ -181,10 +181,10 @@ def run_lora_moe(test_data, args):
     cache_path = CACHE_DIR / 'lora_moe' / 'text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
-        logger.info('LoRA-MoE: 从缓存加载')
+        logger.info('LoRA-MoE: loading from cache')
         return cached
 
-    logger.info('LoRA-MoE: 加载文本专家并生成...')
+    logger.info('LoRA-MoE: loading text expert and generating...')
     from src.experts import TextExpert
 
     inputs = [d['input'] for d in test_data]
@@ -195,7 +195,7 @@ def run_lora_moe(test_data, args):
 
     expert = TextExpert(lora_path=None, use_4bit=True)
     if not expert.load_model():
-        logger.error('LoRA-MoE文本专家加载失败')
+        logger.error('Failed to load LoRA-MoE text expert')
         return None
 
     try:
@@ -266,19 +266,17 @@ def plot_comparison(metrics_by_method, exp_dir, test_mode=False):
 
 def run(args):
     """Run the workflow."""
-    logger.info('=' * 80)
-    logger.info('实验1: 基线方法对比')
-    logger.info('=' * 80)
+    logger.info('Experiment 1: Baseline method comparison')
 
-    logger.info('加载文本数据集...')
+    logger.info('Loading text dataset...')
     loader = TextDatasetLoader()
     all_data = loader.load_csv_files()
     train_data, val_data, test_data = group_split_by_input(all_data)
     train_inputs = set(d['input'] for d in train_data)
     test_inputs = set(d['input'] for d in test_data)
-    logger.info(f'分组划分: 训练集={len(train_data)}({len(train_inputs)}组), '
-                f'验证集={len(val_data)}, 测试集={len(test_data)}({len(test_inputs)}组), '
-                f'输入重叠={len(train_inputs & test_inputs)}')
+    logger.info(f'Group-aware split: train={len(train_data)} ({len(train_inputs)} groups), '
+                f'validation={len(val_data)}, test={len(test_data)} ({len(test_inputs)} groups), '
+                f'input overlap={len(train_inputs & test_inputs)}')
 
     results = {
         'experiment': 'exp1_baseline_comparison',
@@ -307,7 +305,7 @@ def run(args):
     metrics_by_method = {}
 
     for method, runner in method_runners.items():
-        logger.info(f'\n--- 执行方法: {method} ---')
+        logger.info(f'\n--- Running method: {method} ---')
         if getattr(args, 'only_missing', False):
             cache_dir_m, cache_file_m = method_cache_paths[method]
             if _is_full_run_cache(cache_dir_m, cache_file_m):
@@ -316,14 +314,14 @@ def run(args):
         try:
             cached = runner()
             if cached is None:
-                logger.warning(f'{method}: 已跳过（推理失败）')
+                logger.warning(f'{method}: skipped because inference failed')
                 continue
 
             samples = cached.get('samples', [])
             predictions = [s['prediction'] for s in samples]
             references = [s['reference'] for s in samples]
 
-            logger.info(f'正在为 {method} 计算评估指标（共{len(predictions)}个样本）...')
+            logger.info(f'Computing evaluation metrics for {method} across {len(predictions)} samples...')
             m = compute_all_metrics(predictions, references, use_bertscore=not args.no_bertscore)
             metrics_by_method[method] = m
 
@@ -343,7 +341,7 @@ def run(args):
             )
 
         except Exception as e:
-            logger.error(f'{method} 执行失败: {e}')
+            logger.error(f'{method} failed: {e}')
             logger.error(traceback.format_exc())
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
@@ -352,13 +350,10 @@ def run(args):
     try:
         plot_comparison(metrics_by_method, EXP_DIR, test_mode=args.test_mode)
     except Exception as e:
-        logger.warning(f'绘图失败: {e}')
+        logger.warning(f'Plotting failed: {e}')
 
-    logger.info('\n' + '=' * 80)
-    logger.info('结果汇总')
-    logger.info('=' * 80)
-    logger.info(f'{"方法":<16} {"BLEU":>8} {"ROUGE-L":>8} {"METEOR":>8} {"F1":>8}')
-    logger.info('-' * 52)
+    logger.info('Results summary')
+    logger.info(f'{"Method":<16} {"BLEU":>8} {"ROUGE-L":>8} {"METEOR":>8} {"F1":>8}')
     for method, m in results['methods'].items():
         q = m.get('generation_quality', {})
         b = m.get('binary_classification', {})
@@ -366,8 +361,7 @@ def run(args):
             f'{method:<16} {q.get("bleu", 0):>8.4f} {q.get("rougeL", 0):>8.4f} '
             f'{q.get("meteor", 0):>8.4f} {b.get("f1_score", 0):>8.4f}'
         )
-    logger.info('=' * 80)
-    logger.info(f'结果已保存至: {EXP_DIR}')
+    logger.info(f'Results saved to: {EXP_DIR}')
 
 
 def main():

@@ -111,7 +111,7 @@ CRITICAL RULES:
             except json.JSONDecodeError:
                 json_str = uml_json
         else:
-            raise TypeError("uml_json必须是str或dict类型")
+            raise TypeError("uml_json must be a str or dict")
 
         user_message = f"""UML Use Case Diagram structured data (JSON format):
 ```json

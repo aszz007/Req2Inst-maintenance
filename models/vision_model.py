@@ -55,20 +55,20 @@ class VisionModel:
 
         self.enable_streaming = device_cfg.enable_streaming
 
-        logger.info(f"初始化视觉模型: {self.model_name}")
-        logger.info(f"模型版本: {self.version}")
-        logger.info(f"模型路径: {self.model_path}")
-        logger.info(f"设备: {self.device}")
-        logger.info(f"GPU信息: {device_cfg.get_gpu_info()}")
-        logger.info(f"量化策略: {'4bit量化' if self.use_quantization else 'FP16（无量化）'}")
-        logger.info(f"GPU配置: {self.gpu_tier.upper()}端GPU模式")
-        logger.info(f"UML生成tokens: {self.uml_gen_config['max_new_tokens']}, 图像生成tokens: {self.image_gen_config['max_new_tokens']}")
-        logger.info(f"流式输出: {'启用' if self.enable_streaming else '禁用'}")
+        logger.info(f"Initializing vision model: {self.model_name}")
+        logger.info(f"Model version: {self.version}")
+        logger.info(f"Model path: {self.model_path}")
+        logger.info(f"Device: {self.device}")
+        logger.info(f"GPU information: {device_cfg.get_gpu_info()}")
+        logger.info(f"Quantization: {'4-bit' if self.use_quantization else 'FP16 (no quantization)'}")
+        logger.info(f"GPU profile: {self.gpu_tier.upper()} tier")
+        logger.info(f"UML generation tokens: {self.uml_gen_config['max_new_tokens']}, image generation tokens: {self.image_gen_config['max_new_tokens']}")
+        logger.info(f"Streaming output: {'enabled' if self.enable_streaming else 'disabled'}")
 
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            logger.info(f"GPU显存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f}GB")
+            logger.info(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
 
         self._load_base_model()
 
@@ -92,7 +92,7 @@ class VisionModel:
             )
 
             if self.processor.tokenizer.pad_token is None:
-                logger.info("检测到tokenizer没有pad_token，设置为eos_token")
+                logger.info("Tokenizer has no pad_token; using eos_token instead")
                 self.processor.tokenizer.pad_token = self.processor.tokenizer.eos_token
                 self.processor.tokenizer.pad_token_id = self.processor.tokenizer.eos_token_id
 
@@ -100,7 +100,7 @@ class VisionModel:
                 self.processor.tokenizer.padding_side = 'left'
 
             if self.use_quantization:
-                logger.info("使用4bit量化配置（节省显存）...")
+                logger.info("Using 4-bit quantization to reduce GPU memory usage...")
                 bnb_config = BitsAndBytesConfig(
                     load_in_4bit=True,
                     bnb_4bit_quant_type="nf4",
@@ -108,7 +108,7 @@ class VisionModel:
                     bnb_4bit_use_double_quant=True,
                 )
 
-                logger.info("加载模型（4bit量化）...")
+                logger.info("Loading model with 4-bit quantization...")
                 self.model = AutoModelForVision2Seq.from_pretrained(
                     self.model_path,
                     quantization_config=bnb_config,
@@ -117,8 +117,8 @@ class VisionModel:
                     low_cpu_mem_usage=True,
                 )
             else:
-                logger.info("使用FP16配置（高端GPU优化）...")
-                logger.info("加载模型（FP16，无量化）...")
+                logger.info("Using the FP16 configuration optimized for high-end GPUs...")
+                logger.info("Loading model in FP16 without quantization...")
                 self.model = AutoModelForVision2Seq.from_pretrained(
                     self.model_path,
                     torch_dtype=torch.float16,
@@ -131,16 +131,16 @@ class VisionModel:
             for param in self.model.parameters():
                 param.requires_grad = False
 
-            logger.info("模型加载成功")
+            logger.info("Model loaded successfully")
 
             if torch.cuda.is_available():
                 memory_allocated = torch.cuda.memory_allocated() / 1024**3
                 memory_reserved = torch.cuda.memory_reserved() / 1024**3
-                logger.info(f"已分配显存: {memory_allocated:.2f}GB")
-                logger.info(f"已预留显存: {memory_reserved:.2f}GB")
+                logger.info(f"Allocated GPU memory: {memory_allocated:.2f} GB")
+                logger.info(f"Reserved GPU memory: {memory_reserved:.2f} GB")
 
         except Exception as e:
-            logger.error(f"模型加载失败: {e}")
+            logger.error(f"Failed to load model: {e}")
             raise
 
 
@@ -229,18 +229,18 @@ class VisionModel:
             lora_path = Path(lora_path)
 
             if not lora_path.exists():
-                logger.error(f"LoRA路径不存在: {lora_path}")
+                logger.error(f"LoRA path does not exist: {lora_path}")
                 return False
 
             if self.current_lora_path == str(lora_path):
-                logger.info(f"LoRA已加载: {lora_path}")
+                logger.info(f"LoRA adapter is already loaded: {lora_path}")
                 return True
 
             if self.is_lora_loaded:
-                logger.info("卸载旧的LoRA权重...")
+                logger.info("Unloading the previous LoRA adapter...")
                 self.unload_lora()
 
-            logger.info(f"加载LoRA权重: {lora_path}")
+            logger.info(f"Loading LoRA weights: {lora_path}")
 
             self.model = PeftModel.from_pretrained(
                 self.model,
@@ -251,32 +251,32 @@ class VisionModel:
             self.current_lora_path = str(lora_path)
             self.is_lora_loaded = True
 
-            logger.info("LoRA加载成功")
+            logger.info("LoRA adapter loaded successfully")
             return True
 
         except Exception as e:
-            logger.error(f"LoRA加载失败: {e}")
+            logger.error(f"Failed to load LoRA adapter: {e}")
             return False
 
     def unload_lora(self) -> bool:
         """Unload the active LoRA adapter."""
         try:
             if not self.is_lora_loaded:
-                logger.info("没有已加载的LoRA")
+                logger.info("No LoRA adapter is currently loaded")
                 return True
 
-            logger.info("卸载LoRA权重...")
+            logger.info("Unloading LoRA adapter...")
 
             self.model = self.model.unload()
 
             self.current_lora_path = None
             self.is_lora_loaded = False
 
-            logger.info("LoRA卸载成功")
+            logger.info("LoRA adapter unloaded successfully")
             return True
 
         except Exception as e:
-            logger.error(f"LoRA卸载失败: {e}")
+            logger.error(f"Failed to unload LoRA adapter: {e}")
             return False
 
     def generate(self, prompt: str, image_path: Optional[str] = None,
@@ -305,7 +305,7 @@ class VisionModel:
             return response
 
         except Exception as e:
-            logger.error(f"生成失败: {e}")
+            logger.error(f"Generation failed: {e}")
             return ""
 
     def recognize_image(self, image_path: str, prompt: Optional[str] = None) -> Dict:
@@ -313,7 +313,7 @@ class VisionModel:
         if prompt is None:
             prompt = ImageInstructionTemplate.get_recognition_prompt()
 
-        logger.info(f"识别图像: {Path(image_path).name}")
+        logger.info(f"Recognizing image: {Path(image_path).name}")
 
         try:
             messages = self._build_messages(prompt, image_path)
@@ -327,11 +327,11 @@ class VisionModel:
             result["confidence"] = confidence
             result["recognition_status"] = "success"
 
-            logger.info(f"识别成功, 置信度: {confidence:.3f}")
+            logger.info(f"Recognition succeeded; confidence: {confidence:.3f}")
             return result
 
         except Exception as e:
-            logger.error(f"识别失败: {e}")
+            logger.error(f"Recognition failed: {e}")
             return {
                 "description": "",
                 "details": {
@@ -352,9 +352,9 @@ class VisionModel:
 
         use_streaming = streaming if streaming is not None else self.enable_streaming
 
-        logger.info(f"识别UML图: {Path(uml_path).name}")
-        logger.info(f"使用生成配置: max_tokens={self.uml_gen_config['max_new_tokens']}, temp={self.uml_gen_config['temperature']}")
-        logger.info(f"流式输出: {'启用' if use_streaming else '禁用'}")
+        logger.info(f"Recognizing UML diagram: {Path(uml_path).name}")
+        logger.info(f"Generation configuration: max_tokens={self.uml_gen_config['max_new_tokens']}, temp={self.uml_gen_config['temperature']}")
+        logger.info(f"Streaming output: {'enabled' if use_streaming else 'disabled'}")
 
         for attempt in range(max_retries):
             try:
@@ -372,53 +372,53 @@ class VisionModel:
 
                 if result['success'] or attempt == max_retries - 1:
                     if result['success']:
-                        logger.info(f"UML识别成功")
+                        logger.info("UML recognition succeeded")
                     else:
-                        logger.warning(f"UML识别失败，但已达到最大重试次数")
+                        logger.warning("UML recognition failed and the maximum number of retries has been reached")
                     return result
                 else:
-                    logger.warning(f"第{attempt + 1}次尝试失败，重试中...")
+                    logger.warning(f"Attempt {attempt + 1} failed; retrying...")
                     continue
 
             except Exception as e:
                 if attempt == max_retries - 1:
-                    logger.error(f"UML识别失败: {e}")
+                    logger.error(f"UML recognition failed: {e}")
                     return {
                         'description': f"Recognition failed: {str(e)}",
                         'success': False,
                         'error': str(e)
                     }
                 else:
-                    logger.warning(f"第{attempt + 1}次尝试出错: {e}，重试中...")
+                    logger.warning(f"Attempt {attempt + 1} raised an error: {e}; retrying...")
                     continue
 
     def _generate_standard(self, inputs, task_type: str = 'uml') -> str:
         """Generate standard."""
         gen_config = self.uml_gen_config if task_type == 'uml' else self.image_gen_config
 
-        logger.info(f"[标准生成] pad_token_id: {self.processor.tokenizer.pad_token_id}")
-        logger.info(f"[标准生成] 模型eval模式: {not self.model.training}")
-        logger.info(f"[标准生成] 输入input_ids长度: {inputs.input_ids.shape[1]}")
-        logger.info(f"[标准生成] max_new_tokens: {gen_config['max_new_tokens']}")
-        logger.info(f"[标准生成] 使用量化: {self.use_quantization}")
+        logger.info(f"[Standard generation] pad_token_id: {self.processor.tokenizer.pad_token_id}")
+        logger.info(f"[Standard generation] Model in eval mode: {not self.model.training}")
+        logger.info(f"[Standard generation] Input input_ids length: {inputs.input_ids.shape[1]}")
+        logger.info(f"[Standard generation] max_new_tokens: {gen_config['max_new_tokens']}")
+        logger.info(f"[Standard generation] Quantization enabled: {self.use_quantization}")
 
         gen_kwargs = self._build_gen_kwargs(gen_config)
 
-        logger.info("[标准生成] 开始调用model.generate()...")
+        logger.info("[Standard generation] Calling model.generate()...")
         generated_ids = self._model_generate_vision(inputs, gen_kwargs)
-        logger.info("[标准生成] model.generate()调用完成")
+        logger.info("[Standard generation] model.generate() completed")
 
-        logger.info(f"[标准生成] 生成完成，generated_ids shape: {generated_ids.shape}")
-        logger.info(f"[标准生成] 输入长度: {inputs.input_ids.shape[1]}, 输出长度: {generated_ids.shape[1]}")
-        logger.info(f"[标准生成] 新生成的token数: {generated_ids.shape[1] - inputs.input_ids.shape[1]}")
+        logger.info(f"[Standard generation] Generation complete; generated_ids shape: {generated_ids.shape}")
+        logger.info(f"[Standard generation] Input length: {inputs.input_ids.shape[1]}, output length: {generated_ids.shape[1]}")
+        logger.info(f"[Standard generation] New tokens: {generated_ids.shape[1] - inputs.input_ids.shape[1]}")
 
         response = self._decode_output(inputs, generated_ids)
 
-        logger.info(f"[标准生成] 解码完成，生成文本长度: {len(response)}")
+        logger.info(f"[Standard generation] Decoding complete; generated text length: {len(response)}")
         if len(response) > 0:
-            logger.info(f"[标准生成] 生成文本预览: {response[:100]}...")
+            logger.info(f"[Standard generation] Generated text preview: {response[:100]}...")
         else:
-            logger.error("[标准生成] 生成的文本为空！")
+            logger.error("[Standard generation] Generated text is empty")
 
         del generated_ids
         if torch.cuda.is_available():
@@ -452,8 +452,8 @@ class VisionModel:
                         result = self.model.generate(**generation_kwargs)
                 except Exception as e:
                     import traceback
-                    error_msg = f"线程内异常: {str(e)}\n{traceback.format_exc()}"
-                    logger.error(f"[流式生成-线程] {error_msg}")
+                    error_msg = f"Exception in generation thread: {str(e)}\n{traceback.format_exc()}"
+                    logger.error(f"[Streaming generation - thread] {error_msg}")
                     thread_error['error'] = error_msg
 
             thread = Thread(target=generate_with_error_capture)
@@ -475,7 +475,7 @@ class VisionModel:
             try:
                 for new_text in streamer:
                     iteration_count += 1
-                    logger.debug(f"[流式生成-迭代] 第{iteration_count}次迭代，获得文本长度: {len(new_text) if new_text else 0}")
+                    logger.debug(f"[Streaming generation - iteration] Iteration {iteration_count}; received text length: {len(new_text) if new_text else 0}")
 
                     if new_text:
                         print(new_text, end='', flush=True)
@@ -484,12 +484,12 @@ class VisionModel:
                         chunk_count += 1
 
             except queue.Empty as e:
-                logger.error(f"[流式生成] Streamer超时异常: {str(e)}")
-                logger.error(f"[流式生成] 已迭代次数: {iteration_count}, 已生成字符数: {len(generated_text)}")
-                logger.error(f"[流式生成] 线程存活状态: {thread.is_alive()}")
+                logger.error(f"[Streaming generation] Streamer timeout exception: {str(e)}")
+                logger.error(f"[Streaming generation] Iterations completed: {iteration_count}, characters generated: {len(generated_text)}")
+                logger.error(f"[Streaming generation] Thread alive: {thread.is_alive()}")
 
                 if thread_error['error']:
-                    logger.error(f"[流式生成] 检测到线程内异常:\n{thread_error['error']}")
+                    logger.error(f"[Streaming generation] Exception detected in generation thread:\n{thread_error['error']}")
 
                 raise
 
@@ -498,31 +498,31 @@ class VisionModel:
             thread.join(timeout=10.0)
 
             if thread_error['error']:
-                logger.error(f"[流式生成] 线程执行时发生错误:\n{thread_error['error']}")
+                logger.error(f"[Streaming generation] Generation thread failed:\n{thread_error['error']}")
                 raise RuntimeError(thread_error['error'])
 
             if not generated_text.strip():
-                logger.error("[流式生成] 未生成任何内容")
-                raise ValueError("流式生成未产生任何输出")
+                logger.error("[Streaming generation] No content was generated")
+                raise ValueError("Streaming generation produced no output")
 
             return generated_text
 
         except queue.Empty:
-            logger.error("[流式生成] Streamer超时")
-            logger.info("[流式生成] 降级到标准生成模式")
+            logger.error("[Streaming generation] Streamer timed out")
+            logger.info("[Streaming generation] Falling back to standard generation")
             return self._generate_standard(inputs, task_type)
 
         except Exception as e:
             import traceback
-            logger.error(f"[流式生成] 失败: {str(e)}")
-            logger.error(f"[流式生成] 异常详情:\n{traceback.format_exc()}")
-            logger.info("[流式生成] 降级到标准生成模式")
+            logger.error(f"[Streaming generation] Failed: {str(e)}")
+            logger.error(f"[Streaming generation] Exception details:\n{traceback.format_exc()}")
+            logger.info("[Streaming generation] Falling back to standard generation")
 
             try:
                 return self._generate_standard(inputs, task_type)
             except Exception as fallback_error:
-                logger.error(f"[标准生成] 降级失败: {str(fallback_error)}")
-                raise RuntimeError(f"流式生成和标准生成均失败: 流式={str(e)}, 标准={str(fallback_error)}")
+                logger.error(f"[Standard generation] Fallback failed: {str(fallback_error)}")
+                raise RuntimeError(f"Both streaming and standard generation failed: streaming={str(e)}, standard={str(fallback_error)}")
 
     def _generate_with_confidence(self, inputs) -> Tuple[str, float]:
         """Generate with confidence."""
@@ -568,7 +568,7 @@ class VisionModel:
             return result
 
         except json.JSONDecodeError:
-            logger.warning("JSON解析失败，使用备用方案")
+            logger.warning("JSON parsing failed; using the fallback parser")
             return {
                 "description": response[:200] if response else "",
                 "details": {
@@ -597,7 +597,7 @@ class VisionModel:
             return {"description": json.dumps(result, ensure_ascii=False), "success": True}
 
         except json.JSONDecodeError as e:
-            logger.error(f"UML JSON解析失败: {e}")
+            logger.error(f"Failed to parse UML JSON: {e}")
             return {
                 'description': response[:500] if response else "",
                 'success': False,

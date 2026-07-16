@@ -34,9 +34,9 @@ class InstructionGenerator:
             base_models_dir=base_models_dir
         )
 
-        logger.info("指令生成器初始化完成")
-        logger.info(f"LoRA权重目录: {lora_weights_dir}")
-        logger.info(f"基础模型目录: {base_models_dir}")
+        logger.info("Instruction generator initialized")
+        logger.info(f"LoRA weights directory: {lora_weights_dir}")
+        logger.info(f"Base models directory: {base_models_dir}")
 
     def generate(
             self,
@@ -46,9 +46,7 @@ class InstructionGenerator:
             **generation_kwargs
     ) -> Union[str, dict]:
         """Generate output."""
-        logger.info("=" * 80)
-        logger.info("开始生成指令")
-        logger.info("=" * 80)
+        logger.info("Starting instruction generation")
 
         result = self.moe_model.generate_instruction(
             input_data=input_data,
@@ -59,13 +57,13 @@ class InstructionGenerator:
         result['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         if output_format == 'json':
-            logger.info("返回JSON格式")
+            logger.info("Returning JSON output")
             return result
         elif output_format == 'markdown':
-            logger.info("返回Markdown格式")
+            logger.info("Returning Markdown output")
             return self._format_markdown(result)
         else:  # text
-            logger.info("返回文本格式")
+            logger.info("Returning text output")
             return result['instruction']
 
     def batch_generate(
@@ -77,14 +75,12 @@ class InstructionGenerator:
             **generation_kwargs
     ) -> List[Union[str, dict]]:
         """Generate outputs in batches."""
-        logger.info("=" * 80)
-        logger.info(f"批量生成指令 - 共{len(input_list)}个样本")
-        logger.info("=" * 80)
+        logger.info(f"Batch instruction generation - {len(input_list)} samples")
 
         results = []
 
         for i, input_data in enumerate(input_list, 1):
-            logger.info(f"\n处理样本 {i}/{len(input_list)}")
+            logger.info(f"\nProcessing sample {i}/{len(input_list)}")
 
             try:
                 result = self.generate(
@@ -94,10 +90,10 @@ class InstructionGenerator:
                     **generation_kwargs
                 )
                 results.append(result)
-                logger.info(f"样本 {i} 生成成功")
+                logger.info(f"Sample {i} generated successfully")
 
             except Exception as e:
-                logger.error(f"样本 {i} 生成失败: {e}")
+                logger.error(f"Failed to generate sample {i}: {e}")
                 if output_format == 'json':
                     results.append({
                         'instruction': '',
@@ -111,9 +107,7 @@ class InstructionGenerator:
         if save_path:
             self._save_results(results, save_path, output_format)
 
-        logger.info("=" * 80)
-        logger.info(f"批量生成完成 - 成功: {len([r for r in results if r])}/{len(input_list)}")
-        logger.info("=" * 80)
+        logger.info(f"Batch generation complete - successful: {len([r for r in results if r])}/{len(input_list)}")
 
         return results
 
@@ -125,10 +119,10 @@ class InstructionGenerator:
             **generation_kwargs
     ) -> List[dict]:
         """Generate from file."""
-        logger.info(f"从文件生成指令: {input_file}")
+        logger.info(f"Generating instructions from file: {input_file}")
 
         input_list = self._load_input_file(input_file)
-        logger.info(f"加载了 {len(input_list)} 个输入")
+        logger.info(f"Loaded {len(input_list)} inputs")
 
         results = self.batch_generate(
             input_list=input_list,
@@ -144,7 +138,7 @@ class InstructionGenerator:
         file_path = Path(file_path)
 
         if not file_path.exists():
-            raise FileNotFoundError(f"输入文件不存在: {file_path}")
+            raise FileNotFoundError(f"Input file does not exist: {file_path}")
 
         if file_path.suffix == '.txt':
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -160,10 +154,10 @@ class InstructionGenerator:
             elif isinstance(data, dict):
                 return [data]
             else:
-                raise ValueError(f"不支持的JSON格式: {type(data)}")
+                raise ValueError(f"Unsupported JSON structure: {type(data)}")
 
         else:
-            raise ValueError(f"不支持的文件格式: {file_path.suffix}")
+            raise ValueError(f"Unsupported file format: {file_path.suffix}")
 
     def _save_results(
             self,
@@ -193,7 +187,7 @@ class InstructionGenerator:
                     f.write(f"=== Instruction {i} ===\n")
                     f.write(result + "\n\n")
 
-        logger.info(f"结果已保存至: {save_path}")
+        logger.info(f"Results saved to: {save_path}")
 
     def _format_markdown(self, result: dict) -> str:
         """Format markdown."""
@@ -217,7 +211,7 @@ class InstructionGenerator:
     def reset_statistics(self):
         """Reset statistics."""
         self.moe_model.reset_router_statistics()
-        logger.info("统计信息已重置")
+        logger.info("Statistics reset")
 
     def list_available_experts(self, expert_type: Optional[str] = None) -> List[str]:
         """List available experts."""

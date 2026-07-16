@@ -49,19 +49,19 @@ class TextExpert(BaseExpert):
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get('text_expert')
             if lora_weight_path is None:
-                logger.warning("配置中未找到text_expert的LoRA权重路径,将使用基础模型")
+                logger.warning("No LoRA weight path is configured for text_expert; using the base model")
                 lora_path = None
             else:
                 lora_path_obj = Path(lora_weight_path)
                 if not lora_path_obj.exists():
-                    logger.warning(f"LoRA权重路径不存在: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path does not exist: {lora_path_obj}; using the base model")
                     lora_path = None
                 elif not lora_path_obj.is_dir():
-                    logger.warning(f"LoRA权重路径不是目录: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path is not a directory: {lora_path_obj}; using the base model")
                     lora_path = None
                 else:
                     lora_path = str(lora_path_obj)
-                    logger.info(f"找到LoRA权重路径: {lora_path}")
+                    logger.info(f"Found LoRA weight path: {lora_path}")
 
         super().__init__(
             expert_name='text_expert',
@@ -70,25 +70,25 @@ class TextExpert(BaseExpert):
             use_4bit=use_4bit
         )
 
-        logger.info("文本专家初始化完成")
+        logger.info("Text expert initialized")
 
     def generate_instruction(self, input_data: str, sample_index: int = None) -> str:
         """Generate instruction."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return ""
 
         try:
             prompt, detected_domain = _build_prompt_for_domain(input_data)
             if detected_domain != 'text' and (sample_index is None or sample_index < 3):
                 logger.warning(
-                    f"输入数据检测为{detected_domain}类型，使用对应模板（跨域评估场景）"
+                    f"Input detected as {detected_domain}; using the matching template for cross-domain evaluation"
                 )
 
             if sample_index is None or sample_index < 3:
-                logger.debug(f"生成指令 - 输入需求: {input_data[:100]}...")
+                logger.debug(f"Generating instruction - input requirement: {input_data[:100]}...")
 
             infer_cfg = get_inference_config()
             instruction = self._generate_with_model(
@@ -105,50 +105,44 @@ class TextExpert(BaseExpert):
             instruction = self._normalize_instruction(instruction)
 
             if sample_index is None or sample_index < 3:
-                logger.info("=" * 80)
-                logger.info("模型原始输出:")
-                logger.info("-" * 80)
+                logger.info("Raw model output:")
                 logger.info(instruction)
-                logger.info("=" * 80)
 
             if self.validate_output(instruction):
-                logger.info("指令生成成功,格式验证通过")
+                logger.info("Instruction generated successfully and passed format validation")
             else:
                 if sample_index is None or sample_index < 3:
-                    logger.warning("指令格式验证失败，直接返回模型输出")
-                    logger.warning(f"验证未通过的指令内容：\n{instruction}")
+                    logger.warning("Instruction failed format validation; returning the model output directly")
+                    logger.warning(f"Instruction that failed validation:\n{instruction}")
             return instruction
 
         except Exception as e:
-            logger.error(f"指令生成失败: {e}")
+            logger.error(f"Instruction generation failed: {e}")
             return ""
 
     def batch_generate_instruction(self, input_data_list: list, batch_size: int = 16) -> list:
         """Generate instructions in batches."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return [""] * len(input_data_list)
 
         try:
-            logger.info(f"批量生成指令 - 共{len(input_data_list)}个样本，batch_size={batch_size}")
+            logger.info(f"Batch instruction generation - {len(input_data_list)} samples, batch_size={batch_size}")
 
             prompts = []
             for _idx, _data in enumerate(input_data_list):
                 _prompt, _domain = _build_prompt_for_domain(_data)
                 if _domain != 'text' and _idx < 3:
                     logger.warning(
-                        f"样本{_idx}输入检测为{_domain}类型，使用对应模板（跨域评估场景）"
+                        f"Sample {_idx} detected as {_domain}; using the matching template for cross-domain evaluation"
                     )
                 prompts.append(_prompt)
 
             for i in range(min(3, len(input_data_list))):
-                logger.info("=" * 80)
-                logger.info(f"[样本 {i+1}/{len(input_data_list)}] 输入需求:")
-                logger.info("-" * 80)
+                logger.info(f"[Sample {i+1}/{len(input_data_list)}] Input requirement:")
                 logger.info(input_data_list[i][:200] + ("..." if len(input_data_list[i]) > 200 else ""))
-                logger.info("=" * 80)
 
             infer_cfg = get_inference_config()
             instructions = self._generate_batch_with_model(
@@ -164,43 +158,40 @@ class TextExpert(BaseExpert):
             )
 
             for i in range(min(3, len(instructions))):
-                logger.info("=" * 80)
-                logger.info(f"[样本 {i+1}/{len(input_data_list)}] 生成的指令:")
-                logger.info("-" * 80)
+                logger.info(f"[Sample {i+1}/{len(input_data_list)}] Generated instruction:")
                 logger.info(instructions[i])
-                logger.info("=" * 80)
 
             validated_instructions = []
             for i, instruction in enumerate(instructions):
                 instruction = self._normalize_instruction(instruction)
                 if not self.validate_output(instruction):
                     if i < 3:
-                        logger.warning(f"样本{i+1}格式验证失败，直接使用模型输出")
+                        logger.warning(f"Sample {i+1} failed format validation; using the model output directly")
                 validated_instructions.append(instruction)
 
             return validated_instructions
 
         except Exception as e:
-            logger.error(f"批量生成失败: {e}")
+            logger.error(f"Batch generation failed: {e}")
             return [""] * len(input_data_list)
 
     def validate_output(self, instruction: str) -> bool:
         """Validate output."""
         if not instruction or len(instruction.strip()) < 50:
-            logger.debug("指令内容过短")
+            logger.debug("Instruction is too short")
             return False
 
         result = TextInstructionTemplate.validate_instruction(instruction)
 
         if not result['is_valid']:
-            logger.debug(f"格式验证失败: {result['errors']}")
+            logger.debug(f"Format validation failed: {result['errors']}")
             return False
 
         return True
 
     def _fallback_generation(self, input_data: str) -> str:
         """Generate fallback output."""
-        logger.info("使用回退方案生成指令")
+        logger.info("Using fallback instruction generation")
 
         fallback_instruction = """Definition: In this task, implement and test the specified requirement.
 Emphasis & Caution: Ensure thorough testing and validation of all functionality.

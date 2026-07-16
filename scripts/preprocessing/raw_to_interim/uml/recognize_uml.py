@@ -81,7 +81,7 @@ def recognize_single_uml(image_path: str, version: str = 'qwen3', streaming: boo
     image_path = Path(image_path)
 
     if not image_path.exists():
-        raise FileNotFoundError(f"图片不存在: {image_path}")
+        raise FileNotFoundError(f"Image file not found: {image_path}")
 
     print(f"\n{'='*80}")
     print(f"单图识别 - UML用例图")
@@ -144,7 +144,7 @@ def batch_recognize_uml(
     image_folder = Path(image_folder)
 
     if not image_folder.exists():
-        raise FileNotFoundError(f"文件夹不存在: {image_folder}")
+        raise FileNotFoundError(f"Folder not found: {image_folder}")
 
     image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp']
     image_files = set()

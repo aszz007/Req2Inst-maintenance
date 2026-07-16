@@ -248,12 +248,12 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
 
     if method == 'zeroshot':
         from src.baselines.zero_shot import ZeroShotGenerator
-        logger.info(f'  [DEBUG] 加载基础模型 (无adapter), use_4bit=False (统一FP16)')
+        logger.info('  [DEBUG] Loading base model without an adapter, use_4bit=False (FP16 for all methods)')
         _clear_gpu()
         t0 = time.perf_counter()
         gen = ZeroShotGenerator(use_4bit=False)
         if not gen.load_model():
-            logger.error(f'{method}: 模型加载失败')
+            logger.error(f'{method}: failed to load model')
             return None, None, None
         load_time = time.perf_counter() - t0
     else:
@@ -267,20 +267,20 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
         }
         ckpt_path = ckpt_map[method]()
         if not ckpt_path or not Path(ckpt_path).exists():
-            logger.error(f'{method}: 检查点路径不存在或未配置: {ckpt_path}')
+            logger.error(f'{method}: checkpoint path is missing or not configured: {ckpt_path}')
             return None, None, None
-        logger.info(f'  [DEBUG] 检查点路径: {ckpt_path}')
-        logger.info(f'  [DEBUG] use_4bit={use_4bit} (统一FP16), throughput_batch_size={batch_size}')
+        logger.info(f'  [DEBUG] Checkpoint path: {ckpt_path}')
+        logger.info(f'  [DEBUG] use_4bit={use_4bit} (FP16 for all methods), throughput_batch_size={batch_size}')
         _clear_gpu()
         t0 = time.perf_counter()
         gen = TextExpert(lora_path=ckpt_path, use_4bit=use_4bit)
         if not gen.load_model():
-            logger.error(f'{method}: 模型加载失败')
+            logger.error(f'{method}: failed to load model')
             return None, None, None
         load_time = time.perf_counter() - t0
 
-    logger.info(f'  [DEBUG] 模型加载后GPU显存: {_gpu_current_mb():.0f} MB (峰值: {_gpu_peak_mb():.0f} MB)')
-    logger.info(f'  [DEBUG] 吞吐测量batch_size: {batch_size} (统一FP16推理)')
+    logger.info(f'  [DEBUG] GPU memory after model load: {_gpu_current_mb():.0f} MB (peak: {_gpu_peak_mb():.0f} MB)')
+    logger.info(f'  [DEBUG] Throughput batch size: {batch_size} (FP16 inference for all methods)')
 
     for inp in test_inputs[:n_warmup]:
         _infer_one(gen, inp, method)
@@ -304,8 +304,8 @@ def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput
         avg_len = sum(output_lengths) / len(output_lengths)
         min_len = min(output_lengths)
         max_len = max(output_lengths)
-        logger.info(f'  [DEBUG] 输出长度统计: 平均={avg_len:.0f}字符, '
-                    f'最短={min_len}, 最长={max_len}')
+        logger.info(f'  [DEBUG] Output length: mean={avg_len:.0f} characters, '
+                    f'min={min_len}, max={max_len}')
 
     batch_inputs = test_inputs[:n_throughput]
     _gpu_sync()
@@ -359,7 +359,7 @@ def plot_latency_comparison(results_by_method, test_mode=False):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'latency_comparison.png', dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'图表已保存: {PLOTS_DIR / "latency_comparison.png"}')
+    logger.info(f'Plot saved to: {PLOTS_DIR / "latency_comparison.png"}')
 
 
 def plot_latency_distribution(latencies_dict, test_mode=False):
@@ -368,7 +368,7 @@ def plot_latency_distribution(latencies_dict, test_mode=False):
 
     methods = [m for m in METHOD_ORDER if m in latencies_dict and len(latencies_dict[m]) > 0]
     if not methods:
-        logger.warning('无延迟数据, 跳过箱线图绘制')
+        logger.warning('No latency data found; skipping box plot')
         return
 
     data = [latencies_dict[m] for m in methods]
@@ -394,7 +394,7 @@ def plot_latency_distribution(latencies_dict, test_mode=False):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'latency_distribution.png', dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'图表已保存: {PLOTS_DIR / "latency_distribution.png"}')
+    logger.info(f'Plot saved to: {PLOTS_DIR / "latency_distribution.png"}')
 
 
 def plot_throughput_comparison(results_by_method, test_mode=False):
@@ -426,7 +426,7 @@ def plot_throughput_comparison(results_by_method, test_mode=False):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'throughput_comparison.png', dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'图表已保存: {PLOTS_DIR / "throughput_comparison.png"}')
+    logger.info(f'Plot saved to: {PLOTS_DIR / "throughput_comparison.png"}')
 
 
 def plot_gpu_memory_comparison(results_by_method, test_mode=False):
@@ -474,7 +474,7 @@ def plot_gpu_memory_comparison(results_by_method, test_mode=False):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'gpu_memory_comparison.png', dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'图表已保存: {PLOTS_DIR / "gpu_memory_comparison.png"}')
+    logger.info(f'Plot saved to: {PLOTS_DIR / "gpu_memory_comparison.png"}')
 
 
 def plot_load_time_comparison(results_by_method, test_mode=False):
@@ -506,7 +506,7 @@ def plot_load_time_comparison(results_by_method, test_mode=False):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'load_time_comparison.png', dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'图表已保存: {PLOTS_DIR / "load_time_comparison.png"}')
+    logger.info(f'Plot saved to: {PLOTS_DIR / "load_time_comparison.png"}')
 
 
 def plot_combined_efficiency(results_by_method, test_mode=False):
@@ -544,7 +544,7 @@ def plot_combined_efficiency(results_by_method, test_mode=False):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'latency_vs_memory.png', dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'图表已保存: {PLOTS_DIR / "latency_vs_memory.png"}')
+    logger.info(f'Plot saved to: {PLOTS_DIR / "latency_vs_memory.png"}')
 
 
 def plot_summary_table(results_by_method, test_mode=False):
@@ -605,7 +605,7 @@ def plot_summary_table(results_by_method, test_mode=False):
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'summary_table.png', dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'图表已保存: {PLOTS_DIR / "summary_table.png"}')
+    logger.info(f'Plot saved to: {PLOTS_DIR / "summary_table.png"}')
 
 
 
@@ -699,31 +699,29 @@ def generate_report(results, results_by_method, test_mode=False):
 
     report_path = EXP_DIR / 'report.md'
     report_path.write_text('\n'.join(lines), encoding='utf-8')
-    logger.info(f'实验报告已保存: {report_path}')
+    logger.info(f'Experiment report saved to: {report_path}')
 
 
 
 def run(args):
     """Run the workflow."""
-    logger.info('=' * 80)
-    logger.info('实验8: 推理效率基准测试')
-    logger.info('=' * 80)
+    logger.info('Experiment 8: Inference efficiency benchmark')
 
     n_latency = N_LATENCY_TEST if args.test_mode else N_LATENCY
     n_throughput = N_THROUGHPUT_TEST if args.test_mode else N_THROUGHPUT
     n_warmup = min(N_WARMUP, 1) if args.test_mode else N_WARMUP
 
-    logger.info('加载文本数据集...')
+    logger.info('Loading text dataset...')
     loader = TextDatasetLoader()
     all_data = loader.load_csv_files()
     train_data, _, test_data = split_dataset_for_expert(all_data, 'text')
     test_inputs = [d['input'] for d in test_data]
     n_needed = n_warmup + max(n_latency, n_throughput)
     if len(test_inputs) < n_needed:
-        logger.warning(f'测试集仅 {len(test_inputs)} 条, 需要 {n_needed} 条, 将循环复用')
+        logger.warning(f'Test set has only {len(test_inputs)} samples; {n_needed} are required, so samples will be reused cyclically')
         while len(test_inputs) < n_needed:
             test_inputs = test_inputs + test_inputs
-    logger.info(f'测试集样本: {len(test_data)} | 延迟测量: {n_latency} | 吞吐测量: {n_throughput}')
+    logger.info(f'Test samples: {len(test_data)} | latency measurements: {n_latency} | throughput measurements: {n_throughput}')
 
     methods_to_run = list(METHOD_ORDER)
     if args.methods:
@@ -746,9 +744,7 @@ def run(args):
     latencies_dict = {}
 
     for method in methods_to_run:
-        logger.info(f'\n{"=" * 60}')
-        logger.info(f'基准测试: {METHOD_LABELS.get(method, method)}')
-        logger.info(f'{"=" * 60}')
+        logger.info(f'Benchmarking: {METHOD_LABELS.get(method, method)}')
 
         try:
             if method in CPU_METHODS:
@@ -761,12 +757,12 @@ def run(args):
                     method, test_inputs, n_warmup, n_latency, n_throughput
                 )
                 if load_time is None:
-                    logger.warning(f'{method}: 跳过 (模型加载失败)')
+                    logger.warning(f'{method}: skipped because model loading failed')
                     continue
                 peak_mem = _gpu_peak_mb()
                 _clear_gpu()
             else:
-                logger.warning(f'未知方法: {method}')
+                logger.warning(f'Unknown method: {method}')
                 continue
 
             latencies_arr = np.array(latencies) if latencies else np.array([0])
@@ -808,18 +804,18 @@ def run(args):
             results_by_method[method] = entry
 
             logger.info(
-                f'  加载时间:    {load_time:.2f}s\n'
-                f'  延迟(中位):  {entry["latency_median_ms"]:.1f}ms  '
+                f'  Load time:          {load_time:.2f}s\n'
+                f'  Median latency:     {entry["latency_median_ms"]:.1f}ms  '
                 f'(P95={entry["latency_p95_ms"]:.1f}ms, '
                 f'Min={entry.get("latency_min_ms", 0):.1f}ms, '
                 f'Max={entry.get("latency_max_ms", 0):.1f}ms)\n'
-                f'  吞吐:       {tp_info["samples_per_sec"]:.1f} samples/sec '
+                f'  Throughput:         {tp_info["samples_per_sec"]:.1f} samples/sec '
                 f'(batch={tp_info["batch_size"]})\n'
-                f'  GPU显存:    {peak_mem:.0f} MB\n'
+                f'  GPU memory:         {peak_mem:.0f} MB\n'
                 f'  Adapter:    {adapter_mb:.1f} MB'
             )
         except Exception as e:
-            logger.error(f'{method}: 基准测试失败: {e}')
+            logger.error(f'{method}: benchmark failed: {e}')
             logger.error(traceback.format_exc())
             _clear_gpu()
 
@@ -836,25 +832,22 @@ def run(args):
             plot_combined_efficiency(results_by_method, args.test_mode)
             plot_summary_table(results_by_method, args.test_mode)
     except Exception as e:
-        logger.warning(f'绘图失败: {e}')
+        logger.warning(f'Plotting failed: {e}')
         logger.warning(traceback.format_exc())
 
     try:
         generate_report(results, results_by_method, args.test_mode)
     except Exception as e:
-        logger.warning(f'报告生成失败: {e}')
+        logger.warning(f'Report generation failed: {e}')
         logger.warning(traceback.format_exc())
 
-    logger.info('\n' + '=' * 120)
-    logger.info('推理效率汇总')
-    logger.info('=' * 120)
+    logger.info('Inference efficiency summary')
     logger.info(
-        f'{"方法":<18} {"设备":<6} {"量化":<6} '
-        f'{"加载(s)":>8} {"延迟(ms)":>10} {"P95(ms)":>10} '
+        f'{"Method":<18} {"Device":<6} {"Quant.":<6} '
+        f'{"Load(s)":>8} {"Latency(ms)":>10} {"P95(ms)":>10} '
         f'{"Min(ms)":>10} {"Max(ms)":>10} '
-        f'{"吞吐(/s)":>10} {"显存(MB)":>10} {"Adapter(MB)":>12}'
+        f'{"Throughput(/s)":>10} {"Memory(MB)":>10} {"Adapter(MB)":>12}'
     )
-    logger.info('-' * 120)
     for m in METHOD_ORDER:
         if m not in results_by_method:
             continue
@@ -871,11 +864,8 @@ def run(args):
                        if m in results_by_method and m in GPU_METHODS
                        and 'output_length_mean' in results_by_method[m]]
     if gpu_with_outlen:
-        logger.info('\n' + '=' * 80)
         logger.info('Diagnostic: Output Length vs Latency Correlation')
-        logger.info('=' * 80)
         logger.info(f'{"Method":<18} {"Latency(ms)":>12} {"AvgOutput(ch)":>14} {"Min":>8} {"Max":>8} {"ms/char":>10}')
-        logger.info('-' * 80)
         for m, e in gpu_with_outlen:
             avg_out = e.get('output_length_mean', 0)
             ms_per_char = e['latency_median_ms'] / max(avg_out, 1)
@@ -929,7 +919,7 @@ def run(args):
     except Exception as diag_err:
         logger.warning(f'Failed to save diagnostics: {diag_err}')
 
-    logger.info(f'\n结果已保存至: {EXP_DIR}')
+    logger.info(f'\nResults saved to: {EXP_DIR}')
 
 
 def _get_hardware_info():

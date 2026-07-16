@@ -25,7 +25,7 @@ elif isinstance(data, dict):
         except json.JSONDecodeError as e:
             print(f"无法解析顶层 description: {e}")
 else:
-    raise ValueError("未知的 JSON 结构：既不是列表也不是字典")
+    raise ValueError("Unknown JSON structure: expected a list or dictionary")
 
 with open(output_path, 'w', encoding='utf-8') as f:
     json.dump(data, f, ensure_ascii=False, indent=4)

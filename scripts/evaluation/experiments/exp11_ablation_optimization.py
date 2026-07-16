@@ -205,7 +205,7 @@ def _load_all_expert_caches_for_general():
         if cache:
             caches[expert] = cache.get('samples', [])
         else:
-            logger.warning(f"  [缓存] 专家 '{expert}' 缓存未找到")
+            logger.warning(f"  [Cache] Cache not found for expert '{expert}'")
     return caches
 
 
@@ -227,9 +227,7 @@ def _single_expert_from_cache(expert_name, domain, sample_idx, preloaded_caches=
 
 def run_phase1(args):
     """Run phase1."""
-    logger.info("=" * 80)
-    logger.info("Phase 1: Output Ensemble消融实验")
-    logger.info("=" * 80)
+    logger.info("Phase 1: Output Ensemble ablation study")
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
     EXP11_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -238,24 +236,24 @@ def run_phase1(args):
     _, _, general_test = split_dataset_for_expert(general_data, 'general')
     if args.test_mode:
         general_test = general_test[:20]
-    logger.info(f"General测试集: {len(general_test)} 条")
+    logger.info(f"General test set: {len(general_test)} samples")
 
     router = RouterMLP()
     router_ckpt = ROUTER_CKPT_DIR / 'router_mlp_best.pt'
     if not router_ckpt.exists():
-        raise FileNotFoundError(f"Router权重不存在: {router_ckpt}，请先运行Exp10 Phase 1")
+        raise FileNotFoundError(f"Router weights not found: {router_ckpt}. Run Experiment 10 Phase 1 first")
     router.load(router_ckpt)
 
     general_feat_path = FEATURE_CACHE_DIR / 'general_hidden_states.npz'
     if not general_feat_path.exists():
-        raise FileNotFoundError(f"General特征缓存不存在: {general_feat_path}")
+        raise FileNotFoundError(f"General feature cache not found: {general_feat_path}")
     feat_data = np.load(general_feat_path)
     general_features = feat_data['features']
     if args.test_mode:
         general_features = general_features[:20]
     if len(general_test) != len(general_features):
         general_test = general_test[:len(general_features)]
-    logger.info(f"General特征维度: {general_features.shape}")
+    logger.info(f"General feature shape: {general_features.shape}")
 
     preloaded_caches = _load_all_expert_caches_for_general()
 
@@ -278,7 +276,7 @@ def run_phase1(args):
     for et in ALL_TYPES:
         adapter_paths[et] = str(path_cfg.get_expert_weight_path(et))
 
-    logger.info("  预加载所有专家 adapter...")
+    logger.info("  Preloading adapters for all experts...")
     model_with_adapters = base_model
     for et in ALL_TYPES:
         try:
@@ -286,18 +284,16 @@ def run_phase1(args):
                 model_with_adapters, adapter_paths[et], adapter_name=et,
                 is_trainable=False,
             )
-            logger.info(f"    已加载 adapter: {et}")
+            logger.info(f"    Loaded adapter: {et}")
         except Exception as e:
-            logger.warning(f"    adapter 加载失败 {et}: {e}")
+            logger.warning(f"    Failed to load {et} adapter: {e}")
     model_with_adapters.eval()
 
     ablation_results = {}
     for config_key in config_keys:
         config = ABLATION_CONFIGS[config_key]
-        logger.info(f"\n{'='*60}")
-        logger.info(f"  消融配置 {config_key}: {config['name']}")
-        logger.info(f"  说明: {config['description']}")
-        logger.info(f"{'='*60}")
+        logger.info(f"  Ablation configuration {config_key}: {config['name']}")
+        logger.info(f"  Description: {config['description']}")
 
         abl_cache_dir = EXP11_CACHE_DIR / config_key
         abl_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -306,7 +302,7 @@ def run_phase1(args):
         if cache_file.exists() and not args.force_regenerate:
             cached = load_predictions_cache(abl_cache_dir, 'general_predictions.json')
             if cached and cached.get('total_samples', 0) > 15:
-                logger.info(f"  [缓存命中] {config_key}: {cached.get('total_samples', 0)} 条")
+                logger.info(f"  [Cache hit] {config_key}: {cached.get('total_samples', 0)} samples")
                 m = _metrics_from_samples(cached.get('samples', []),
                                           use_bertscore=(config_key == 'A0'))
                 ablation_results[config_key] = {
@@ -321,7 +317,7 @@ def run_phase1(args):
                 CACHE_DIR / 'exp10_ensemble', 'general_ensemble_predictions.json'
             )
             if exp10_cache:
-                logger.info(f"  [A0] 复用exp10缓存")
+                logger.info("  [A0] Reusing Experiment 10 cache")
                 m = _metrics_from_samples(exp10_cache.get('samples', []), use_bertscore=True)
                 ablation_results['A0'] = {
                     'config': config,
@@ -353,9 +349,7 @@ def run_phase1(args):
     del lm, model_with_adapters, tokenizer
     _cleanup_gpu()
 
-    logger.info(f"\n{'='*60}")
-    logger.info("Phase 1 消融结果汇总")
-    logger.info(f"{'='*60}")
+    logger.info("Phase 1 ablation results summary")
     for k, v in ablation_results.items():
         logger.info(f"  {k} ({v['config']['name']}): ROUGE-L={v['rougeL']:.4f}")
 
@@ -449,11 +443,11 @@ def _run_ablation_ensemble(
 
     n_cache = len(cache_results)
     n_ensemble = sum(len(v) for v in ensemble_groups.values())
-    logger.info(f"  样本分类: cache={n_cache}, ensemble={n_ensemble}, 组数={len(ensemble_groups)}")
+    logger.info(f"  Sample assignment: cache={n_cache}, ensemble={n_ensemble}, groups={len(ensemble_groups)}")
 
     ensemble_results = {}
     for (expert1, expert2), group_items in ensemble_groups.items():
-        logger.info(f"  Ensemble组: {expert1}+{expert2}, {len(group_items)} 条")
+        logger.info(f"  Ensemble group: {expert1}+{expert2}, {len(group_items)} samples")
         preds = _logit_ensemble_generate_batched(
             model_with_adapters, tokenizer,
             expert1, expert2, group_items, args
@@ -513,9 +507,7 @@ def _run_ablation_ensemble(
 
 def run_phase2(args):
     """Run phase2."""
-    logger.info("=" * 80)
-    logger.info("Phase 2: Router优化实验")
-    logger.info("=" * 80)
+    logger.info("Phase 2: Router optimization")
 
     EXP11_ROUTER_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -528,7 +520,7 @@ def run_phase2(args):
     for domain in SPECIALIZED_TYPES:
         feat_path = FEATURE_CACHE_DIR / f'{domain}_hidden_states.npz'
         if not feat_path.exists():
-            raise FileNotFoundError(f"特征缓存不存在: {feat_path}，请先运行Exp10 Phase 1")
+            raise FileNotFoundError(f"Feature cache not found: {feat_path}. Run Experiment 10 Phase 1 first")
         data = np.load(feat_path)
         all_features[domain] = data['features']
         all_labels[domain] = data['labels']
@@ -563,7 +555,7 @@ def run_phase2(args):
     val_X = np.concatenate(val_parts_X, axis=0)
     val_y = np.concatenate(val_parts_y, axis=0)
 
-    logger.info(f"  训练集: {len(train_X)} 条, 验证集: {len(val_X)} 条")
+    logger.info(f"  Training set: {len(train_X)} samples, validation set: {len(val_X)} samples")
 
     router_results = {}
 
@@ -571,21 +563,21 @@ def run_phase2(args):
     b0_router.load(ROUTER_CKPT_DIR / 'router_mlp_best.pt')
     b0_metrics = _eval_router(b0_router, val_X, val_y, 'B0')
     router_results['B0'] = {'name': 'Current Router', 'metrics': b0_metrics}
-    logger.info(f"  B0 当前Router: macro_f1={b0_metrics['macro_f1']:.4f}")
+    logger.info(f"  B0 current router: macro_f1={b0_metrics['macro_f1']:.4f}")
 
     b1_feat_path = EXP11_FEATURE_DIR / 'multi_layer_features.npz'
     if b1_feat_path.exists() and not args.force_regenerate:
-        logger.info("  [B1] 加载多层特征缓存")
+        logger.info("  [B1] Loading multi-layer feature cache")
         b1_data = np.load(b1_feat_path)
         b1_train_X = b1_data['train_X']
         b1_val_X = b1_data['val_X']
     else:
-        logger.info("  [B1] 需要提取多层特征，跳过（可通过--extract-multilayer启用）")
+        logger.info("  [B1] Multi-layer feature extraction is required; skipping (enable with --extract-multilayer)")
         b1_train_X, b1_val_X = None, None
 
     if b1_train_X is not None:
         from sklearn.decomposition import PCA
-        logger.info(f"  [B1] 多层特征维度: {b1_train_X.shape[1]}, PCA投影至4096维")
+        logger.info(f"  [B1] Multi-layer feature dimension: {b1_train_X.shape[1]}, projected to 4096 dimensions with PCA")
         pca = PCA(n_components=4096)
         b1_train_proj = pca.fit_transform(b1_train_X).astype(np.float32)
         b1_val_proj = pca.transform(b1_val_X).astype(np.float32)
@@ -597,11 +589,11 @@ def run_phase2(args):
                               EXP11_ROUTER_DIR / 'B1', args)
         b1_metrics = _eval_router(b1_router, b1_val_proj, val_y, 'B1')
         router_results['B1'] = {'name': 'Multi-layer Feature Concat', 'metrics': b1_metrics}
-        logger.info(f"  B1 多层特征: macro_f1={b1_metrics['macro_f1']:.4f}")
+        logger.info(f"  B1 multi-layer features: macro_f1={b1_metrics['macro_f1']:.4f}")
     else:
         router_results['B1'] = {'name': 'Multi-layer Feature Concat', 'metrics': None, 'skipped': True}
 
-    logger.info("  [B2] 数据增强: general域过采样")
+    logger.info("  [B2] Data augmentation: oversampling the general domain")
     general_mask = (train_y == EXPERT_TO_IDX['general'])
     general_X = train_X[general_mask]
     general_y_subset = train_y[general_mask]
@@ -610,25 +602,25 @@ def run_phase2(args):
     aug_X /= (np.linalg.norm(aug_X, axis=1, keepdims=True) + 1e-9)
     b2_train_X = np.concatenate([train_X, aug_X], axis=0)
     b2_train_y = np.concatenate([train_y, general_y_subset], axis=0)
-    logger.info(f"  [B2] 增强后训练集: {len(b2_train_X)} 条 (原{len(train_X)}+增强{len(aug_X)})")
+    logger.info(f"  [B2] Augmented training set: {len(b2_train_X)} samples (original={len(train_X)}, added={len(aug_X)})")
 
     b2_router = RouterMLP(input_dim=train_X.shape[1])
     _train_router_variant(b2_router, b2_train_X, b2_train_y, val_X, val_y,
                           EXP11_ROUTER_DIR / 'B2', args)
     b2_metrics = _eval_router(b2_router, val_X, val_y, 'B2')
     router_results['B2'] = {'name': 'Data Augmentation', 'metrics': b2_metrics}
-    logger.info(f"  B2 数据增强: macro_f1={b2_metrics['macro_f1']:.4f}")
+    logger.info(f"  B2 data augmentation: macro_f1={b2_metrics['macro_f1']:.4f}")
 
-    logger.info("  [B3] 后处理校准: 坐标下降搜索logit偏置")
+    logger.info("  [B3] Post-hoc calibration: coordinate-descent search for logit offsets")
     b3_router = RouterMLP()
     b3_router.load(ROUTER_CKPT_DIR / 'router_mlp_best.pt')
     _calibrate_router(b3_router, val_X, val_y)
     b3_router.save(EXP11_ROUTER_DIR / 'B3' / 'router_mlp_best.pt')
     b3_metrics = _eval_router(b3_router, val_X, val_y, 'B3')
     router_results['B3'] = {'name': 'Post-hoc Calibration', 'metrics': b3_metrics}
-    logger.info(f"  B3 校准: macro_f1={b3_metrics['macro_f1']:.4f}")
+    logger.info(f"  B3 calibration: macro_f1={b3_metrics['macro_f1']:.4f}")
 
-    logger.info("  [B4] 数据增强 + 后处理校准")
+    logger.info("  [B4] Data augmentation plus post-hoc calibration")
     b4_router = RouterMLP(input_dim=train_X.shape[1])
     _train_router_variant(b4_router, b2_train_X, b2_train_y, val_X, val_y,
                           EXP11_ROUTER_DIR / 'B4', args)
@@ -636,14 +628,12 @@ def run_phase2(args):
     b4_router.save(EXP11_ROUTER_DIR / 'B4' / 'router_mlp_best.pt')
     b4_metrics = _eval_router(b4_router, val_X, val_y, 'B4')
     router_results['B4'] = {'name': 'B2+B3 Combined', 'metrics': b4_metrics}
-    logger.info(f"  B4 组合: macro_f1={b4_metrics['macro_f1']:.4f}")
+    logger.info(f"  B4 combined method: macro_f1={b4_metrics['macro_f1']:.4f}")
 
-    logger.info(f"\n{'='*60}")
-    logger.info("Phase 2 Router优化结果汇总")
-    logger.info(f"{'='*60}")
+    logger.info("Phase 2 router optimization results summary")
     for k, v in router_results.items():
         if v.get('skipped'):
-            logger.info(f"  {k} ({v['name']}): 跳过")
+            logger.info(f"  {k} ({v['name']}): skipped")
         else:
             logger.info(f"  {k} ({v['name']}): macro_f1={v['metrics']['macro_f1']:.4f}")
 
@@ -737,7 +727,7 @@ def _train_router_variant(router, train_X, train_y, val_X, val_y, save_dir, args
                 break
 
     router.load(save_dir / 'router_mlp_best.pt')
-    logger.info(f"  训练完成, best macro_f1={best_f1:.4f}")
+    logger.info(f"  Training completed, best macro_f1={best_f1:.4f}")
 
 
 def _calibrate_router(router, val_X, val_y):
@@ -769,16 +759,14 @@ def _calibrate_router(router, val_X, val_y):
             best_offsets[cls_idx] = best_local
 
     router.calibration_offsets = best_offsets
-    logger.info(f"  校准偏置: {dict(zip(['text','image','uml','general'], best_offsets.round(2)))}")
-    logger.info(f"  校准后macro_f1: {best_f1:.4f}")
+    logger.info(f"  Calibration offsets: {dict(zip(['text','image','uml','general'], best_offsets.round(2)))}")
+    logger.info(f"  Calibrated macro_f1: {best_f1:.4f}")
 
 
 
 def run_phase3(args, ablation_results=None, router_results=None):
     """Run phase3."""
-    logger.info("=" * 80)
-    logger.info("Phase 3: 最优组合评估与可视化")
-    logger.info("=" * 80)
+    logger.info("Phase 3: Best-combination evaluation and visualization")
 
     PLOT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1233,7 +1221,7 @@ def _generate_report(ablation_results, router_results, exp10_p2):
     report_path = EXP_DIR / 'report.md'
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
-    logger.info(f"报告已保存: {report_path}")
+    logger.info(f"Report saved to: {report_path}")
 
 
 
@@ -1255,11 +1243,9 @@ def main():
                         help='启用B1多层特征提取（需要GPU约10分钟）')
     args = parser.parse_args()
 
-    logger.info("=" * 80)
-    logger.info("实验11: Output Ensemble消融与路由优化")
-    logger.info(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"参数: phase={args.phase}, all={args.all}, ablation={args.ablation}")
-    logger.info("=" * 80)
+    logger.info("Experiment 11: Output Ensemble ablation and router optimization")
+    logger.info(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Arguments: phase={args.phase}, all={args.all}, ablation={args.ablation}")
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1275,10 +1261,8 @@ def main():
     if args.phase == 3 or args.all:
         run_phase3(args, ablation_results, router_results)
 
-    logger.info("\n" + "=" * 80)
-    logger.info(f"实验11完成 | 时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"结果目录: {EXP_DIR}")
-    logger.info("=" * 80)
+    logger.info(f"Experiment 11 completed | time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Results directory: {EXP_DIR}")
 
 
 if __name__ == '__main__':

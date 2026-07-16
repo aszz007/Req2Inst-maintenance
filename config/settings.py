@@ -35,8 +35,8 @@ class VisionModelConfig:
 
         if self.version not in self.SUPPORTED_VERSIONS:
             raise ValueError(
-                f"不支持的视觉模型版本: {self.version}，"
-                f"支持的版本: {self.SUPPORTED_VERSIONS}"
+                f"Unsupported vision model version: {self.version}. "
+                f"Supported versions: {self.SUPPORTED_VERSIONS}"
             )
 
     def get_model_name(self) -> str:
@@ -202,8 +202,8 @@ class PathConfig:
 
         if version not in self.TEXT_MODEL_PATHS:
             raise ValueError(
-                f"不支持的文本模型版本: {version}，"
-                f"支持的版本: {list(self.TEXT_MODEL_PATHS.keys())}"
+                f"Unsupported text model version: {version}. "
+                f"Supported versions: {list(self.TEXT_MODEL_PATHS.keys())}"
             )
 
         return self.TEXT_MODEL_PATHS[version]
@@ -216,8 +216,8 @@ class PathConfig:
 
         if version not in self.VISION_MODEL_PATHS:
             raise ValueError(
-                f"不支持的视觉模型版本: {version}，"
-                f"支持的版本: {list(self.VISION_MODEL_PATHS.keys())}"
+                f"Unsupported vision model version: {version}. "
+                f"Supported versions: {list(self.VISION_MODEL_PATHS.keys())}"
             )
 
         return self.VISION_MODEL_PATHS[version]

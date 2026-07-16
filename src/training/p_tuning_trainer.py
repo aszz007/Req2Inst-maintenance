@@ -43,31 +43,31 @@ class PTuningTrainer(BaseTrainer):
 
         original_lr = self.train_cfg.learning_rate
         self.train_cfg.learning_rate = 1e-3
-        logger.info(f"学习率设置: {original_lr} -> {self.train_cfg.learning_rate} (prefix encoder标准配置)")
+        logger.info(f"Learning rate: {original_lr} -> {self.train_cfg.learning_rate} (standard prefix-encoder setting)")
 
         self.disable_gradient_checkpointing = True
 
         self.disable_load_best_model = True
 
         self.train_cfg.max_seq_length = self._get_max_seq_length()
-        logger.info(f"Max序列长度: {self.train_cfg.max_seq_length} (由base_trainer统一管理)")
+        logger.info(f"Maximum sequence length: {self.train_cfg.max_seq_length} (managed by base_trainer)")
 
         self.reduced_workers = True
 
-        logger.info(f"4bit量化: {use_4bit}")
-        logger.info(f"P-Tuning v2配置: virtual_tokens={self.num_virtual_tokens}, "
+        logger.info(f"4-bit quantization: {use_4bit}")
+        logger.info(f"P-Tuning v2 configuration: virtual_tokens={self.num_virtual_tokens}, "
                     f"encoder_hidden_size={self.encoder_hidden_size}, "
                     f"prefix_projection={self.prefix_projection}")
-        logger.info(f"Max序列长度: {self.train_cfg.max_seq_length}")
-        logger.info("显存优化策略:")
-        logger.info("  1. encoder_hidden_size=128 (平衡性能和稳定性)")
-        logger.info("  2. 序列长度: 统一2048 (base_trainer管理)")
-        logger.info("  3. 启用expandable_segments (减少碎片)")
-        logger.info("  4. batch_size=1 + 梯度累积=128")
-        logger.info("  5. 学习率=1e-3 (prefix encoder标准配置)")
-        logger.info("  6. SDPA内存高效注意力 (base_trainer加载模型时启用)")
-        logger.info("  7. MLP-level activation checkpointing (setup_model中启用)")
-        logger.info("注意: P-Tuning v2不支持layer-level gradient checkpointing，已禁用")
+        logger.info(f"Maximum sequence length: {self.train_cfg.max_seq_length}")
+        logger.info("GPU-memory optimization strategy:")
+        logger.info("  1. encoder_hidden_size=128 (balances performance and stability)")
+        logger.info("  2. Sequence length: fixed at 2048 (managed by base_trainer)")
+        logger.info("  3. Enable expandable_segments to reduce fragmentation")
+        logger.info("  4. batch_size=1 with gradient accumulation of 128")
+        logger.info("  5. Learning rate=1e-3 (standard prefix-encoder setting)")
+        logger.info("  6. Memory-efficient SDPA attention (enabled when base_trainer loads the model)")
+        logger.info("  7. MLP-level activation checkpointing (enabled in setup_model)")
+        logger.info("Note: layer-level gradient checkpointing is disabled because P-Tuning v2 does not support it")
 
         self._print_training_config()
 
@@ -80,7 +80,7 @@ class PTuningTrainer(BaseTrainer):
         try:
             base_model = self.model.get_base_model()
             if not (hasattr(base_model, 'model') and hasattr(base_model.model, 'layers')):
-                logger.warning("无法访问decoder层列表，MLP activation checkpointing未启用")
+                logger.warning("Unable to access the decoder-layer list; MLP activation checkpointing was not enabled")
                 return
 
             num_layers = len(base_model.model.layers)
@@ -101,11 +101,11 @@ class PTuningTrainer(BaseTrainer):
                 layer.mlp.forward = make_ckpt_forward(original_forward)
                 patched += 1
 
-            logger.info(f"MLP activation checkpointing已启用: {patched}/{num_layers}个decoder层")
-            logger.info("效果: 不保存MLP中间激活（约节省4GB显存），backward时重新计算")
+            logger.info(f"MLP activation checkpointing enabled for {patched}/{num_layers} decoder layers")
+            logger.info("Effect: MLP intermediate activations are recomputed during backward instead of stored, saving approximately 4 GB of GPU memory")
 
         except Exception as e:
-            logger.warning(f"MLP activation checkpointing启用失败，将在不使用的情况下继续: {e}")
+            logger.warning(f"Failed to enable MLP activation checkpointing; continuing without it: {e}")
             import traceback
             logger.warning(traceback.format_exc())
 
@@ -114,16 +114,16 @@ class PTuningTrainer(BaseTrainer):
         try:
             import os
             os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-            logger.info("已设置PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True（减少内存碎片）")
+            logger.info("Set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to reduce memory fragmentation")
 
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                logger.info("已清空GPU缓存")
+                logger.info("Cleared GPU cache")
 
             if not self._load_base_model(self.use_4bit):
                 return False
 
-            logger.info("配置P-Tuning v2...")
+            logger.info("Configuring P-Tuning v2...")
 
             # use_cache must be False during training to avoid storing KV cache for every
             # layer, which wastes significant GPU memory. (base_trainer already guarantees
@@ -131,7 +131,7 @@ class PTuningTrainer(BaseTrainer):
             # disable_gradient_checkpointing=True, so no explicit disable needed here.)
             if hasattr(self.model, 'config') and hasattr(self.model.config, 'use_cache'):
                 self.model.config.use_cache = False
-                logger.info("已禁用use_cache（训练时禁止以节省显存）")
+                logger.info("Disabled use_cache during training to reduce GPU memory usage")
 
             peft_config = PrefixTuningConfig(
                 task_type=TaskType.CAUSAL_LM,
@@ -150,7 +150,7 @@ class PTuningTrainer(BaseTrainer):
             model_dtype = torch.bfloat16 if self.use_rtx4090_optimization else torch.float16
             if hasattr(self.model, 'prompt_encoder'):
                 self.model.prompt_encoder.to(model_dtype)
-                logger.info(f"Prefix encoder已转换为{model_dtype}，与基础模型dtype保持一致")
+                logger.info(f"Converted prefix encoder to {model_dtype} to match the base-model dtype")
 
             # NOTE: Gradient checkpointing is intentionally NOT enabled for PrefixTuning.
             # Qwen3's gradient checkpointing implementation forces `past_key_values=None`
@@ -166,9 +166,7 @@ class PTuningTrainer(BaseTrainer):
             # which only touches the FFN path and leaves past_key_values untouched.
             self._enable_mlp_activation_checkpointing()
 
-            logger.info("=" * 80)
-            logger.info("模型Dtype诊断")
-            logger.info("=" * 80)
+            logger.info("Model dtype diagnostics")
 
             if hasattr(self.model, 'prompt_encoder'):
                 for name, param in self.model.prompt_encoder.named_parameters():
@@ -183,27 +181,23 @@ class PTuningTrainer(BaseTrainer):
                         if hasattr(attn, 'q_proj'):
                             logger.info(f"  base_model.layers[0].self_attn.q_proj.weight: dtype={attn.q_proj.weight.dtype}")
 
-            logger.info(f"  目标dtype: {model_dtype} ({'bfloat16' if self.use_rtx4090_optimization else 'float16'})")
-            logger.info("=" * 80)
+            logger.info(f"  Target dtype: {model_dtype} ({'bfloat16' if self.use_rtx4090_optimization else 'float16'})")
 
             trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
             total_params = sum(p.numel() for p in self.model.parameters())
             trainable_ratio = 100 * trainable_params / total_params
 
-            logger.info("=" * 80)
-            logger.info("P-Tuning v2配置完成")
-            logger.info("=" * 80)
-            logger.info(f"可训练参数: {trainable_params:,} ({trainable_ratio:.4f}%)")
-            logger.info(f"总参数: {total_params:,}")
+            logger.info("P-Tuning v2 configuration complete")
+            logger.info(f"Trainable parameters: {trainable_params:,} ({trainable_ratio:.4f}%)")
+            logger.info(f"Total parameters: {total_params:,}")
             logger.info(f"Virtual Tokens: {self.num_virtual_tokens}")
             logger.info(f"Encoder Hidden Size: {self.encoder_hidden_size}")
             logger.info(f"Prefix Projection: {self.prefix_projection}")
-            logger.info("=" * 80)
 
             return True
 
         except Exception as e:
-            logger.error(f"模型设置失败: {e}")
+            logger.error(f"Model setup failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False

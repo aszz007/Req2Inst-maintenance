@@ -53,7 +53,7 @@ class UMLDatasetValidator:
                     return df
                 except:
                     continue
-            raise Exception(f"加载数据集失败: {e}")
+            raise Exception(f"Failed to load dataset: {e}")
 
     def validate_json_description(self, description: str, row_num: int) -> Tuple[bool, List[str]]:
         """Validate JSON description."""

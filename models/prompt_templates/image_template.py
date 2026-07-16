@@ -69,7 +69,7 @@ CRITICAL RULES:
                     }
                 }, ensure_ascii=False, separators=(',', ':'))
         else:
-            raise TypeError("image_description必须是str或dict类型")
+            raise TypeError("image_description must be a str or dict")
 
         user_message = f"""Image analysis structured data (JSON format):
 ```json

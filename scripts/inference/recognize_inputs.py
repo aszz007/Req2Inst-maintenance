@@ -206,13 +206,10 @@ def main():
     """Main function"""
     args = parse_args()
 
-    logger.info("=" * 80)
     logger.info("Unified Recognition Script for Inference")
-    logger.info("=" * 80)
     logger.info(f"Model Version: {args.version.upper()}")
     logger.info(f"Recognition Type: {args.type.upper()}")
     logger.info(f"Input: {args.input}")
-    logger.info("=" * 80)
 
     try:
         input_path = Path(args.input)
@@ -255,11 +252,9 @@ def main():
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
 
-        logger.info("=" * 80)
         logger.info(f"Recognition completed")
         logger.info(f"Total processed: {len(results)}")
         logger.info(f"Results saved to: {output_file}")
-        logger.info("=" * 80)
 
         # Print output path to stdout for parent script to capture
         print(f"OUTPUT_FILE:{output_file}")

@@ -21,7 +21,7 @@ def plot_training_curves(training_history, expert_type, method_name, output_path
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
     except ImportError:
-        logger.error("matplotlib未安装，无法生成可视化")
+        logger.error("matplotlib is not installed; visualizations cannot be generated")
         return False
 
     loss_steps = []
@@ -65,26 +65,26 @@ def plot_training_curves(training_history, expert_type, method_name, output_path
                         (e['eval_loss'] is None or (isinstance(e['eval_loss'], float) and math.isnan(e['eval_loss']))))
 
     if total_entries < 10:
-        logger.warning(f"训练历史记录很少（{total_entries}条），可能因早停提前结束")
+        logger.warning(f"Training history has only {total_entries} entries, possibly due to early stopping")
 
     if len(losses) < 3:
-        logger.warning(f"训练损失数据点很少（{len(losses)}个）")
+        logger.warning(f"Training loss has only {len(losses)} data points")
     if len(eval_losses) == 0:
         if nan_eval_count > 0:
-            logger.warning(f"所有{nan_eval_count}个验证损失都是NaN（已过滤），无法绘制验证曲线")
-            logger.warning("这表明训练过程不稳定，建议:")
-            logger.warning("  1. 降低学习率（当前可能过大）")
-            logger.warning("  2. 调整参数高效微调配置")
-            logger.warning("  3. 检查数据集质量和预处理")
+            logger.warning(f"All {nan_eval_count} validation loss values are NaN and were filtered; the validation curve cannot be plotted")
+            logger.warning("This may indicate unstable training; consider:")
+            logger.warning("  1. Reducing the learning rate, which may be too high")
+            logger.warning("  2. Adjusting the parameter-efficient fine-tuning configuration")
+            logger.warning("  3. Checking dataset quality and preprocessing")
         else:
-            logger.warning("没有验证损失数据")
+            logger.warning("No validation loss data found")
     elif len(eval_losses) < 3:
         if nan_eval_count > 0:
-            logger.warning(f"验证损失数据点很少（{len(eval_losses)}个有效，{nan_eval_count}个NaN已过滤）")
+            logger.warning(f"Validation loss has only {len(eval_losses)} valid data points; {nan_eval_count} NaN values were filtered")
         else:
-            logger.warning(f"验证损失数据点很少（{len(eval_losses)}个）")
+            logger.warning(f"Validation loss has only {len(eval_losses)} data points")
     elif nan_eval_count > 0:
-        logger.info(f"过滤了{nan_eval_count}个NaN验证损失，保留{len(eval_losses)}个有效值")
+        logger.info(f"Filtered {nan_eval_count} NaN validation loss values; {len(eval_losses)} valid values remain")
 
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle(f'Training Curves - {expert_type.upper()} Expert ({method_name})',
@@ -152,8 +152,8 @@ def plot_training_curves(training_history, expert_type, method_name, output_path
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
 
-    logger.info(f"训练曲线已保存至: {output_path}")
-    logger.info(f"数据统计: Loss={len(losses)}点, EvalLoss={len(eval_losses)}点, GradNorm={len(grad_norms)}点, LR={len(learning_rates)}点")
+    logger.info(f"Training curves saved to: {output_path}")
+    logger.info(f"Data summary: Loss={len(losses)} points, EvalLoss={len(eval_losses)} points, GradNorm={len(grad_norms)} points, LR={len(learning_rates)} points")
     return True
 
 
@@ -180,7 +180,7 @@ def replot_single_history(history_file, output_timestamp_dir=None):
     history_path = Path(history_file)
 
     if not history_path.exists():
-        logger.error(f"文件不存在: {history_path}")
+        logger.error(f"File not found: {history_path}")
         return False
 
     try:
@@ -194,16 +194,16 @@ def replot_single_history(history_file, output_timestamp_dir=None):
 
         if not method_name or method_name == 'unknown':
             method_name = infer_method_from_path(history_path)
-            logger.info(f"从路径推断方法名: {method_name}")
+            logger.info(f"Inferred method name from path: {method_name}")
 
         training_history = history_data.get('history', [])
 
         if not training_history:
-            logger.error(f"训练历史为空: {history_path}")
+            logger.error(f"Training history is empty: {history_path}")
             return False
 
-        logger.info(f"正在重新绘制曲线: {expert_type} expert, {method_name} method")
-        logger.info(f"训练步数: {len(training_history)}")
+        logger.info(f"Replotting curves for {expert_type} expert with {method_name}")
+        logger.info(f"Training steps: {len(training_history)}")
 
         if output_timestamp_dir:
             method_dir = output_timestamp_dir / method_name
@@ -221,14 +221,14 @@ def replot_single_history(history_file, output_timestamp_dir=None):
         success = plot_training_curves(training_history, expert_type, method_name, output_path)
 
         if success:
-            logger.info(f"成功: {output_path}")
+            logger.info(f"Plot saved: {output_path}")
             return True
         else:
-            logger.error(f"绘制失败: {history_path}")
+            logger.error(f"Failed to plot: {history_path}")
             return False
 
     except Exception as e:
-        logger.error(f"处理失败 {history_path}: {e}")
+        logger.error(f"Failed to process {history_path}: {e}")
         import traceback
         logger.error(traceback.format_exc())
         return False
@@ -239,17 +239,16 @@ def replot_all_histories():
     checkpoints_dir = PROJECT_ROOT / 'checkpoints'
 
     if not checkpoints_dir.exists():
-        logger.error(f"checkpoints目录不存在: {checkpoints_dir}")
+        logger.error(f"Checkpoint directory not found: {checkpoints_dir}")
         return 0, 0
 
     history_files = list(checkpoints_dir.glob('**/training_history.json'))
 
     if not history_files:
-        logger.warning("未找到任何training_history.json文件")
+        logger.warning("No training_history.json files found")
         return 0, 0
 
-    logger.info(f"找到 {len(history_files)} 个训练历史文件")
-    logger.info("=" * 80)
+    logger.info(f"Found {len(history_files)} training history files")
 
     from datetime import datetime
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -257,26 +256,22 @@ def replot_all_histories():
     output_timestamp_dir = base_dir / timestamp
     output_timestamp_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"批量输出目录: {output_timestamp_dir}")
-    logger.info("=" * 80)
+    logger.info(f"Batch output directory: {output_timestamp_dir}")
 
     success_count = 0
     fail_count = 0
 
     for i, history_file in enumerate(history_files, 1):
-        logger.info(f"[{i}/{len(history_files)}] 处理: {history_file.relative_to(PROJECT_ROOT)}")
+        logger.info(f"[{i}/{len(history_files)}] Processing: {history_file.relative_to(PROJECT_ROOT)}")
 
         if replot_single_history(history_file, output_timestamp_dir):
             success_count += 1
         else:
             fail_count += 1
 
-        logger.info("-" * 80)
 
-    logger.info("=" * 80)
-    logger.info(f"批量处理完成: 成功 {success_count}, 失败 {fail_count}")
-    logger.info(f"所有图片已保存至: {output_timestamp_dir}")
-    logger.info("=" * 80)
+    logger.info(f"Batch processing completed: {success_count} succeeded, {fail_count} failed")
+    logger.info(f"All plots saved to: {output_timestamp_dir}")
 
     return success_count, fail_count
 
@@ -300,7 +295,7 @@ def main():
     args = parser.parse_args()
 
     if args.all:
-        logger.info("批量处理模式：处理所有训练历史文件")
+        logger.info("Batch mode: processing all training history files")
         success, fail = replot_all_histories()
         sys.exit(0 if fail == 0 else 1)
     elif args.history_file:

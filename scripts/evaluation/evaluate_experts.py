@@ -42,15 +42,15 @@ class ExpertEvaluator:
         self.path_cfg = get_path_config()
         self.show_samples = False
 
-        logger.info("专家评估器初始化完成")
-        logger.info(f"使用BERTScore: {use_bertscore}")
-        logger.info(f"严格验证模式: {strict_validation}")
+        logger.info("Expert evaluator initialized")
+        logger.info(f"BERTScore enabled: {use_bertscore}")
+        logger.info(f"Strict validation mode: {strict_validation}")
 
     def _force_cleanup_gpu(self):
         """Force GPU resource cleanup."""
         import torch
 
-        logger.info("强制清理GPU显存...")
+        logger.info("Forcing GPU memory cleanup...")
 
         for _ in range(3):
             gc.collect()
@@ -63,7 +63,7 @@ class ExpertEvaluator:
         if torch.cuda.is_available():
             memory_allocated = torch.cuda.memory_allocated() / 1024**3
             memory_reserved = torch.cuda.memory_reserved() / 1024**3
-            logger.info(f"GPU显存状态 - 已分配: {memory_allocated:.2f}GB, 已保留: {memory_reserved:.2f}GB")
+            logger.info(f"GPU memory status - allocated: {memory_allocated:.2f} GB, reserved: {memory_reserved:.2f} GB")
 
 
     def _display_samples(self, test_data: List[Dict], expert_type: str, num_display: int = 5):
@@ -71,17 +71,14 @@ class ExpertEvaluator:
         if not self.show_samples:
             return
 
-        logger.info("=" * 80)
-        logger.info(f"[{expert_type}] 测试数据样本预览 (前{num_display}条)")
-        logger.info("=" * 80)
+        logger.info(f"[{expert_type}] Test sample preview (first {num_display})")
 
         for i in range(min(num_display, len(test_data))):
             input_text = test_data[i]['input']
             if len(input_text) > 100:
                 input_text = input_text[:100] + "..."
-            logger.info(f"样本 {i+1}: {input_text}")
+            logger.info(f"Sample {i+1}: {input_text}")
 
-        logger.info("=" * 80)
 
     def evaluate_text_expert(
             self,
@@ -90,9 +87,7 @@ class ExpertEvaluator:
             batch_size: int = 16
     ) -> Dict:
         """Evaluate text expert."""
-        logger.info("=" * 80)
-        logger.info("评估文本专家")
-        logger.info("=" * 80)
+        logger.info("Evaluating text expert")
 
         loader = TextDatasetLoader()
         data = loader.load_csv_files()
@@ -101,22 +96,22 @@ class ExpertEvaluator:
         if num_samples:
             test_data = test_data[:num_samples]
 
-        logger.info(f"测试样本数: {len(test_data)}")
-        logger.info(f"批处理大小: {batch_size}")
+        logger.info(f"Test samples: {len(test_data)}")
+        logger.info(f"Batch size: {batch_size}")
 
         self._display_samples(test_data, "Text Expert")
 
         expert = TextExpert()
         if not expert.load_model():
-            logger.error("文本专家加载失败")
+            logger.error("Failed to load text expert")
             return {}
 
         inputs = [item['input'] for item in test_data]
         references = [item['output'] for item in test_data]
 
-        logger.info("开始批量生成指令...")
+        logger.info("Starting batched instruction generation...")
         predictions = expert.batch_generate_instruction(inputs, batch_size=batch_size)
-        logger.info("批量生成完成")
+        logger.info("Batched instruction generation completed")
 
         expert.unload_model()
 
@@ -141,9 +136,7 @@ class ExpertEvaluator:
             batch_size: int = 16
     ) -> Dict:
         """Evaluate image expert."""
-        logger.info("=" * 80)
-        logger.info("评估图像专家")
-        logger.info("=" * 80)
+        logger.info("Evaluating image expert")
 
         loader = ImageDatasetLoader()
         data = loader.load_csv_file()
@@ -152,22 +145,22 @@ class ExpertEvaluator:
         if num_samples:
             test_data = test_data[:num_samples]
 
-        logger.info(f"测试样本数: {len(test_data)}")
-        logger.info(f"批处理大小: {batch_size}")
+        logger.info(f"Test samples: {len(test_data)}")
+        logger.info(f"Batch size: {batch_size}")
 
         self._display_samples(test_data, "Image Expert")
 
         expert = ImageExpert()
         if not expert.load_model():
-            logger.error("图像专家加载失败")
+            logger.error("Failed to load image expert")
             return {}
 
         inputs = [item['input'] for item in test_data]
         references = [item['output'] for item in test_data]
 
-        logger.info("开始批量生成指令...")
+        logger.info("Starting batched instruction generation...")
         predictions = expert.batch_generate_instruction(inputs, batch_size=batch_size)
-        logger.info("批量生成完成")
+        logger.info("Batched instruction generation completed")
 
         expert.unload_model()
 
@@ -192,9 +185,7 @@ class ExpertEvaluator:
             batch_size: int = 8
     ) -> Dict:
         """Evaluate UML expert."""
-        logger.info("=" * 80)
-        logger.info("评估UML专家")
-        logger.info("=" * 80)
+        logger.info("Evaluating UML expert")
 
         loader = UMLDatasetLoader()
         data = loader.load_csv_file()
@@ -203,23 +194,23 @@ class ExpertEvaluator:
         if num_samples:
             test_data = test_data[:num_samples]
 
-        logger.info(f"测试样本数: {len(test_data)}")
-        logger.info(f"批处理大小: {batch_size}")
-        logger.info(f"UML数据集: uml_dataset.csv")
+        logger.info(f"Test samples: {len(test_data)}")
+        logger.info(f"Batch size: {batch_size}")
+        logger.info(f"UML dataset: uml_dataset.csv")
 
         self._display_samples(test_data, "UML Expert")
 
         expert = UMLExpert()
         if not expert.load_model():
-            logger.error("UML专家加载失败")
+            logger.error("Failed to load UML expert")
             return {}
 
         inputs = [item['input'] for item in test_data]
         references = [item['output'] for item in test_data]
 
-        logger.info("开始批量生成指令...")
+        logger.info("Starting batched instruction generation...")
         predictions = expert.batch_generate_instruction(inputs, batch_size=batch_size)
-        logger.info("批量生成完成")
+        logger.info("Batched instruction generation completed")
 
         expert.unload_model()
 
@@ -244,9 +235,7 @@ class ExpertEvaluator:
             batch_size: int = 8
     ) -> Dict:
         """Evaluate general expert."""
-        logger.info("=" * 80)
-        logger.info("评估通用专家")
-        logger.info("=" * 80)
+        logger.info("Evaluating general expert")
 
         text_loader = TextDatasetLoader()
         image_loader = ImageDatasetLoader()
@@ -274,27 +263,27 @@ class ExpertEvaluator:
                 image_test[:image_samples] +
                 uml_test[:uml_samples]
             )
-            logger.info(f"测试样本数: {len(test_data)} (text: {text_samples}, image: {image_samples}, uml: {uml_samples})")
+            logger.info(f"Test samples: {len(test_data)} (text: {text_samples}, image: {image_samples}, UML: {uml_samples})")
         else:
             test_data = text_test + image_test + uml_test
-            logger.info(f"测试样本数: {len(test_data)} (text: {len(text_test)}, image: {len(image_test)}, uml: {len(uml_test)})")
+            logger.info(f"Test samples: {len(test_data)} (text: {len(text_test)}, image: {len(image_test)}, UML: {len(uml_test)})")
 
-        logger.info(f"批处理大小: {batch_size}")
-        logger.info(f"UML数据集: uml_dataset.csv")
+        logger.info(f"Batch size: {batch_size}")
+        logger.info(f"UML dataset: uml_dataset.csv")
 
         self._display_samples(test_data, "General Expert")
 
         expert = GeneralExpert()
         if not expert.load_model():
-            logger.error("通用专家加载失败")
+            logger.error("Failed to load general expert")
             return {}
 
         inputs = [item['input'] for item in test_data]
         references = [item['output'] for item in test_data]
 
-        logger.info("开始批量生成指令...")
+        logger.info("Starting batched instruction generation...")
         predictions = expert.batch_generate_instruction(inputs, batch_size=batch_size)
-        logger.info("批量生成完成")
+        logger.info("Batched instruction generation completed")
 
         expert.unload_model()
 
@@ -322,7 +311,7 @@ class ExpertEvaluator:
             save_dir: Optional[str] = None
     ) -> Dict:
         """Evaluate predictions."""
-        logger.info("开始评估指标计算...")
+        logger.info("Starting metric computation...")
 
         valid_pairs = [
             (pred, ref) for pred, ref in zip(predictions, references)
@@ -330,13 +319,13 @@ class ExpertEvaluator:
         ]
 
         if not valid_pairs:
-            logger.error("没有有效的预测结果")
+            logger.error("No valid predictions found")
             return {}
 
         valid_predictions = [pair[0] for pair in valid_pairs]
         valid_references = [pair[1] for pair in valid_pairs]
 
-        logger.info(f"有效样本数: {len(valid_predictions)}/{len(predictions)}")
+        logger.info(f"Valid samples: {len(valid_predictions)}/{len(predictions)}")
 
         if save_predictions and save_dir and inputs:
             self._save_predictions_json(
@@ -417,8 +406,8 @@ class ExpertEvaluator:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"预测数据已保存至: {filepath}")
-        logger.info(f"可使用 calculate_metrics_from_json.py 脚本快速重新计算指标")
+        logger.info(f"Prediction data saved to: {filepath}")
+        logger.info("Use calculate_metrics_from_json.py to recompute metrics without rerunning inference")
 
     def evaluate_all_experts(
             self,
@@ -426,34 +415,32 @@ class ExpertEvaluator:
             save_dir: Optional[str] = None
     ) -> Dict[str, Dict]:
         """Evaluate all experts."""
-        logger.info("=" * 80)
-        logger.info("评估所有专家")
-        logger.info("=" * 80)
+        logger.info("Evaluating all experts")
 
         all_results = {}
 
         try:
             all_results['text_expert'] = self.evaluate_text_expert(num_samples)
         except Exception as e:
-            logger.error(f"文本专家评估失败: {e}")
+            logger.error(f"Text expert evaluation failed: {e}")
             self._force_cleanup_gpu()
 
         try:
             all_results['image_expert'] = self.evaluate_image_expert(num_samples)
         except Exception as e:
-            logger.error(f"图像专家评估失败: {e}")
+            logger.error(f"Image expert evaluation failed: {e}")
             self._force_cleanup_gpu()
 
         try:
             all_results['uml_expert'] = self.evaluate_uml_expert(num_samples)
         except Exception as e:
-            logger.error(f"UML专家评估失败: {e}")
+            logger.error(f"UML expert evaluation failed: {e}")
             self._force_cleanup_gpu()
 
         try:
             all_results['general_expert'] = self.evaluate_general_expert(num_samples)
         except Exception as e:
-            logger.error(f"通用专家评估失败: {e}")
+            logger.error(f"General expert evaluation failed: {e}")
             self._force_cleanup_gpu()
 
         if save_dir:
@@ -474,14 +461,14 @@ class ExpertEvaluator:
         with open(full_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"评估结果已保存至: {full_path}")
+        logger.info(f"Evaluation results saved to: {full_path}")
 
         summary = self._create_summary(results)
         summary_path = save_dir / f'evaluation_summary_{timestamp}.json'
         with open(summary_path, 'w', encoding='utf-8') as f:
             json.dump(summary, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"评估摘要已保存至: {summary_path}")
+        logger.info(f"Evaluation summary saved to: {summary_path}")
 
     def _create_summary(self, results: Dict) -> Dict:
         """Create summary."""
@@ -587,11 +574,9 @@ def main():
         if args.test_mode:
             if args.num_samples is None:
                 args.num_samples = 10
-                logger.info("=" * 80)
-                logger.info("测试模式已启用 - 每个数据集使用10条数据")
-                logger.info("=" * 80)
+                logger.info("Test mode enabled - using 10 samples from each dataset")
             else:
-                logger.warning(f"测试模式已启用，但--num-samples已设置为{args.num_samples}，将使用该值")
+                logger.warning(f"Test mode is enabled, but --num-samples is set to {args.num_samples}; using that value")
 
         evaluator = ExpertEvaluator(
             use_bertscore=args.use_bertscore,
@@ -626,22 +611,16 @@ def main():
             if args.save_dir:
                 evaluator._save_all_results({'general_expert': results}, args.save_dir)
 
-        logger.info("=" * 80)
-        logger.info("所有评估任务完成!")
-        logger.info("=" * 80)
+        logger.info("All evaluation tasks completed")
 
     except KeyboardInterrupt:
-        logger.warning("\n" + "=" * 80)
-        logger.warning("检测到用户中断 (Ctrl+C)")
-        logger.warning("评估任务已停止")
-        logger.warning("=" * 80)
+        logger.warning("User interrupt detected (Ctrl+C)")
+        logger.warning("Evaluation stopped")
         sys.exit(1)
 
     except Exception as e:
-        logger.error("\n" + "=" * 80)
-        logger.error(f"评估过程中发生严重错误: {e}")
-        logger.error(f"异常详情:\n{traceback.format_exc()}")
-        logger.error("=" * 80)
+        logger.error(f"Fatal error during evaluation: {e}")
+        logger.error(f"Traceback:\n{traceback.format_exc()}")
         sys.exit(1)
 
 

@@ -319,14 +319,11 @@ def main():
     """Main function"""
     args = parse_args()
 
-    logger.info("=" * 80)
     logger.info("Automated Instruction Generation System")
-    logger.info("=" * 80)
     logger.info(f"Output Format: {args.output_format}")
     logger.info(f"Vision Model Version: {args.vision_version}")
     if args.expert_variant:
         logger.info(f"Expert Variant: {args.expert_variant}")
-    logger.info("=" * 80)
 
     # Determine input directory
     path_cfg = get_path_config()
@@ -424,9 +421,7 @@ def main():
         return
 
     # Generate instructions
-    logger.info("\n" + "=" * 80)
     logger.info("Generating Instructions")
-    logger.info("=" * 80)
 
     results = []
     success_count = 0
@@ -470,9 +465,7 @@ def main():
             })
 
     # Save results
-    logger.info("\n" + "=" * 80)
     logger.info("Saving Results")
-    logger.info("=" * 80)
 
     output_dir = path_cfg.GENERATED_INSTRUCTIONS_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -522,9 +515,7 @@ def main():
     logger.info(f"  - Main: {output_file}")
     logger.info(f"  - Detailed JSON: {json_file}")
 
-    logger.info("\n" + "=" * 80)
     logger.info("Generation Summary")
-    logger.info("=" * 80)
     logger.info(f"Total Processed: {len(results)}")
     logger.info(f"Successful: {success_count}")
     logger.info(f"Failed: {len(results) - success_count}")
@@ -538,9 +529,7 @@ def main():
             percentage = stats['expert_usage_percentage'][expert]
             logger.info(f"  - {expert}: {count} ({percentage:.1f}%)")
 
-    logger.info("=" * 80)
     logger.info("Instruction generation completed!")
-    logger.info("=" * 80)
 
 
 if __name__ == "__main__":

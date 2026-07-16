@@ -86,20 +86,20 @@ def validate_environment():
             v_parts = tf_version.split('.')
             major, minor = int(v_parts[0]), int(v_parts[1])
             if not (major > 4 or (major == 4 and minor >= 51)):
-                logger.warning(f"警告：当前transformers版本为{tf_version}，推荐使用>=4.51.0")
-                logger.warning("请确认是否在instruction_generator环境中运行")
+                logger.warning(f"Current transformers version is {tf_version}; version >=4.51.0 is recommended")
+                logger.warning("Verify that the script is running in the instruction_generator environment")
         except (ValueError, IndexError):
-            logger.warning(f"无法解析transformers版本: {tf_version}")
+            logger.warning(f"Unable to parse transformers version: {tf_version}")
 
     except ImportError:
-        logger.error("未安装transformers库")
+        logger.error("transformers is not installed")
         return False
 
     try:
         import peft
         print(f"PEFT版本: {peft.__version__}")
     except ImportError:
-        logger.error("未安装PEFT库，请运行: pip install peft --break-system-packages")
+        logger.error("PEFT is not installed. Run: pip install peft --break-system-packages")
         return False
 
     try:
@@ -116,9 +116,9 @@ def validate_environment():
                 print(f"检测到RTX 4090，将启用优化配置")
 
         else:
-            logger.warning("CUDA不可用，将使用CPU训练（速度极慢）")
+            logger.warning("CUDA is unavailable; training will run on CPU and be extremely slow")
     except ImportError:
-        logger.error("未安装PyTorch库")
+        logger.error("PyTorch is not installed")
         return False
 
     print("-" * 80)
@@ -154,17 +154,17 @@ def main():
 
     if is_rtx4090:
         if use_rtx4090_opt:
-            logger.info("检测到RTX 4090，启用优化配置")
+            logger.info("Detected RTX 4090; enabling optimized settings")
         else:
-            logger.info("检测到RTX 4090，但优化已禁用")
+            logger.info("Detected RTX 4090, but optimization is disabled")
 
     print_header()
 
     if not validate_environment():
-        logger.error("环境验证失败，请检查依赖库")
+        logger.error("Environment validation failed; check the required dependencies")
         return 1
 
-    logger.info(f"创建UML专家训练器...")
+    logger.info(f"Creating UML expert trainer...")
     try:
         trainer = LoRATrainer(
             expert_type='uml',
@@ -172,19 +172,19 @@ def main():
             use_rtx4090_optimization=use_rtx4090_opt
         )
     except Exception as e:
-        logger.error(f"创建训练器失败: {e}")
+        logger.error(f"Failed to create trainer: {e}")
         import traceback
         logger.error(traceback.format_exc())
         return 1
 
-    logger.info("设置模型和LoRA配置...")
+    logger.info("Setting up model and LoRA configuration...")
     if not trainer.setup_model():
-        logger.error("模型设置失败")
+        logger.error("Model setup failed")
         return 1
 
-    logger.info("准备训练数据...")
+    logger.info("Preparing training data...")
     if not trainer.prepare_data():
-        logger.error("数据准备失败")
+        logger.error("Training data preparation failed")
         return 1
 
     status = trainer.get_training_status()
@@ -196,7 +196,7 @@ def main():
     print("注意：1500条数据使用标准80:10:10划分策略")
     print()
 
-    logger.info("开始训练...")
+    logger.info("Starting training...")
     print("=" * 80)
     print("训练开始 - 这可能需要较长时间，请耐心等待...")
     print("=" * 80)
@@ -228,7 +228,7 @@ def main():
         print(" " * 28 + "训练失败")
         print("=" * 80)
         print()
-        logger.error("训练过程中出现错误，请查看日志")
+        logger.error("An error occurred during training; check the logs")
         return 1
 
 

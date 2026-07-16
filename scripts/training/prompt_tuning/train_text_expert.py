@@ -44,16 +44,16 @@ def validate_environment() -> bool:
         v = transformers.__version__.split('.')
         major, minor = int(v[0]), int(v[1])
         if not (major > 4 or (major == 4 and minor >= 51)):
-            logger.warning(f"推荐使用transformers>=4.51.0，当前: {transformers.__version__}")
+            logger.warning(f"transformers >=4.51.0 is recommended; current version: {transformers.__version__}")
     except ImportError:
-        logger.error("未安装transformers库")
+        logger.error("transformers is not installed")
         return False
 
     try:
         import peft
         print(f"PEFT版本: {peft.__version__}")
     except ImportError:
-        logger.error("未安装PEFT库，请运行: pip install peft")
+        logger.error("PEFT is not installed. Run: pip install peft")
         return False
 
     try:
@@ -63,9 +63,9 @@ def validate_environment() -> bool:
             print(f"CUDA可用: {torch.cuda.get_device_name(0)}")
             print(f"显存: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
         else:
-            logger.warning("CUDA不可用，将使用CPU训练（速度极慢）")
+            logger.warning("CUDA is unavailable; training will run on CPU and be extremely slow")
     except ImportError:
-        logger.error("未安装PyTorch库")
+        logger.error("PyTorch is not installed")
         return False
 
     print("-" * 80)
@@ -89,17 +89,17 @@ def main():
 
     if is_rtx4090:
         if use_rtx4090_opt:
-            logger.info("检测到RTX 4090，启用优化配置")
+            logger.info("Detected RTX 4090; enabling optimized settings")
         else:
-            logger.info("检测到RTX 4090，但优化已禁用")
+            logger.info("Detected RTX 4090, but optimization is disabled")
 
     print_header()
 
     if not validate_environment():
-        logger.error("环境验证失败，请检查依赖库")
+        logger.error("Environment validation failed; check the required dependencies")
         return 1
 
-    logger.info("创建Prompt Tuning文本专家训练器...")
+    logger.info("Creating prompt-tuning text expert trainer...")
     try:
         trainer = PromptTuningTrainer(
             expert_type='text',
@@ -107,19 +107,19 @@ def main():
             use_rtx4090_optimization=use_rtx4090_opt
         )
     except Exception as e:
-        logger.error(f"创建训练器失败: {e}")
+        logger.error(f"Failed to create trainer: {e}")
         import traceback
         logger.error(traceback.format_exc())
         return 1
 
-    logger.info("设置模型和Prompt Tuning配置...")
+    logger.info("Setting up model and prompt-tuning configuration...")
     if not trainer.setup_model():
-        logger.error("模型设置失败")
+        logger.error("Model setup failed")
         return 1
 
-    logger.info("准备训练数据...")
+    logger.info("Preparing training data...")
     if not trainer.prepare_data():
-        logger.error("数据准备失败")
+        logger.error("Training data preparation failed")
         return 1
 
     status = trainer.get_training_status()
@@ -128,7 +128,7 @@ def main():
     print(f"  - 验证样本: {status['val_samples']}")
     print()
 
-    logger.info("开始训练...")
+    logger.info("Starting training...")
     print("=" * 80)
     print("训练开始 - 这可能需要较长时间，请耐心等待...")
     print("=" * 80)
@@ -156,7 +156,7 @@ def main():
         print(" " * 28 + "训练失败")
         print("=" * 80)
         print()
-        logger.error("训练过程中出现错误，请查看日志")
+        logger.error("An error occurred during training; check the logs")
         return 1
 
 

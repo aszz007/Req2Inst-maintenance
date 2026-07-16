@@ -21,9 +21,9 @@ def load_predictions_json(filepath: str) -> Dict:
     filepath = Path(filepath)
 
     if not filepath.exists():
-        raise FileNotFoundError(f"文件不存在: {filepath}")
+        raise FileNotFoundError(f"File not found: {filepath}")
 
-    logger.info(f"加载预测数据: {filepath}")
+    logger.info(f"Loading prediction data: {filepath}")
 
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -31,15 +31,15 @@ def load_predictions_json(filepath: str) -> Dict:
     samples = data.get('samples', [])
 
     if not samples:
-        raise ValueError("JSON文件中没有samples数据")
+        raise ValueError("The JSON file does not contain sample data")
 
     inputs = [s['input'] for s in samples]
     predictions = [s['prediction'] for s in samples]
     references = [s['reference'] for s in samples]
 
-    logger.info(f"成功加载 {len(samples)} 个样本")
-    logger.info(f"专家: {data.get('expert_name', 'unknown')}")
-    logger.info(f"时间戳: {data.get('timestamp', 'unknown')}")
+    logger.info(f"Loaded {len(samples)} samples")
+    logger.info(f"Expert: {data.get('expert_name', 'unknown')}")
+    logger.info(f"Timestamp: {data.get('timestamp', 'unknown')}")
 
     return {
         'expert_name': data.get('expert_name', 'unknown'),
@@ -60,9 +60,7 @@ def calculate_metrics(
         format_threshold: float = None
 ) -> Dict:
     """Calculate metrics."""
-    logger.info("=" * 80)
-    logger.info("开始计算评估指标")
-    logger.info("=" * 80)
+    logger.info("Starting metric computation")
 
     metrics = EnhancedMetrics(use_bertscore=use_bertscore)
 
@@ -72,26 +70,26 @@ def calculate_metrics(
     ]
 
     if not valid_pairs:
-        logger.error("没有有效的预测结果")
+        logger.error("No valid predictions found")
         return {}
 
     valid_predictions = [pair[0] for pair in valid_pairs]
     valid_references = [pair[1] for pair in valid_pairs]
 
-    logger.info(f"有效样本数: {len(valid_predictions)}/{len(predictions)}")
+    logger.info(f"Valid samples: {len(valid_predictions)}/{len(predictions)}")
 
-    logger.info("\n[1/4] 计算生成质量指标...")
+    logger.info("\n[1/4] Computing generation quality metrics...")
     quality_metrics = metrics.calculate_generation_quality(
         predictions=valid_predictions,
         references=valid_references
     )
 
-    logger.info("\n[2/4] 计算格式指标...")
+    logger.info("\n[2/4] Computing format metrics...")
     format_metrics = metrics.calculate_format_metrics(
         instructions=valid_predictions
     )
 
-    logger.info("\n[3/4] 计算二分类指标...")
+    logger.info("\n[3/4] Computing binary classification metrics...")
     binary_metrics = metrics.calculate_binary_classification_metrics(
         predictions=valid_predictions,
         references=valid_references,
@@ -101,7 +99,7 @@ def calculate_metrics(
         use_and_logic=use_and_logic
     )
 
-    logger.info("\n[4/4] 计算统计指标...")
+    logger.info("\n[4/4] Computing summary statistics...")
     statistical_metrics = metrics.calculate_statistical_metrics(
         instructions=valid_predictions
     )
@@ -117,9 +115,7 @@ def calculate_metrics(
         'threshold_config': EvaluationThresholds.get_config()
     }
 
-    logger.info("=" * 80)
-    logger.info("指标计算完成")
-    logger.info("=" * 80)
+    logger.info("Metric computation completed")
 
     return results
 
@@ -171,7 +167,7 @@ def save_results(results: Dict, expert_name: str, save_dir: str):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
-    logger.info(f"评估结果已保存至: {filepath}")
+    logger.info(f"Evaluation results saved to: {filepath}")
 
 
 def main_single(args):
@@ -183,7 +179,7 @@ def main_single(args):
     try:
         data = load_predictions_json(args.input)
     except Exception as e:
-        logger.error(f"加载预测数据失败: {e}")
+        logger.error(f"Failed to load prediction data: {e}")
         sys.exit(1)
 
     try:
@@ -197,7 +193,7 @@ def main_single(args):
             format_threshold=args.format_threshold
         )
     except Exception as e:
-        logger.error(f"计算指标失败: {e}")
+        logger.error(f"Failed to compute metrics: {e}")
         import traceback
         logger.error(traceback.format_exc())
         sys.exit(1)
@@ -210,7 +206,7 @@ def main_single(args):
 
     save_results(results, data['expert_name'], args.save_dir)
 
-    logger.info("完成!")
+    logger.info("Completed")
 
 
 def main():
@@ -276,7 +272,7 @@ def scan_cache_files(cache_dir: Path) -> List[Path]:
     """
     cache_dir = Path(cache_dir)
     if not cache_dir.exists():
-        logger.warning(f'缓存目录不存在: {cache_dir}')
+        logger.warning(f'Cache directory not found: {cache_dir}')
         return []
     return sorted(cache_dir.rglob('*_predictions.json'))
 
@@ -314,26 +310,26 @@ def main_batch(args):
         }
         valid_dirs = EXP_CACHE_MAP.get(args.exp, [])
         if not valid_dirs:
-            logger.error(f"未知实验: {args.exp}。有效值: {list(EXP_CACHE_MAP.keys())}")
+            logger.error(f"Unknown experiment: {args.exp}. Valid values: {list(EXP_CACHE_MAP.keys())}")
             return
         files = [f for f in files if any(d in str(f) for d in valid_dirs)]
-        logger.info(f"已过滤至 {len(files)} 个文件（实验: {args.exp}）")
+        logger.info(f"Filtered to {len(files)} files for experiment {args.exp}")
 
     if args.method:
         files = [f for f in files if args.method in str(f)]
-        logger.info(f"已过滤至 {len(files)} 个文件（方法: '{args.method}'）")
+        logger.info(f"Filtered to {len(files)} files for method '{args.method}'")
 
     if not files:
-        logger.warning("未找到匹配的缓存文件")
+        logger.warning("No matching cache files found")
         return
 
-    logger.info(f"正在处理 {len(files)} 个缓存文件...")
+    logger.info(f"Processing {len(files)} cache files...")
     save_dir = args.save_dir or 'outputs/evaluations/metrics'
     success_count = 0
     fail_count = 0
 
     for filepath in sorted(files):
-        logger.info(f"\n--- 处理: {filepath} ---")
+        logger.info(f"\n--- Processing: {filepath} ---")
         try:
             data = load_predictions_json(str(filepath))
             results = calculate_metrics(
@@ -347,10 +343,10 @@ def main_batch(args):
             save_results(results, data.get('expert_name', 'unknown'), save_dir)
             success_count += 1
         except Exception as e:
-            logger.error(f"处理失败 {filepath}: {e}")
+            logger.error(f"Failed to process {filepath}: {e}")
             fail_count += 1
 
-    logger.info(f"\n批量处理完成: {success_count} 成功, {fail_count} 失败")
+    logger.info(f"\nBatch processing completed: {success_count} succeeded, {fail_count} failed")
 
 
 if __name__ == "__main__":

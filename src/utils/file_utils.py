@@ -51,17 +51,17 @@ def validate_path_exists(
 
     if not path.exists():
         if raise_error:
-            raise FileNotFoundError(f"路径不存在: {path}")
+            raise FileNotFoundError(f"Path does not exist: {path}")
         return False
 
     if path_type == 'file' and not path.is_file():
         if raise_error:
-            raise ValueError(f"期望文件，但路径是目录: {path}")
+            raise ValueError(f"Expected a file, but the path is a directory: {path}")
         return False
 
     if path_type == 'dir' and not path.is_dir():
         if raise_error:
-            raise ValueError(f"期望目录，但路径是文件: {path}")
+            raise ValueError(f"Expected a directory, but the path is a file: {path}")
         return False
 
     return True
@@ -78,7 +78,7 @@ def load_json(filepath: Union[str, Path], encoding: str = 'utf-8') -> Dict:
             return json.load(f)
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(
-            f"JSON格式错误 ({filepath}): {str(e)}",
+            f"Invalid JSON format ({filepath}): {str(e)}",
             e.doc, e.pos
         )
 
@@ -111,7 +111,7 @@ def update_json(
     elif create_if_missing:
         data = {}
     else:
-        raise FileNotFoundError(f"JSON文件不存在: {filepath}")
+        raise FileNotFoundError(f"JSON file does not exist: {filepath}")
 
     data.update(updates)
 
@@ -174,7 +174,7 @@ def save_csv(
 ) -> None:
     """Save CSV."""
     if not data:
-        warnings.warn("保存的数据为空")
+        warnings.warn("No data to save")
         return
 
     filepath = Path(filepath)
@@ -200,10 +200,10 @@ def load_lora_weights(expert_name: str) -> Optional[Path]:
         if weight_path.exists():
             return weight_path
         else:
-            warnings.warn(f"{expert_name}专家的LoRA权重未找到: {weight_path}")
+            warnings.warn(f"LoRA weights for the {expert_name} expert were not found: {weight_path}")
             return None
     except ImportError:
-        warnings.warn("配置模块未加载，无法获取权重路径")
+        warnings.warn("The configuration module is not loaded; unable to resolve the weight path")
         return None
 
 
@@ -237,7 +237,7 @@ def save_lora_weights(
         return save_path
 
     except Exception as e:
-        raise RuntimeError(f"保存LoRA权重失败: {str(e)}")
+        raise RuntimeError(f"Failed to save LoRA weights: {str(e)}")
 
 
 def list_checkpoints(expert_name: str) -> List[Path]:
@@ -258,7 +258,7 @@ def list_checkpoints(expert_name: str) -> List[Path]:
         return checkpoints
 
     except Exception as e:
-        warnings.warn(f"列出checkpoint失败: {str(e)}")
+        warnings.warn(f"Failed to list checkpoints: {str(e)}")
         return []
 
 
@@ -295,14 +295,14 @@ def batch_process_files(
             if error_handling == 'raise':
                 raise
             elif error_handling == 'skip':
-                warnings.warn(f"处理文件失败 ({file_path}): {str(e)}")
+                warnings.warn(f"Failed to process file ({file_path}): {str(e)}")
                 continue
             elif error_handling == 'collect':
                 errors.append({'file': file_path, 'error': str(e)})
                 continue
 
     if error_handling == 'collect' and errors:
-        warnings.warn(f"批量处理完成，{len(errors)}个文件失败")
+        warnings.warn(f"Batch processing complete; {len(errors)} files failed")
         results.append({'errors': errors})
 
     return results
@@ -340,7 +340,7 @@ def copy_file_safe(
     ensure_dir(dst.parent)
 
     if dst.exists() and not overwrite:
-        raise FileExistsError(f"目标文件已存在: {dst}")
+        raise FileExistsError(f"Destination file already exists: {dst}")
 
     shutil.copy2(src, dst)
     return dst

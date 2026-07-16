@@ -53,19 +53,19 @@ class UMLExpert(BaseExpert):
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get(expert_name)
             if lora_weight_path is None:
-                logger.warning(f"配置中未找到{expert_name}的LoRA权重路径,将使用基础模型")
+                logger.warning(f"No LoRA weight path is configured for {expert_name}; using the base model")
                 lora_path = None
             else:
                 lora_path_obj = Path(lora_weight_path)
                 if not lora_path_obj.exists():
-                    logger.warning(f"LoRA权重路径不存在: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path does not exist: {lora_path_obj}; using the base model")
                     lora_path = None
                 elif not lora_path_obj.is_dir():
-                    logger.warning(f"LoRA权重路径不是目录: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path is not a directory: {lora_path_obj}; using the base model")
                     lora_path = None
                 else:
                     lora_path = str(lora_path_obj)
-                    logger.info(f"找到LoRA权重路径: {lora_path}")
+                    logger.info(f"Found LoRA weight path: {lora_path}")
 
         super().__init__(
             expert_name=expert_name,
@@ -74,40 +74,37 @@ class UMLExpert(BaseExpert):
             use_4bit=use_4bit
         )
 
-        logger.info("UML专家初始化完成")
+        logger.info("UML expert initialized")
 
     def generate_instruction(self, input_data: Union[str, dict], sample_index: int = None) -> str:
         """Generate instruction."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return ""
 
         try:
             show_debug = sample_index is None or sample_index < 3
 
             if show_debug:
-                logger.info("=" * 80)
-                logger.info("[UML Expert 调试] 接收到的原始输入数据:")
-                logger.info("-" * 80)
-                logger.info(f"数据类型: {type(input_data).__name__}")
+                logger.info("[UML expert debug] Raw input data:")
+                logger.info(f"Data type: {type(input_data).__name__}")
 
                 if isinstance(input_data, dict):
-                    logger.info("数据内容（dict格式）:")
+                    logger.info("Data content (dict):")
                     logger.info(json.dumps(input_data, indent=2, ensure_ascii=False))
                 elif isinstance(input_data, str):
-                    logger.info(f"数据内容（str格式，前500字符）:")
+                    logger.info("Data content (str, first 500 characters):")
                     logger.info(input_data[:500])
                     try:
                         parsed = json.loads(input_data)
-                        logger.info("\n可以解析为JSON:")
+                        logger.info("\nParsed as JSON:")
                         logger.info(json.dumps(parsed, indent=2, ensure_ascii=False))
                     except json.JSONDecodeError:
-                        logger.info("\n无法解析为JSON")
+                        logger.info("\nCould not parse as JSON")
                 else:
-                    logger.info(f"未知数据类型: {input_data}")
-                logger.info("=" * 80)
+                    logger.info(f"Unknown data type: {input_data}")
 
             prompt, detected_domain = _build_prompt_for_domain(input_data)
             if detected_domain == 'uml':
@@ -115,11 +112,11 @@ class UMLExpert(BaseExpert):
                 if show_debug:
                     elements = UMLInstructionTemplate.extract_key_elements(uml_data)
                     logger.debug(
-                        f"生成指令 - Actors: {elements['actors']}, Use Cases: {len(elements['use_cases'])}个"
+                        f"Generating instruction - actors: {elements['actors']}, use cases: {len(elements['use_cases'])}"
                     )
             else:
                 logger.warning(
-                    f"输入数据检测为{detected_domain}类型，使用对应模板（跨域评估场景）"
+                    f"Input detected as {detected_domain}; using the matching template for cross-domain evaluation"
                 )
                 uml_data = {}
 
@@ -138,34 +135,31 @@ class UMLExpert(BaseExpert):
             instruction = self._normalize_instruction(instruction)
 
             if show_debug:
-                logger.info("=" * 80)
-                logger.info("模型原始输出:")
-                logger.info("-" * 80)
+                logger.info("Raw model output:")
                 logger.info(instruction)
-                logger.info("=" * 80)
 
             if self.validate_output(instruction):
-                logger.info("指令生成成功,格式验证通过")
+                logger.info("Instruction generated successfully and passed format validation")
             else:
                 if show_debug:
-                    logger.warning("指令格式验证失败，直接返回模型输出")
-                    logger.warning(f"验证未通过的指令内容：\n{instruction}")
+                    logger.warning("Instruction failed format validation; returning the model output directly")
+                    logger.warning(f"Instruction that failed validation:\n{instruction}")
             return instruction
 
         except Exception as e:
-            logger.error(f"指令生成失败: {e}")
+            logger.error(f"Instruction generation failed: {e}")
             return ""
 
     def batch_generate_instruction(self, input_data_list: list, batch_size: int = 8) -> list:
         """Generate instructions in batches."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return [""] * len(input_data_list)
 
         try:
-            logger.info(f"批量生成指令 - 共{len(input_data_list)}个样本，batch_size={batch_size}")
+            logger.info(f"Batch instruction generation - {len(input_data_list)} samples, batch_size={batch_size}")
 
             parsed_data_list = [{}] * len(input_data_list)
             valid_indices = []
@@ -180,7 +174,7 @@ class UMLExpert(BaseExpert):
                 else:
                     if idx < 3:
                         logger.warning(
-                            f"样本{idx}输入检测为{_domain}类型，使用对应模板（跨域评估场景）"
+                            f"Sample {idx} detected as {_domain}; using the matching template for cross-domain evaluation"
                         )
                     parsed_data_list[idx] = {}
                 valid_indices.append(idx)
@@ -210,11 +204,8 @@ class UMLExpert(BaseExpert):
                 if shown >= 3:
                     break
                 if i in valid_indices:
-                    logger.info("=" * 80)
-                    logger.info(f"[样本 {i+1}/{len(input_data_list)}] 生成的指令:")
-                    logger.info("-" * 80)
+                    logger.info(f"[Sample {i+1}/{len(input_data_list)}] Generated instruction:")
                     logger.info(instructions[i])
-                    logger.info("=" * 80)
                     shown += 1
 
             validated_instructions = []
@@ -222,36 +213,36 @@ class UMLExpert(BaseExpert):
                 instruction = self._normalize_instruction(instruction)
                 if not self.validate_output(instruction):
                     if i < 3:
-                        logger.warning(f"样本{i+1}格式验证失败，直接使用模型输出")
+                        logger.warning(f"Sample {i+1} failed format validation; using the model output directly")
                 validated_instructions.append(instruction)
 
             return validated_instructions
 
         except Exception as e:
-            logger.error(f"批量生成失败: {e}")
+            logger.error(f"Batch generation failed: {e}")
             return [""] * len(input_data_list)
 
     def validate_output(self, instruction: str) -> bool:
         """Validate output."""
         if not instruction or len(instruction.strip()) < 50:
-            logger.debug("指令内容过短")
+            logger.debug("Instruction is too short")
             return False
 
         result = UMLInstructionTemplate.validate_instruction(instruction)
 
         if not result['is_valid']:
-            logger.debug(f"格式验证失败: {result['errors']}")
+            logger.debug(f"Format validation failed: {result['errors']}")
             return False
 
         if not result['has_business_logic']:
-            logger.debug("缺少业务逻辑实现要求")
+            logger.debug("Business-logic implementation requirement is missing")
             return False
 
         return True
 
     def _fallback_generation(self, uml_data: dict) -> str:
         """Generate fallback output."""
-        logger.info("使用回退方案生成指令")
+        logger.info("Using fallback instruction generation")
 
         fallback_instruction = """Definition: In this task, implement the system workflow with specified actors interacting with defined use cases.
 Emphasis & Caution: Ensure all mandatory steps and conditional extensions are properly implemented.

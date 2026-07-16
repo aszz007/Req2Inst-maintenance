@@ -62,7 +62,7 @@ class LanguageModel:
             self.model_path = model_path
             self.model_version = 'qwen3_8b'
             if 'Qwen3-8B' not in model_path and 'qwen3-8B' not in model_path:
-                logger.warning(f"路径不含Qwen3-8B标识，仍以qwen3_8b版本处理: {model_path}")
+                logger.warning(f"Path does not contain the Qwen3-8B identifier; continuing with the qwen3_8b configuration: {model_path}")
 
         self.device = device_cfg.get_device()
         self.device_cfg = device_cfg
@@ -81,20 +81,20 @@ class LanguageModel:
         self.current_lora_path = None
         self.is_lora_loaded = False
 
-        logger.info(f"初始化语言模型")
-        logger.info(f"模型版本: {self.model_version}")
-        logger.info(f"模型路径: {self.model_path}")
-        logger.info(f"设备: {self.device}")
-        logger.info(f"GPU信息: {device_cfg.get_gpu_info()}")
-        logger.info(f"量化策略: {'4bit量化' if self.use_4bit else 'FP16（无量化）'}")
-        logger.info(f"GPU配置: {self.gpu_tier.upper()}端GPU模式")
+        logger.info("Initializing language model")
+        logger.info(f"Model version: {self.model_version}")
+        logger.info(f"Model path: {self.model_path}")
+        logger.info(f"Device: {self.device}")
+        logger.info(f"GPU information: {device_cfg.get_gpu_info()}")
+        logger.info(f"Quantization: {'4-bit' if self.use_4bit else 'FP16 (no quantization)'}")
+        logger.info(f"GPU profile: {self.gpu_tier.upper()} tier")
 
         self._load_base_model()
 
     def _load_base_model(self):
         """Load base model."""
         try:
-            logger.info("加载基础模型...")
+            logger.info("Loading base model...")
 
             if self.use_4bit and self.device == "cuda":
                 quantization_config = BitsAndBytesConfig(
@@ -130,10 +130,10 @@ class LanguageModel:
             )
 
             self.model.eval()
-            logger.info("基础模型加载成功")
+            logger.info("Base model loaded successfully")
 
         except Exception as e:
-            logger.error(f"模型加载失败: {e}")
+            logger.error(f"Failed to load model: {e}")
             raise
 
     def get_target_modules(self) -> list:
@@ -145,7 +145,7 @@ class LanguageModel:
         try:
             config_file = lora_path / "adapter_config.json"
             if not config_file.exists():
-                logger.warning(f"配置文件不存在: {config_file}")
+                logger.warning(f"Configuration file does not exist: {config_file}")
                 return None
 
             with open(config_file, 'r', encoding='utf-8') as f:
@@ -164,7 +164,7 @@ class LanguageModel:
                 return lora_path
 
             temp_dir = Path(tempfile.mkdtemp(prefix="lora_cleaned_"))
-            logger.info(f"创建临时目录: {temp_dir}")
+            logger.info(f"Created temporary directory: {temp_dir}")
 
             for item in lora_path.iterdir():
                 if item.is_file():
@@ -172,18 +172,18 @@ class LanguageModel:
 
             for param in incompatible_params:
                 if param in config:
-                    logger.info(f"移除不兼容参数: {param}")
+                    logger.info(f"Removed incompatible parameter: {param}")
                     del config[param]
 
             cleaned_config_file = temp_dir / "adapter_config.json"
             with open(cleaned_config_file, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
 
-            logger.info("LoRA 配置已清理")
+            logger.info("LoRA configuration cleaned")
             return temp_dir
 
         except Exception as e:
-            logger.error(f"清理 LoRA 配置失败: {e}")
+            logger.error(f"Failed to clean LoRA configuration: {e}")
             return None
 
     def load_lora_from_path(self, lora_path: str) -> bool:
@@ -193,26 +193,26 @@ class LanguageModel:
             lora_path = Path(lora_path)
 
             if not lora_path.exists():
-                logger.error(f"LoRA路径不存在: {lora_path}")
+                logger.error(f"LoRA path does not exist: {lora_path}")
                 return False
 
             if self.current_lora_path == str(lora_path):
-                logger.info(f"LoRA已加载: {lora_path}")
+                logger.info(f"LoRA adapter is already loaded: {lora_path}")
                 return True
 
             if self.is_lora_loaded:
-                logger.info("卸载旧的LoRA权重...")
+                logger.info("Unloading the previous LoRA adapter...")
                 self.unload_lora()
 
-            logger.info(f"加载LoRA权重: {lora_path}")
+            logger.info(f"Loading LoRA weights: {lora_path}")
 
             cleaned_path = self._clean_lora_config(lora_path)
             if cleaned_path is None:
-                logger.warning("配置清理失败，尝试直接加载")
+                logger.warning("Configuration cleanup failed; attempting to load the adapter directly")
                 cleaned_path = lora_path
             elif cleaned_path != lora_path:
                 temp_dir = cleaned_path
-                logger.info(f"使用清理后的配置: {cleaned_path}")
+                logger.info(f"Using cleaned configuration: {cleaned_path}")
 
             self.model = PeftModel.from_pretrained(
                 self.model,
@@ -223,45 +223,45 @@ class LanguageModel:
             self.current_lora_path = str(lora_path)
             self.is_lora_loaded = True
 
-            logger.info("LoRA加载成功")
+            logger.info("LoRA adapter loaded successfully")
             return True
 
         except Exception as e:
-            logger.error(f"LoRA加载失败: {e}")
+            logger.error(f"Failed to load LoRA adapter: {e}")
             return False
 
         finally:
             if temp_dir and temp_dir != lora_path:
                 try:
                     shutil.rmtree(temp_dir)
-                    logger.debug(f"清理临时目录: {temp_dir}")
+                    logger.debug(f"Removed temporary directory: {temp_dir}")
                 except Exception as e:
-                    logger.warning(f"清理临时目录失败: {e}")
+                    logger.warning(f"Failed to remove temporary directory: {e}")
 
     def unload_lora(self) -> bool:
         """Unload the active LoRA adapter."""
         try:
             if not self.is_lora_loaded:
-                logger.info("没有已加载的LoRA")
+                logger.info("No LoRA adapter is currently loaded")
                 return True
 
-            logger.info("卸载LoRA权重...")
+            logger.info("Unloading LoRA adapter...")
 
             if hasattr(self.model, 'unload'):
                 self.model = self.model.unload()
             elif hasattr(self.model, 'get_base_model'):
                 self.model = self.model.get_base_model()
             else:
-                logger.warning("模型不支持unload()，仅重置状态标志")
+                logger.warning("The model does not support unload(); resetting only the adapter state flag")
 
             self.current_lora_path = None
             self.is_lora_loaded = False
 
-            logger.info("LoRA卸载成功")
+            logger.info("LoRA adapter unloaded successfully")
             return True
 
         except Exception as e:
-            logger.error(f"LoRA卸载失败: {e}")
+            logger.error(f"Failed to unload LoRA adapter: {e}")
             self.current_lora_path = None
             self.is_lora_loaded = False
             return False
@@ -359,7 +359,7 @@ class LanguageModel:
             return generated_text
 
         except Exception as e:
-            logger.error(f"生成失败: {e}")
+            logger.error(f"Generation failed: {e}")
             return ""
 
     def generate_batch(self, prompts: list, max_new_tokens: int = 2048,
@@ -377,7 +377,7 @@ class LanguageModel:
             else:
                 batch_size = 1
 
-        logger.info(f"批量推理: {len(prompts)}条样本, batch_size={batch_size}")
+        logger.info(f"Batch inference: {len(prompts)} samples, batch_size={batch_size}")
 
         results = []
         num_batches = (len(prompts) + batch_size - 1) // batch_size
@@ -435,8 +435,8 @@ class LanguageModel:
                 i = batch_idx * batch_size
                 if 'out of memory' in error_str.lower() and len(batch_prompts) > 1:
                     logger.warning(
-                        f"批量生成OOM (batch {i//batch_size + 1}/{num_batches})，"
-                        f"当前batch_size={len(batch_prompts)}，尝试降级重试..."
+                        f"Out of memory during batch generation (batch {i//batch_size + 1}/{num_batches}); "
+                        f"current batch_size={len(batch_prompts)}. Retrying with smaller batches..."
                     )
                     torch.cuda.empty_cache()
                     retry_results = self._retry_batch_with_smaller_size(
@@ -445,10 +445,10 @@ class LanguageModel:
                     results.extend(retry_results)
                     if all(r != "" for r in retry_results):
                         logger.info(
-                            f"batch {i//batch_size + 1}/{num_batches} 降级重试成功"
+                            f"Reduced-size retry succeeded for batch {i//batch_size + 1}/{num_batches}"
                         )
                 else:
-                    logger.error(f"批量生成失败 (batch {i//batch_size + 1}/{num_batches}): {e}")
+                    logger.error(f"Batch generation failed (batch {i//batch_size + 1}/{num_batches}): {e}")
                     results.extend([""] * len(batch_prompts))
                 pbar.update(len(batch_prompts))
 
@@ -493,7 +493,7 @@ class LanguageModel:
                 torch.cuda.empty_cache()
 
             except Exception as retry_e:
-                logger.error(f"降级重试失败 (retry_size={retry_size}): {retry_e}")
+                logger.error(f"Reduced-size retry failed (retry_size={retry_size}): {retry_e}")
                 retry_results.extend([""] * len(retry_batch))
 
         return retry_results
@@ -641,7 +641,7 @@ class InstructionGenerator:
             use_4bit=use_4bit
         )
         self._inference_cfg = get_inference_config()
-        logger.info("指令生成器初始化完成")
+        logger.info("Instruction generator initialized")
 
     def load_expert(self, expert_name_or_path: str) -> bool:
         """Load expert."""

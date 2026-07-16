@@ -63,7 +63,7 @@ class RouterMLP:
             import torch
             import torch.nn as nn
         except ImportError:
-            raise RuntimeError("RouterMLP 需要安装 PyTorch")
+            raise RuntimeError("RouterMLP requires PyTorch")
 
         self.input_dim = input_dim
         self.hidden1 = hidden1
@@ -98,8 +98,8 @@ class RouterMLP:
         self.num_classes = num_classes
         total_params = sum(p.numel() for p in self.model.parameters())
         logger.info(
-            f"RouterMLP 初始化完成 | 参数量: {total_params:,} | 设备: {self.device} | "
-            f"架构: {input_dim}→{hidden1}→(residual)→{hidden2}→{num_classes}"
+            f"RouterMLP initialized | parameters: {total_params:,} | device: {self.device} | "
+            f"architecture: {input_dim}→{hidden1}→(residual)→{hidden2}→{num_classes}"
         )
 
 
@@ -120,7 +120,7 @@ class RouterMLP:
         )
         cal_nonzero = np.any(self.calibration_offsets != 0)
         logger.info(
-            f"Router 已保存: {path} "
+            f"Router saved: {path} "
             f"(input_dim={self.input_dim}, hidden1={self.hidden1}, hidden2={self.hidden2}, "
             f"calibrated={'yes' if cal_nonzero else 'no'})"
         )
@@ -130,7 +130,7 @@ class RouterMLP:
         import torch
         path = Path(path)
         if not path.exists():
-            logger.error(f"Router 权重文件不存在: {path}")
+            logger.error(f"Router weight file does not exist: {path}")
             return False
         try:
             ckpt = torch.load(path, map_location=self.device, weights_only=False)
@@ -145,16 +145,16 @@ class RouterMLP:
                 ckpt_input_dim = self.input_dim
                 ckpt_hidden1, ckpt_hidden2 = self.hidden1, self.hidden2
                 logger.warning(
-                    f"Router 权重为旧格式（裸 state_dict），"
-                    f"假设 input_dim={self.input_dim}, hidden1={self.hidden1}, hidden2={self.hidden2}"
+                    f"Router weights use the legacy bare state_dict format; "
+                    f"assuming input_dim={self.input_dim}, hidden1={self.hidden1}, hidden2={self.hidden2}"
                 )
 
             if (ckpt_input_dim != self.input_dim
                     or ckpt_hidden1 != self.hidden1
                     or ckpt_hidden2 != self.hidden2):
                 logger.warning(
-                    f"架构不匹配（当前: {self.input_dim}/{self.hidden1}/{self.hidden2}，"
-                    f"checkpoint: {ckpt_input_dim}/{ckpt_hidden1}/{ckpt_hidden2}），重建 MLP..."
+                    f"Architecture mismatch (current: {self.input_dim}/{self.hidden1}/{self.hidden2}, "
+                    f"checkpoint: {ckpt_input_dim}/{ckpt_hidden1}/{ckpt_hidden2}); rebuilding MLP..."
                 )
                 self.__init__(
                     input_dim=ckpt_input_dim,
@@ -174,13 +174,13 @@ class RouterMLP:
 
             cal_nonzero = np.any(self.calibration_offsets != 0)
             logger.info(
-                f"Router 已加载: {path} "
+                f"Router loaded: {path} "
                 f"(input_dim={self.input_dim}, hidden1={self.hidden1}, hidden2={self.hidden2}, "
                 f"calibrated={'yes, offsets=' + str(self.calibration_offsets.round(2)) if cal_nonzero else 'no'})"
             )
             return True
         except Exception as e:
-            logger.error(f"Router 加载失败: {e}")
+            logger.error(f"Failed to load router: {e}")
             return False
 
 
@@ -207,7 +207,7 @@ class RouterMLP:
         """Set probability-calibration offsets."""
         self.calibration_offsets = np.array(offsets, dtype=np.float32)
         logger.info(
-            f"校准偏置已设置: "
+            f"Calibration offsets set: "
             f"text={offsets[0]:+.2f}, image={offsets[1]:+.2f}, "
             f"uml={offsets[2]:+.2f}, general={offsets[3]:+.2f}"
         )
@@ -279,7 +279,7 @@ class HiddenStateExtractor:
             all_features.append(batch_features)
 
             if (i // batch_size) % 20 == 0:
-                logger.info(f"  特征提取进度: {min(i + batch_size, total)}/{total}")
+                logger.info(f"  Feature extraction progress: {min(i + batch_size, total)}/{total}")
 
         features = np.concatenate(all_features, axis=0)
 
@@ -288,7 +288,7 @@ class HiddenStateExtractor:
             norms = np.where(norms == 0, 1.0, norms)
             features = features / norms
 
-        logger.info(f"特征提取完成: shape={features.shape}, normalized={normalize}")
+        logger.info(f"Feature extraction complete: shape={features.shape}, normalized={normalize}")
         return features
 
     def _extract_batch(self, batch: List[str]) -> np.ndarray:
@@ -323,7 +323,7 @@ class HiddenStateExtractor:
             return batch_features
 
         except Exception as e:
-            logger.error(f"  batch 特征提取失败: {e}")
+            logger.error(f"  Batch feature extraction failed: {e}")
             hidden_size = self.model.config.hidden_size
             return np.zeros((len(batch), hidden_size), dtype=np.float32)
 
@@ -344,7 +344,7 @@ class HiddenStateExtractor:
         else:
             np.savez(save_path, features=features)
 
-        logger.info(f"特征已保存: {save_path} (features={features.shape})")
+        logger.info(f"Features saved: {save_path} (features={features.shape})")
         return features
 
 
@@ -368,10 +368,10 @@ class LearnedRouterInference:
         self.feature_cache_path = Path(feature_cache_path) if feature_cache_path else None
 
         if not self.router.load(router_ckpt):
-            raise RuntimeError(f"Router 权重加载失败: {router_ckpt}")
+            raise RuntimeError(f"Failed to load router weights: {router_ckpt}")
 
         logger.info(
-            f"LearnedRouterInference 初始化完成 | "
+            f"LearnedRouterInference initialized | "
             f"input_dim={self.router.input_dim} | "
             f"collapse_threshold={collapse_threshold}"
         )
@@ -407,7 +407,7 @@ class LearnedRouterInference:
                 data = np.load(self.feature_cache_path)
                 features = data['features']
                 if len(features) == len(inputs):
-                    logger.debug(f"特征从缓存加载: {self.feature_cache_path}")
+                    logger.debug(f"Features loaded from cache: {self.feature_cache_path}")
                     return features
             except Exception:
                 pass

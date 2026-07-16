@@ -103,34 +103,32 @@ class NaNAwareEarlyStoppingCallback(TrainerCallback):
 
         if eval_loss is None or (isinstance(eval_loss, float) and math.isnan(eval_loss)):
             self.nan_count += 1
-            logger.warning(f"检测到NaN验证损失（第{self.nan_count}次）- 跳过本次早停检查")
-            logger.warning("NaN可能原因: 1) 模型训练不稳定 2) 学习率过大 3) P-Tuning配置问题")
+            logger.warning(f"NaN validation loss detected (occurrence {self.nan_count}); skipping this early-stopping check")
+            logger.warning("Possible causes of NaN: unstable training, excessive learning rate, or P-Tuning configuration issues")
             return control
 
         metric = eval_loss
 
         if self.best_metric is None:
             self.best_metric = metric
-            logger.info(f"初始化最佳验证损失: {metric:.4f}")
+            logger.info(f"Initialized best validation loss: {metric:.4f}")
             return control
 
         if metric < (self.best_metric - self.early_stopping_threshold):
             self.best_metric = metric
             self.patience_counter = 0
-            logger.info(f"验证损失改进: {metric:.4f} (最佳: {self.best_metric:.4f})")
+            logger.info(f"Validation loss improved: {metric:.4f} (best: {self.best_metric:.4f})")
         else:
             self.patience_counter += 1
-            logger.info(f"验证损失无改进: {metric:.4f} vs 最佳{self.best_metric:.4f} "
+            logger.info(f"Validation loss did not improve: {metric:.4f} vs best {self.best_metric:.4f} "
                        f"(patience: {self.patience_counter}/{self.early_stopping_patience})")
 
             if self.patience_counter >= self.early_stopping_patience:
-                logger.info("=" * 80)
-                logger.info(f"早停触发: 连续{self.early_stopping_patience}次验证无改进")
-                logger.info(f"最佳验证损失: {self.best_metric:.4f}")
-                logger.info(f"当前验证损失: {metric:.4f}")
+                logger.info(f"Early stopping triggered after {self.early_stopping_patience} consecutive evaluations without improvement")
+                logger.info(f"Best validation loss: {self.best_metric:.4f}")
+                logger.info(f"Current validation loss: {metric:.4f}")
                 if self.nan_count > 0:
-                    logger.info(f"训练期间遇到{self.nan_count}次NaN验证损失（已忽略）")
-                logger.info("=" * 80)
+                    logger.info(f"Ignored {self.nan_count} NaN validation losses during training")
                 control.should_training_stop = True
 
         return control
@@ -176,7 +174,7 @@ class BaseTrainer(ABC):
         """Initialize the instance."""
         valid_types = ['text', 'image', 'uml', 'general']
         if expert_type not in valid_types:
-            raise ValueError(f"不支持的专家类型: {expert_type}，支持: {valid_types}")
+            raise ValueError(f"Unsupported expert type: {expert_type}. Supported types: {valid_types}")
 
         self.expert_type = expert_type
         self.method_name = method_name
@@ -195,9 +193,9 @@ class BaseTrainer(ABC):
                 epochs = int(os.environ['TRAIN_EPOCHS'])
                 self.train_cfg.num_epochs = epochs
                 self.epochs_from_env = True
-                logger.info(f"从环境变量读取训练轮数: {epochs} (固定值)")
+                logger.info(f"Training epochs read from environment variable: {epochs} (fixed value)")
             except ValueError:
-                logger.warning(f"无效的TRAIN_EPOCHS环境变量: {os.environ['TRAIN_EPOCHS']}")
+                logger.warning(f"Invalid TRAIN_EPOCHS environment variable: {os.environ['TRAIN_EPOCHS']}")
 
         if base_model_path:
             self.base_model_path = base_model_path
@@ -208,7 +206,7 @@ class BaseTrainer(ABC):
             self.model_version = 'qwen3_8b'
         else:
             self.model_version = self.model_cfg.version
-            logger.warning(f"无法从路径推断模型版本，使用配置中的版本: {self.model_version}")
+            logger.warning(f"Unable to infer model version from path; using configured version: {self.model_version}")
 
         if output_dir:
             self.output_dir = Path(output_dir)
@@ -226,40 +224,37 @@ class BaseTrainer(ABC):
 
         self.history_callback = TrainingHistoryCallback()
 
-        logger.info(f"初始化{expert_type}专家训练器（方法：{method_name}）")
-        logger.info(f"基础模型: {self.base_model_path}")
-        logger.info(f"输出目录: {self.output_dir}")
-        logger.info(f"RTX 4090优化: {use_rtx4090_optimization}")
+        logger.info(f"Initializing {expert_type} expert trainer (method: {method_name})")
+        logger.info(f"Base model: {self.base_model_path}")
+        logger.info(f"Output directory: {self.output_dir}")
+        logger.info(f"RTX 4090 optimization: {use_rtx4090_optimization}")
 
     def _print_training_config(self):
         """Print training config."""
         batch_size, gradient_accumulation_steps = self._get_batch_config()
 
-        logger.info("=" * 80)
-        logger.info("训练配置")
-        logger.info("=" * 80)
-        logger.info(f"专家类型: {self.expert_type}")
-        logger.info(f"微调方法: {self.method_name}")
-        logger.info(f"基础模型: {self.base_model_path}")
-        logger.info(f"模型版本: {self.model_version}")
+        logger.info("Training configuration")
+        logger.info(f"Expert type: {self.expert_type}")
+        logger.info(f"Fine-tuning method: {self.method_name}")
+        logger.info(f"Base model: {self.base_model_path}")
+        logger.info(f"Model version: {self.model_version}")
 
         if self.use_rtx4090_optimization:
-            logger.info(f"批次大小: {batch_size} (RTX 4090优化)")
-            logger.info(f"梯度累积: {gradient_accumulation_steps} (RTX 4090优化)")
+            logger.info(f"Batch size: {batch_size} (RTX 4090 optimization)")
+            logger.info(f"Gradient accumulation: {gradient_accumulation_steps} (RTX 4090 optimization)")
         else:
-            logger.info(f"批次大小: {batch_size}")
-            logger.info(f"梯度累积: {gradient_accumulation_steps}")
+            logger.info(f"Batch size: {batch_size}")
+            logger.info(f"Gradient accumulation: {gradient_accumulation_steps}")
 
-        logger.info(f"有效批次: {batch_size * gradient_accumulation_steps}")
-        logger.info(f"训练轮数: {self.train_cfg.num_epochs}")
-        logger.info(f"学习率: {self.train_cfg.learning_rate}")
-        logger.info(f"最大序列长度: {self.train_cfg.max_seq_length}")
-        logger.info("=" * 80)
+        logger.info(f"Effective batch size: {batch_size * gradient_accumulation_steps}")
+        logger.info(f"Training epochs: {self.train_cfg.num_epochs}")
+        logger.info(f"Learning rate: {self.train_cfg.learning_rate}")
+        logger.info(f"Maximum sequence length: {self.train_cfg.max_seq_length}")
 
     def _load_base_model(self, use_4bit: bool) -> bool:
         """Load base model."""
         try:
-            logger.info("加载基础模型...")
+            logger.info("Loading base model...")
 
             quantization_config = None
             if use_4bit:
@@ -269,7 +264,7 @@ class BaseTrainer(ABC):
                     bnb_4bit_use_double_quant=True,
                     bnb_4bit_quant_type="nf4"
                 )
-                logger.info("启用4bit量化")
+                logger.info("Enabling 4-bit quantization")
 
             model_kwargs = {
                 'pretrained_model_name_or_path': self.base_model_path,
@@ -292,9 +287,9 @@ class BaseTrainer(ABC):
             if self.model_version == 'qwen3_8b':
                 if hasattr(self.model.config, 'enable_thinking'):
                     self.model.config.enable_thinking = False
-                    logger.info("Qwen3-8B: 禁用思考模式（enable_thinking=False）")
+                    logger.info("Qwen3-8B: thinking mode disabled (enable_thinking=False)")
                 else:
-                    logger.info("Qwen3-8B: 模型不支持enable_thinking配置，跳过")
+                    logger.info("Qwen3-8B: model does not support enable_thinking; skipping this setting")
 
             if use_4bit:
                 # Certain PEFT methods (e.g. PrefixTuning) raise ValueError if gradient
@@ -308,7 +303,7 @@ class BaseTrainer(ABC):
                     use_gradient_checkpointing=use_gc_for_kbit
                 )
 
-            logger.info("加载Tokenizer...")
+            logger.info("Loading tokenizer...")
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.base_model_path,
                 trust_remote_code=True,
@@ -322,12 +317,12 @@ class BaseTrainer(ABC):
                     self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
                     self.model.resize_token_embeddings(len(self.tokenizer))
 
-            logger.info(f"Tokenizer词汇表大小: {len(self.tokenizer)}")
+            logger.info(f"Tokenizer vocabulary size: {len(self.tokenizer)}")
             logger.info(f"PAD token: {self.tokenizer.pad_token}")
             return True
 
         except Exception as e:
-            logger.error(f"基础模型加载失败: {e}")
+            logger.error(f"Failed to load base model: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
@@ -346,7 +341,7 @@ class BaseTrainer(ABC):
     def _get_num_epochs_from_data(self) -> int:
         """Return num epochs from data."""
         if not self.train_dataset:
-            logger.warning("训练数据集未准备，使用默认epochs")
+            logger.warning("Training dataset is not prepared; using the default epoch count")
             return self.train_cfg.num_epochs
 
         data_size = len(self.train_dataset)
@@ -369,17 +364,17 @@ class BaseTrainer(ABC):
         else:
             method_epochs = base_epochs
 
-        logger.info(f"自适应epochs计算:")
-        logger.info(f"  数据量: {data_size}条")
-        logger.info(f"  专家类型: {self.expert_type} -> 基础epochs={base_epochs}")
-        logger.info(f"  微调方法: {self.method_name} -> 最终epochs={method_epochs}")
+        logger.info("Adaptive epoch calculation:")
+        logger.info(f"  Records: {data_size}")
+        logger.info(f"  Expert type: {self.expert_type} -> base epochs={base_epochs}")
+        logger.info(f"  Fine-tuning method: {self.method_name} -> final epochs={method_epochs}")
 
         return method_epochs
 
     def prepare_data(self) -> bool:
         """Prepare data."""
         try:
-            logger.info(f"准备{self.expert_type}专家的训练数据...")
+            logger.info(f"Preparing training data for the {self.expert_type} expert...")
 
             if self.expert_type == 'text':
                 loader = TextDatasetLoader()
@@ -394,13 +389,13 @@ class BaseTrainer(ABC):
                 loader = GeneralDatasetLoader(use_domain_templates=self.use_domain_templates)
                 all_data = loader.load_all_data()
             else:
-                raise ValueError(f"不支持的专家类型: {self.expert_type}")
+                raise ValueError(f"Unsupported expert type: {self.expert_type}")
 
             if not all_data:
-                logger.error("没有加载到任何数据")
+                logger.error("No data was loaded")
                 return False
 
-            logger.info(f"成功加载{len(all_data)}条数据")
+            logger.info(f"Loaded {len(all_data)} records")
 
             train_data, val_data, test_data = split_dataset_for_expert(
                 all_data, self.expert_type
@@ -413,22 +408,22 @@ class BaseTrainer(ABC):
             self.val_dataset = val_data
             self.test_dataset = test_data
 
-            logger.info(f"数据集划分完成:")
-            logger.info(f"  训练集: {len(self.train_dataset)}条")
-            logger.info(f"  验证集: {len(self.val_dataset)}条")
-            logger.info(f"  测试集: {len(self.test_dataset)}条")
+            logger.info("Dataset split complete:")
+            logger.info(f"  Training set: {len(self.train_dataset)} records")
+            logger.info(f"  Validation set: {len(self.val_dataset)} records")
+            logger.info(f"  Test set: {len(self.test_dataset)} records")
 
             if not self.epochs_from_env:
                 calculated_epochs = self._get_num_epochs_from_data()
                 self.train_cfg.num_epochs = calculated_epochs
-                logger.info(f"根据数据量自动设置训练轮数: {calculated_epochs}")
+                logger.info(f"Training epochs set automatically from dataset size: {calculated_epochs}")
             else:
-                logger.info(f"使用环境变量指定的训练轮数: {self.train_cfg.num_epochs}")
+                logger.info(f"Using training epochs specified by environment variable: {self.train_cfg.num_epochs}")
 
             return True
 
         except Exception as e:
-            logger.error(f"数据准备失败: {e}")
+            logger.error(f"Data preparation failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
@@ -454,7 +449,7 @@ class BaseTrainer(ABC):
     def _get_eval_steps(self) -> int:
         """Return eval steps."""
         if not self.train_dataset:
-            logger.warning("训练数据集未准备，使用默认eval_steps=50")
+            logger.warning("Training dataset is not prepared; using default eval_steps=50")
             return 50
 
         batch_size, gradient_accumulation_steps = self._get_batch_config()
@@ -472,82 +467,75 @@ class BaseTrainer(ABC):
         actual_total_evals = total_steps / eval_steps if eval_steps > 0 else 0
         actual_evals_per_epoch = steps_per_epoch / eval_steps if eval_steps > 0 else 0
 
-        logger.info(f"动态eval_steps配置:")
-        logger.info(f"  训练样本数: {num_samples}")
-        logger.info(f"  有效batch大小: {batch_size * gradient_accumulation_steps}")
-        logger.info(f"  每epoch步数: {steps_per_epoch}")
-        logger.info(f"  总训练步数: {total_steps}")
-        logger.info(f"  目标总验证次数: {target_total_evals}")
-        logger.info(f"  计算得到eval_steps: {eval_steps}")
-        logger.info(f"  实际总验证次数: {actual_total_evals:.1f}")
-        logger.info(f"  实际验证次数/epoch: {actual_evals_per_epoch:.1f}")
+        logger.info("Dynamic eval_steps configuration:")
+        logger.info(f"  Training samples: {num_samples}")
+        logger.info(f"  Effective batch size: {batch_size * gradient_accumulation_steps}")
+        logger.info(f"  Steps per epoch: {steps_per_epoch}")
+        logger.info(f"  Total training steps: {total_steps}")
+        logger.info(f"  Target total evaluations: {target_total_evals}")
+        logger.info(f"  Computed eval_steps: {eval_steps}")
+        logger.info(f"  Actual total evaluations: {actual_total_evals:.1f}")
+        logger.info(f"  Actual evaluations per epoch: {actual_evals_per_epoch:.1f}")
 
         return eval_steps
 
     def train(self) -> bool:
         """Run model training."""
         if self.model is None or self.tokenizer is None:
-            logger.error("模型未初始化，请先调用setup_model()")
+            logger.error("Model is not initialized; call setup_model() first")
             return False
 
         if self.train_dataset is None or self.val_dataset is None:
-            logger.error("数据未准备，请先调用prepare_data()")
+            logger.error("Data is not prepared; call prepare_data() first")
             return False
 
         try:
-            logger.info(f"[train() 入口] debug_samples={self.debug_samples}, "
+            logger.info(f"[train() entry] debug_samples={self.debug_samples}, "
                         f"train_samples={len(self.train_dataset) if self.train_dataset else 0}, "
                         f"method={self.method_name}, expert={self.expert_type}")
 
             if self.debug_samples and self.train_dataset is not None and len(self.train_dataset) > 0:
-                logger.info("=" * 80)
-                logger.info("[调试输出] 打印前3个训练样本的prompt")
-                logger.info("=" * 80)
+                logger.info("[Debug output] Showing prompts for the first three training samples")
 
                 for i in range(min(3, len(self.train_dataset))):
                     sample = self.train_dataset.data[i]
-                    logger.info(f"\n样本 {i+1}:")
-                    logger.info("-" * 80)
+                    logger.info(f"\nSample {i+1}:")
                     prompt_text = sample.get('input_with_prompt', 'N/A')
                     clean_prompt = _remove_qwen_special_tokens(prompt_text)
-                    logger.info(f"完整Prompt:\n{clean_prompt}")
-                    logger.info("-" * 80)
-                    logger.info(f"期望输出:\n{sample['output']}")
-                    logger.info("-" * 80)
+                    logger.info(f"Complete prompt:\n{clean_prompt}")
+                    logger.info(f"Expected output:\n{sample['output']}")
 
-                logger.info("=" * 80)
-                logger.info("[调试输出结束] 请检查上述样本的prompt是否包含完整JSON结构")
-                logger.info("=" * 80)
+                logger.info("[Debug output complete] Verify that the prompts above contain complete JSON structures")
 
             if torch.cuda.is_available():
                 if self.method_name == 'full_finetuning':
                     for i in range(3):
                         torch.cuda.empty_cache()
                         torch.cuda.synchronize()
-                    logger.info("Full Fine-tuning: 已三重清空GPU缓存")
+                    logger.info("Full fine-tuning: cleared the GPU cache three times")
                 else:
                     torch.cuda.empty_cache()
                     if self.expert_type in ['uml', 'general']:
-                        logger.info(f"{self.expert_type}专家训练前已清空GPU缓存，最大化可用显存")
+                        logger.info(f"Cleared GPU cache before training the {self.expert_type} expert to maximize available memory")
 
                 allocated = torch.cuda.memory_allocated() / 1024**3
                 reserved = torch.cuda.memory_reserved() / 1024**3
                 total = torch.cuda.get_device_properties(0).total_memory / 1024**3
                 free = total - allocated
-                logger.info(f"[训练前] GPU显存: 已用={allocated:.2f}GB, 可用≈{free:.2f}GB, 总计={total:.2f}GB")
+                logger.info(f"[Before training] GPU memory: allocated={allocated:.2f} GB, available≈{free:.2f} GB, total={total:.2f} GB")
 
                 if self.method_name == 'full_finetuning' and allocated > 10.0:
-                    logger.error(f"警告: 训练前显存已占用{allocated:.2f}GB，可能导致OOM！")
-                    logger.error("建议:")
-                    logger.error("  1. 检查是否有其他进程占用GPU (nvidia-smi)")
-                    logger.error("  2. 重启Python进程清理显存")
-                    logger.error("  3. 关闭不必要的程序")
+                    logger.error(f"Warning: {allocated:.2f} GB of GPU memory is already allocated before training, which may cause an out-of-memory error")
+                    logger.error("Suggested actions:")
+                    logger.error("  1. Check for other processes using the GPU (nvidia-smi)")
+                    logger.error("  2. Restart the Python process to release GPU memory")
+                    logger.error("  3. Close unnecessary programs")
 
             self.output_dir.mkdir(parents=True, exist_ok=True)
             self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
             if hasattr(self, '_raw_train_data'):
-                logger.info("创建InstructionDataset（tokenizer已就绪）...")
+                logger.info("Creating InstructionDataset instances (tokenizer ready)...")
                 self.train_dataset = InstructionDataset(
                     self._raw_train_data, self.tokenizer, self.train_cfg.max_seq_length
                 )
@@ -557,7 +545,7 @@ class BaseTrainer(ABC):
                 self.test_dataset = InstructionDataset(
                     self._raw_test_data, self.tokenizer, self.train_cfg.max_seq_length
                 )
-                logger.info(f"InstructionDataset创建完成: "
+                logger.info(f"InstructionDataset creation complete: "
                             f"train={len(self.train_dataset)}, val={len(self.val_dataset)}")
 
             batch_size, gradient_accumulation_steps = self._get_batch_config()
@@ -573,12 +561,12 @@ class BaseTrainer(ABC):
 
             warmup_steps = int(total_steps * warmup_ratio)
 
-            logger.info(f"训练步数配置:")
-            logger.info(f"  每epoch步数: {steps_per_epoch}")
-            logger.info(f"  总训练步数: {total_steps}")
-            logger.info(f"  Warmup步数: {warmup_steps}")
-            logger.info(f"  验证频率: 每{eval_steps}步")
-            logger.info(f"  早停patience: {early_stopping_patience}")
+            logger.info("Training-step configuration:")
+            logger.info(f"  Steps per epoch: {steps_per_epoch}")
+            logger.info(f"  Total training steps: {total_steps}")
+            logger.info(f"  Warmup steps: {warmup_steps}")
+            logger.info(f"  Evaluation frequency: every {eval_steps} steps")
+            logger.info(f"  Early-stopping patience: {early_stopping_patience}")
 
             training_args_dict = {
                 'output_dir': str(self.checkpoint_dir),
@@ -602,21 +590,21 @@ class BaseTrainer(ABC):
 
             if self.method_name == 'full_finetuning':
                 training_args_dict['max_grad_norm'] = 0.8
-                logger.info(f"{self.method_name}使用较严格梯度裁剪(0.8)以保证训练稳定性")
+                logger.info(f"{self.method_name} uses strict gradient clipping (0.8) for training stability")
             else:
                 training_args_dict['max_grad_norm'] = 1.0
-                logger.info(f"{self.method_name}使用标准梯度裁剪(1.0)")
+                logger.info(f"{self.method_name} uses standard gradient clipping (1.0)")
 
             if not getattr(self, 'disable_load_best_model', False):
                 training_args_dict['load_best_model_at_end'] = True
             else:
                 training_args_dict['load_best_model_at_end'] = False
-                logger.info("load_best_model_at_end已禁用（当前训练方法不支持）")
+                logger.info("load_best_model_at_end disabled because the current training method does not support it")
 
             if not getattr(self, 'disable_gradient_checkpointing', False):
                 training_args_dict['gradient_checkpointing'] = True
             else:
-                logger.info("Gradient checkpointing已禁用（当前训练方法不支持）")
+                logger.info("Gradient checkpointing disabled because the current training method does not support it")
 
             if _should_use_eval_strategy():
                 training_args_dict['eval_strategy'] = 'steps'
@@ -627,11 +615,11 @@ class BaseTrainer(ABC):
                 if self.method_name == 'full_finetuning':
                     num_workers = 2
                     prefetch_factor = 1
-                    logger.info(f"Full Fine-tuning使用最小dataloader配置: workers=2, prefetch=1")
+                    logger.info("Full fine-tuning uses the minimum DataLoader configuration: workers=2, prefetch=1")
                 elif self.expert_type in ['uml', 'general'] and getattr(self, 'reduced_workers', False):
                     num_workers = 2
                     prefetch_factor = 1
-                    logger.info(f"{self.expert_type}专家使用最小dataloader配置: workers=2, prefetch=1")
+                    logger.info(f"The {self.expert_type} expert uses the minimum DataLoader configuration: workers=2, prefetch=1")
                 elif getattr(self, 'reduced_workers', False):
                     num_workers = 4
                     prefetch_factor = 2
@@ -655,17 +643,17 @@ class BaseTrainer(ABC):
                 # use the same precision context as training.
                 if self.method_name in ['p_tuning', 'prompt_tuning']:
                     training_args_dict['bf16_full_eval'] = True
-                    logger.info(f"{self.method_name}: 启用bf16_full_eval=True，确保eval与训练精度一致，防止NaN验证损失")
+                    logger.info(f"{self.method_name}: enabled bf16_full_eval=True to match evaluation and training precision and prevent NaN validation loss")
 
                 if getattr(self, 'reduced_workers', False) or self.method_name == 'full_finetuning':
-                    logger.info(f"使用减少的dataloader workers: {num_workers} (显存优化)")
+                    logger.info(f"Using fewer DataLoader workers: {num_workers} (GPU-memory optimization)")
             else:
                 if torch.cuda.is_available():
                     training_args_dict['fp16'] = True
                     # Same precision consistency fix for fp16 mode
                     if self.method_name in ['p_tuning', 'prompt_tuning']:
                         training_args_dict['fp16_full_eval'] = True
-                        logger.info(f"{self.method_name}: 启用fp16_full_eval=True，确保eval与训练精度一致，防止NaN验证损失")
+                        logger.info(f"{self.method_name}: enabled fp16_full_eval=True to match evaluation and training precision and prevent NaN validation loss")
 
             training_args = TrainingArguments(**training_args_dict)
 
@@ -688,25 +676,23 @@ class BaseTrainer(ABC):
                 callbacks=[self.history_callback, early_stopping_callback],
             )
 
-            logger.info("开始训练循环...")
+            logger.info("Starting training loop...")
             train_result = trainer.train()
 
-            logger.info("保存最终权重...")
+            logger.info("Saving final weights...")
             self._save_weights()
 
             metrics = train_result.metrics
-            logger.info(f"训练完成！最终损失: {metrics.get('train_loss', 'N/A')}")
+            logger.info(f"Training complete; final loss: {metrics.get('train_loss', 'N/A')}")
 
             if early_stopping_callback.nan_count > 0:
-                logger.warning("=" * 80)
-                logger.warning(f"训练期间检测到{early_stopping_callback.nan_count}次NaN验证损失")
-                logger.warning("NaN验证损失可能表明:")
-                logger.warning("  1. 学习率过大导致训练不稳定")
-                logger.warning("  2. P-Tuning v2的配置需要调整（如encoder_hidden_size）")
-                logger.warning("  3. 数据集中存在异常样本")
-                logger.warning("  4. Virtual tokens初始化不当")
-                logger.warning("建议: 检查training_history.json中的eval_loss值")
-                logger.warning("=" * 80)
+                logger.warning(f"Detected {early_stopping_callback.nan_count} NaN validation losses during training")
+                logger.warning("NaN validation loss may indicate:")
+                logger.warning("  1. An excessive learning rate causing unstable training")
+                logger.warning("  2. A P-Tuning v2 configuration that needs adjustment, such as encoder_hidden_size")
+                logger.warning("  3. Abnormal samples in the dataset")
+                logger.warning("  4. Improper virtual-token initialization")
+                logger.warning("Suggested action: inspect eval_loss values in training_history.json")
 
             metrics_file = self.output_dir / "training_metrics.json"
             with open(metrics_file, 'w') as f:
@@ -746,24 +732,24 @@ class BaseTrainer(ABC):
             with open(history_file, 'w') as f:
                 json.dump(history_data, f, indent=2)
 
-            logger.info(f"训练历史已保存至: {history_file}")
-            logger.info(f"共记录 {len(training_history)} 个训练步骤的数据")
+            logger.info(f"Training history saved to: {history_file}")
+            logger.info(f"Recorded data for {len(training_history)} training steps")
 
-            logger.info("生成训练曲线可视化...")
+            logger.info("Generating training-curve visualization...")
             try:
                 self._plot_training_curves(training_history, self.expert_type)
-                logger.info("训练曲线可视化已生成")
+                logger.info("Training-curve visualization generated")
             except Exception as e:
-                logger.warning(f"训练曲线可视化失败: {e}")
-                logger.warning("继续执行，但未生成可视化图表")
+                logger.warning(f"Failed to generate training-curve visualization: {e}")
+                logger.warning("Continuing without a visualization")
 
-            logger.info(f"权重已保存至: {self.output_dir}")
-            logger.info(f"训练指标已保存至: {metrics_file}")
+            logger.info(f"Weights saved to: {self.output_dir}")
+            logger.info(f"Training metrics saved to: {metrics_file}")
 
             return True
 
         except Exception as e:
-            logger.error(f"训练失败: {e}")
+            logger.error(f"Training failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False
@@ -771,18 +757,18 @@ class BaseTrainer(ABC):
     def _save_weights(self):
         """Save weights."""
         if self.model is None or self.tokenizer is None:
-            logger.error("模型或tokenizer未初始化，无法保存")
+            logger.error("Model or tokenizer is not initialized; unable to save")
             return
 
         try:
-            logger.info(f"保存权重（{self.method_name}）...")
+            logger.info(f"Saving weights ({self.method_name})...")
             self.output_dir.mkdir(parents=True, exist_ok=True)
             self.model.save_pretrained(str(self.output_dir))
             self.tokenizer.save_pretrained(str(self.output_dir))
-            logger.info(f"权重已保存至: {self.output_dir}")
+            logger.info(f"Weights saved to: {self.output_dir}")
 
         except Exception as e:
-            logger.error(f"保存权重失败: {e}")
+            logger.error(f"Failed to save weights: {e}")
             import traceback
             logger.error(traceback.format_exc())
 
@@ -806,7 +792,7 @@ class BaseTrainer(ABC):
             matplotlib.use('Agg')
             import matplotlib.pyplot as plt
         except ImportError:
-            logger.warning("matplotlib未安装，跳过可视化")
+            logger.warning("matplotlib is not installed; skipping visualization")
             return
 
         curves_dir = self.path_cfg.PROJECT_ROOT / 'outputs' / 'training_curves'
@@ -853,28 +839,28 @@ class BaseTrainer(ABC):
                             (e['eval_loss'] is None or (isinstance(e['eval_loss'], float) and math.isnan(e['eval_loss']))))
 
         if total_entries < 10:
-            logger.warning(f"训练历史记录很少（{total_entries}条），可能因早停提前结束")
+            logger.warning(f"Training history contains only {total_entries} entries, possibly because early stopping ended training")
 
         if len(losses) < 3:
-            logger.warning(f"训练损失数据点很少（{len(losses)}个）")
+            logger.warning(f"Training-loss series contains only {len(losses)} data points")
         if len(eval_losses) == 0:
             if nan_eval_count > 0:
-                logger.warning(f"所有{nan_eval_count}个验证损失都是NaN（已过滤），无法绘制验证曲线")
-                logger.warning("这表明训练过程不稳定，建议检查:")
-                logger.warning("  1. 降低学习率")
-                logger.warning("  2. 调整P-Tuning/Prompt Tuning配置")
-                logger.warning("  3. 检查数据集质量")
+                logger.warning(f"All {nan_eval_count} validation-loss values are NaN and were filtered; unable to plot the validation curve")
+                logger.warning("This indicates unstable training. Suggested checks:")
+                logger.warning("  1. Reduce the learning rate")
+                logger.warning("  2. Adjust the P-Tuning or Prompt Tuning configuration")
+                logger.warning("  3. Check dataset quality")
             else:
-                logger.warning("没有验证损失数据")
+                logger.warning("No validation-loss data is available")
         elif len(eval_losses) < 3:
             if nan_eval_count > 0:
-                logger.warning(f"验证损失数据点很少（{len(eval_losses)}个有效值，{nan_eval_count}个NaN已过滤）")
+                logger.warning(f"Validation-loss series contains only {len(eval_losses)} valid points; {nan_eval_count} NaN values were filtered")
             else:
-                logger.warning(f"验证损失数据点很少（{len(eval_losses)}个）")
+                logger.warning(f"Validation-loss series contains only {len(eval_losses)} data points")
         elif nan_eval_count > 0:
-            logger.info(f"过滤了{nan_eval_count}个NaN验证损失，保留{len(eval_losses)}个有效值")
+            logger.info(f"Filtered {nan_eval_count} NaN validation-loss values and retained {len(eval_losses)} valid values")
 
-        logger.info(f"曲线数据统计: Loss={len(losses)}点, EvalLoss={len(eval_losses)}点, GradNorm={len(grad_norms)}点, LR={len(learning_rates)}点")
+        logger.info(f"Curve data summary: Loss={len(losses)} points, EvalLoss={len(eval_losses)} points, GradNorm={len(grad_norms)} points, LR={len(learning_rates)} points")
 
         fig, axes = plt.subplots(2, 2, figsize=(15, 10))
         fig.suptitle(f'Training Curves - {expert_type.upper()} Expert ({self.method_name})',
@@ -945,4 +931,4 @@ class BaseTrainer(ABC):
         plt.savefig(plot_path, dpi=150, bbox_inches='tight')
         plt.close()
 
-        logger.info(f"训练曲线已保存至: {plot_path}")
+        logger.info(f"Training curves saved to: {plot_path}")

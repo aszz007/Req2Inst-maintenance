@@ -31,7 +31,7 @@ class QualityValidator:
     def __init__(self, strict_mode: bool = False):
         """Initialize the instance."""
         self.strict_mode = strict_mode
-        logger.info(f"质量验证器初始化完成 - 严格模式: {strict_mode}")
+        logger.info(f"Quality validator initialized - strict mode: {strict_mode}")
 
     def validate_instruction(self, instruction: str) -> ValidationResult:
         """Validate instruction."""
@@ -158,7 +158,7 @@ class QualityValidator:
             instructions: List[str]
     ) -> Tuple[List[ValidationResult], Dict]:
         """Validate instructions in batches."""
-        logger.info(f"批量验证 - 共{len(instructions)}条指令")
+        logger.info(f"Batch validation - {len(instructions)} instructions")
 
         results = []
         for i, instruction in enumerate(instructions, 1):
@@ -166,11 +166,11 @@ class QualityValidator:
             results.append(result)
 
             if not result.is_valid:
-                logger.debug(f"指令{i}验证失败: {result.errors}")
+                logger.debug(f"Instruction {i} failed validation: {result.errors}")
 
         summary = self._generate_summary(results)
 
-        logger.info(f"验证完成 - 通过率: {summary['pass_rate']:.2%}")
+        logger.info(f"Validation complete - pass rate: {summary['pass_rate']:.2%}")
 
         return results, summary
 
@@ -302,6 +302,6 @@ class QualityValidator:
             else:
                 invalid.append(instruction)
 
-        logger.info(f"过滤完成 - 有效: {len(valid)}, 无效: {len(invalid)}")
+        logger.info(f"Filtering complete - valid: {len(valid)}, invalid: {len(invalid)}")
 
         return valid, invalid

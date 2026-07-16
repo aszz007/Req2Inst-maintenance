@@ -40,17 +40,17 @@ class BaseExpert(ABC):
         self.model = None
         self.is_model_loaded = False
 
-        logger.info(f"初始化专家: {expert_name}")
-        logger.info(f"基础模型: {base_model_path}")
+        logger.info(f"Initializing expert: {expert_name}")
+        logger.info(f"Base model: {base_model_path}")
         if version:
-            logger.info(f"模型版本: {version}")
+            logger.info(f"Model version: {version}")
         if lora_path:
-            logger.info(f"LoRA路径: {lora_path}")
+            logger.info(f"LoRA path: {lora_path}")
 
     def load_model(self) -> bool:
         """Load model."""
         try:
-            logger.info(f"加载{self.expert_name}的模型...")
+            logger.info(f"Loading model for {self.expert_name}...")
 
             self.model = LanguageModel(
                 model_path=self.base_model_path,
@@ -60,20 +60,20 @@ class BaseExpert(ABC):
             if self.lora_path:
                 lora_path = Path(self.lora_path)
                 if lora_path.exists():
-                    logger.info(f"加载LoRA权重: {self.lora_path}")
+                    logger.info(f"Loading LoRA weights: {self.lora_path}")
                     success = self.model.load_lora_from_path(str(self.lora_path))
                     if not success:
-                        logger.warning("LoRA加载失败,使用基础模型")
+                        logger.warning("Failed to load LoRA adapter; using the base model")
                 else:
-                    logger.warning(f"LoRA路径不存在: {self.lora_path}")
-                    logger.warning("使用基础模型(未微调)")
+                    logger.warning(f"LoRA path does not exist: {self.lora_path}")
+                    logger.warning("Using the base model without fine-tuning")
 
             self.is_model_loaded = True
-            logger.info("模型加载完成")
+            logger.info("Model loading complete")
             return True
 
         except Exception as e:
-            logger.error(f"模型加载失败: {e}")
+            logger.error(f"Failed to load model: {e}")
             self.is_model_loaded = False
             return False
 
@@ -94,12 +94,12 @@ class BaseExpert(ABC):
                     torch.cuda.empty_cache()
 
                 self.is_model_loaded = False
-                logger.info("模型已卸载")
+                logger.info("Model unloaded")
 
             return True
 
         except Exception as e:
-            logger.error(f"模型卸载失败: {e}")
+            logger.error(f"Failed to unload model: {e}")
             return False
 
     @abstractmethod
@@ -124,19 +124,16 @@ class BaseExpert(ABC):
         """Generate with model."""
         logger.info(f"[ROUTE] _generate_with_model called (SINGLE) | expert={self.expert_name}")
         if not self.is_model_loaded:
-            logger.error("模型未加载,无法生成")
+            logger.error("Model is not loaded; unable to generate output")
             return ""
 
         try:
             show_debug = verbose and (sample_index is None or sample_index < 3)
 
             if show_debug:
-                logger.info("=" * 80)
-                logger.info(f"[调试] 样本 {sample_index + 1 if sample_index is not None else 'N/A'} - 完整Prompt内容:")
-                logger.info("-" * 80)
+                logger.info(f"[Debug] Sample {sample_index + 1 if sample_index is not None else 'N/A'} - complete prompt:")
                 logger.info(prompt)
-                logger.info("=" * 80)
-                logger.info(f"[调试] 生成参数: temp={temperature}, top_p={top_p}, top_k={top_k}, rep_penalty={repetition_penalty}")
+                logger.info(f"[Debug] Generation parameters: temp={temperature}, top_p={top_p}, top_k={top_k}, rep_penalty={repetition_penalty}")
 
             generated_text = self.model.generate(
                 prompt=prompt,
@@ -148,15 +145,15 @@ class BaseExpert(ABC):
             )
 
             if show_debug:
-                logger.info(f"[调试] 原始生成内容长度: {len(generated_text)} 字符")
-                logger.info(f"[调试] 原始生成内容（前500字符）：\n{generated_text[:500]}")
+                logger.info(f"[Debug] Raw generated output length: {len(generated_text)} characters")
+                logger.info(f"[Debug] First 500 characters of raw generated output:\n{generated_text[:500]}")
                 if len(generated_text) > 500:
-                    logger.info(f"[调试] 原始生成内容（后200字符）：\n{generated_text[-200:]}")
+                    logger.info(f"[Debug] Last 200 characters of raw generated output:\n{generated_text[-200:]}")
 
             return generated_text
 
         except Exception as e:
-            logger.error(f"生成失败: {e}")
+            logger.error(f"Generation failed: {e}")
             return ""
 
     def _generate_batch_with_model(self,
@@ -173,14 +170,14 @@ class BaseExpert(ABC):
         logger.info(
             f"[ROUTE] _generate_batch_with_model called (BATCH) | expert={self.expert_name} | prompts={len(prompts)} | batch_size={batch_size}")
         if not self.is_model_loaded:
-            logger.error("模型未加载,无法生成")
+            logger.error("Model is not loaded; unable to generate output")
             return [""] * len(prompts)
 
         try:
             show_debug = verbose and start_index < 3
 
             if show_debug:
-                logger.info(f"批量生成 - 共{len(prompts)}个样本，起始索引{start_index}")
+                logger.info(f"Batch generation - {len(prompts)} samples, starting index {start_index}")
 
             if hasattr(self.model, 'generate_batch'):
                 results = self.model.generate_batch(
@@ -195,7 +192,7 @@ class BaseExpert(ABC):
 
                 return results
             else:
-                logger.warning("模型不支持批量生成，降级到逐个生成")
+                logger.warning("The model does not support batch generation; falling back to individual generation")
                 results = []
                 for i, prompt in enumerate(prompts):
                     result = self._generate_with_model(
@@ -212,7 +209,7 @@ class BaseExpert(ABC):
                 return results
 
         except Exception as e:
-            logger.error(f"批量生成失败: {e}")
+            logger.error(f"Batch generation failed: {e}")
             return [""] * len(prompts)
 
     def _normalize_instruction(self, instruction: str) -> str:
@@ -250,7 +247,7 @@ class BaseExpert(ABC):
 
         if re.match(r'^in this task\b', text, re.IGNORECASE) and not text.startswith('Definition:'):
             text = 'Definition: ' + text
-            logger.debug("自动补全 'Definition:' 标签（原始以 'In this task' 开头）")
+            logger.debug("Added the 'Definition:' label to output that begins with 'In this task'")
 
         text = re.sub(r'(\s*[-_]\s*){2,}\s*$', '', text).strip()
         lines_clean = []
@@ -269,7 +266,7 @@ class BaseExpert(ABC):
         # logger.info("=" * 80)
 
         if not text:
-            logger.warning("[提取结束] 输入文本为空")
+            logger.warning("[Extraction complete] Input text is empty")
             return ""
 
         lines = text.split('\n')
@@ -318,13 +315,13 @@ class BaseExpert(ABC):
                     return extracted_text
                 else:
                     if has_invalid_keyword:
-                        logger.warning(f"[提取] 检测到重复标签，Definition内容无效: {def_content}")
+                        logger.warning(f"[Extraction] Duplicate label detected; Definition content is invalid: {def_content}")
                     else:
-                        logger.warning("[提取] 提取的Definition内容为空，尝试智能分割")
+                        logger.warning("[Extraction] Extracted Definition content is empty; attempting heuristic segmentation")
             else:
-                logger.warning(f"[提取] 行号顺序不正确: {definition_line}, {emphasis_line}, {avoid_line}")
+                logger.warning(f"[Extraction] Label lines are out of order: {definition_line}, {emphasis_line}, {avoid_line}")
         else:
-            logger.warning("[提取] 未找到完整的三段式标签")
+            logger.warning("[Extraction] The complete three-section label set was not found")
 
         return self._smart_split_to_three_parts(text)
 
@@ -389,7 +386,7 @@ class BaseExpert(ABC):
 Emphasis & Caution: {emphasis}
 Things to Avoid: {avoid}"""
 
-        logger.debug(f"智能分割完成：\n{formatted_instruction}")
+        logger.debug(f"Heuristic segmentation complete:\n{formatted_instruction}")
 
         return formatted_instruction
 
@@ -538,20 +535,20 @@ Things to Avoid: {avoid}"""
         """Load shared base model."""
         try:
             if cls._shared_base_model is not None and cls._shared_base_model_path == base_model_path:
-                logger.info(f"共享基础模型已加载: {base_model_path}")
+                logger.info(f"Shared base model is already loaded: {base_model_path}")
                 return True
 
-            logger.info(f"加载共享基础模型: {base_model_path}")
+            logger.info(f"Loading shared base model: {base_model_path}")
             cls._shared_base_model = LanguageModel(
                 model_path=base_model_path,
                 use_4bit=use_4bit
             )
             cls._shared_base_model_path = base_model_path
-            logger.info("共享基础模型加载成功")
+            logger.info("Shared base model loaded successfully")
             return True
 
         except Exception as e:
-            logger.error(f"共享基础模型加载失败: {e}")
+            logger.error(f"Failed to load shared base model: {e}")
             cls._shared_base_model = None
             cls._shared_base_model_path = None
             return False
@@ -571,46 +568,46 @@ Things to Avoid: {avoid}"""
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-                logger.info("共享基础模型已卸载")
+                logger.info("Shared base model unloaded")
 
             return True
 
         except Exception as e:
-            logger.error(f"共享基础模型卸载失败: {e}")
+            logger.error(f"Failed to unload shared base model: {e}")
             return False
 
     def load_model_with_shared_base(self) -> bool:
         """Load model with shared base."""
         try:
             if self.__class__._shared_base_model is None:
-                logger.error("共享基础模型未加载，请先调用load_shared_base_model")
+                logger.error("Shared base model is not loaded; call load_shared_base_model first")
                 return False
 
             if self.base_model_path != self.__class__._shared_base_model_path:
-                logger.warning(f"基础模型路径不匹配：专家期望{self.base_model_path}，共享模型是{self.__class__._shared_base_model_path}")
-                logger.warning("将使用共享模型")
+                logger.warning(f"Base model path mismatch: expert expects {self.base_model_path}, but the shared model uses {self.__class__._shared_base_model_path}")
+                logger.warning("The shared model will be used")
 
-            logger.info(f"使用共享基础模型加载{self.expert_name}...")
+            logger.info(f"Loading {self.expert_name} with the shared base model...")
 
             self.model = self.__class__._shared_base_model
 
             if self.lora_path:
                 lora_path = Path(self.lora_path)
                 if lora_path.exists():
-                    logger.info(f"加载LoRA权重: {self.lora_path}")
+                    logger.info(f"Loading LoRA weights: {self.lora_path}")
                     success = self.model.load_lora_from_path(str(self.lora_path))
                     if not success:
-                        logger.warning("LoRA加载失败，使用基础模型")
+                        logger.warning("Failed to load LoRA adapter; using the base model")
                 else:
-                    logger.warning(f"LoRA路径不存在: {self.lora_path}")
-                    logger.warning("使用基础模型（未微调）")
+                    logger.warning(f"LoRA path does not exist: {self.lora_path}")
+                    logger.warning("Using the base model without fine-tuning")
 
             self.is_model_loaded = True
-            logger.info(f"{self.expert_name}加载完成（使用共享基础模型）")
+            logger.info(f"{self.expert_name} loaded with the shared base model")
             return True
 
         except Exception as e:
-            logger.error(f"使用共享基础模型加载失败: {e}")
+            logger.error(f"Failed to load expert with the shared base model: {e}")
             self.is_model_loaded = False
             return False
 
@@ -623,10 +620,10 @@ Things to Avoid: {avoid}"""
 
                 self.model = None
                 self.is_model_loaded = False
-                logger.info(f"{self.expert_name}已卸载（保留共享基础模型）")
+                logger.info(f"{self.expert_name} unloaded; shared base model retained")
 
             return True
 
         except Exception as e:
-            logger.error(f"卸载失败: {e}")
+            logger.error(f"Unload failed: {e}")
             return False

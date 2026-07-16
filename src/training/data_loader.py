@@ -258,7 +258,7 @@ class TextDatasetLoader:
         """Initialize the instance."""
         path_cfg = get_path_config()
         self.dataset_dir = path_cfg.TEXT_DATASET_DIR
-        logger.info(f"初始化TextDatasetLoader, 路径: {self.dataset_dir}")
+        logger.info(f"Initializing TextDatasetLoader; path: {self.dataset_dir}")
 
     def load_csv_files(self) -> List[Dict]:
         """Load CSV files."""
@@ -266,14 +266,14 @@ class TextDatasetLoader:
         dataset_path = Path(self.dataset_dir)
 
         if not dataset_path.exists():
-            logger.error(f"数据集目录不存在: {dataset_path}")
-            logger.error(f"请确认 text_dataset.csv 已放置到该目录下")
-            logger.info(f"文本数据集总计: 0条")
+            logger.error(f"Dataset directory does not exist: {dataset_path}")
+            logger.error("Confirm that text_dataset.csv has been placed in this directory")
+            logger.info("Total text records: 0")
             return all_data
 
         if not dataset_path.is_dir():
-            logger.error(f"路径不是目录: {dataset_path}")
-            logger.info(f"文本数据集总计: 0条")
+            logger.error(f"Path is not a directory: {dataset_path}")
+            logger.info("Total text records: 0")
             return all_data
 
         csv_files = []
@@ -283,15 +283,15 @@ class TextDatasetLoader:
 
         if len(csv_files) == 0:
             all_files = list(dataset_path.rglob("*"))
-            logger.warning(f"在 {dataset_path} 中未找到任何 CSV 文件")
+            logger.warning(f"No CSV files found in {dataset_path}")
             if all_files:
-                logger.warning(f"目录中实际存在的文件({len(all_files)}个):")
+                logger.warning(f"Files currently present in the directory ({len(all_files)}):")
                 for f in all_files[:20]:
                     logger.warning(f"  {f.relative_to(dataset_path)}")
             else:
-                logger.warning(f"目录为空，请将 text_dataset.csv 放入: {dataset_path}")
+                logger.warning(f"Directory is empty; place text_dataset.csv in: {dataset_path}")
 
-        logger.info(f"找到{len(csv_files)}个CSV文件")
+        logger.info(f"Found {len(csv_files)} CSV files")
 
         for csv_file in csv_files:
             try:
@@ -300,18 +300,18 @@ class TextDatasetLoader:
 
                 df = clean_dataframe_columns(df)
 
-                logger.info(f"使用编码 '{encoding}' 读取: {csv_file.name}")
+                logger.info(f"Reading {csv_file.name} with encoding '{encoding}'")
 
             except Exception:
-                logger.error(f"加载失败: {csv_file.name}")
+                logger.error(f"Failed to load: {csv_file.name}")
                 continue
 
             low_req_col = find_column(df, ['low_requirements', 'lowrequirements', 'low requirements'])
             instruction_col = find_column(df, ['instruction', 'instructions'])
 
             if not low_req_col or not instruction_col:
-                logger.warning(f"跳过文件(缺少必要列): {csv_file.name}")
-                logger.warning(f"  实际列名: {list(df.columns)}")
+                logger.warning(f"Skipping file because required columns are missing: {csv_file.name}")
+                logger.warning(f"  Actual columns: {list(df.columns)}")
                 continue
 
             for _, row in df.iterrows():
@@ -331,9 +331,9 @@ class TextDatasetLoader:
                 except:
                     continue
 
-            logger.info(f"加载完成: {csv_file.name}, 数据量: {len(df)}")
+            logger.info(f"Loaded {csv_file.name}: {len(df)} records")
 
-        logger.info(f"文本数据集总计: {len(all_data)}条")
+        logger.info(f"Total text records: {len(all_data)}")
         return all_data
 
 
@@ -344,14 +344,14 @@ class ImageDatasetLoader:
         """Initialize the instance."""
         path_cfg = get_path_config()
         self.dataset_csv = path_cfg.IMAGE_DATASET_CSV
-        logger.info(f"初始化ImageDatasetLoader, 路径: {self.dataset_csv}")
+        logger.info(f"Initializing ImageDatasetLoader; path: {self.dataset_csv}")
 
     def load_csv_file(self) -> List[Dict]:
         """Load CSV file."""
         all_data = []
 
         if not self.dataset_csv.exists():
-            logger.warning(f"图像数据集文件不存在: {self.dataset_csv}")
+            logger.warning(f"Image dataset file does not exist: {self.dataset_csv}")
             return all_data
 
         try:
@@ -360,18 +360,18 @@ class ImageDatasetLoader:
 
             df = clean_dataframe_columns(df)
 
-            logger.info(f"使用编码 '{encoding}' 读取图像数据集")
+            logger.info(f"Reading image dataset with encoding '{encoding}'")
 
         except Exception:
-            logger.error("加载图像数据集失败")
+            logger.error("Failed to load image dataset")
             return all_data
 
         desc_col = find_column(df, ['description', 'desc', 'descriptions'])
         instruction_col = find_column(df, ['instruction', 'instructions'])
 
         if not desc_col or not instruction_col:
-            logger.error("CSV缺少必要列: Description或Instruction")
-            logger.error(f"实际列名: {list(df.columns)}")
+            logger.error("CSV is missing a required column: Description or Instruction")
+            logger.error(f"Actual columns: {list(df.columns)}")
             return all_data
 
         for idx, row in df.iterrows():
@@ -387,7 +387,7 @@ class ImageDatasetLoader:
                         }
                         description = normalize_json_string(json.dumps(filtered_json, ensure_ascii=False))
                     else:
-                        logger.warning(f"行{idx}: JSON不包含description字段，跳过")
+                        logger.warning(f"Row {idx}: JSON does not contain a description field; skipping")
                         continue
                 except (json.JSONDecodeError, TypeError, ValueError):
                     description = desc_str.strip()
@@ -407,7 +407,7 @@ class ImageDatasetLoader:
             except:
                 continue
 
-        logger.info(f"图像数据集加载完成, 数据量: {len(all_data)}")
+        logger.info(f"Image dataset loaded: {len(all_data)} records")
 
         return all_data
 
@@ -420,26 +420,26 @@ class UMLDatasetLoader:
         self.path_cfg = get_path_config()
         self.dataset_csv = self.path_cfg.UML_DATASET_CSV
 
-        logger.info(f"初始化UML数据加载器 - 数据集: {self.dataset_csv}")
+        logger.info(f"Initializing UML dataset loader - dataset: {self.dataset_csv}")
 
     def load_csv_file(self) -> List[Dict]:
         """Load CSV file."""
         csv_path = self.dataset_csv
 
-        logger.info(f"加载UML数据集: {csv_path}")
+        logger.info(f"Loading UML dataset: {csv_path}")
 
         if not csv_path.exists():
-            logger.error(f"UML数据集文件不存在: {csv_path}")
+            logger.error(f"UML dataset file does not exist: {csv_path}")
             return []
 
         try:
             encoding = detect_csv_encoding(csv_path)
-            logger.info(f"检测到编码: {encoding}")
+            logger.info(f"Detected encoding: {encoding}")
 
             df = pd.read_csv(csv_path, encoding=encoding)
 
             df.columns = [normalize_column_name(col) for col in df.columns]
-            logger.info(f"规范化后的列名: {list(df.columns)}")
+            logger.info(f"Normalized columns: {list(df.columns)}")
 
             column_map = {
                 'description': ['description', 'desc', 'uml_description', 'Description'],
@@ -460,11 +460,11 @@ class UMLDatasetLoader:
                         break
 
             if desc_col is None or inst_col is None:
-                logger.error(f"未找到必需的列。实际列名: {list(df.columns)}")
-                logger.error(f"需要包含: description 和 instruction 列")
+                logger.error(f"Required columns were not found. Actual columns: {list(df.columns)}")
+                logger.error("Required columns: description and instruction")
                 return []
 
-            logger.info(f"使用列: description='{desc_col}', instruction='{inst_col}'")
+            logger.info(f"Using columns: description='{desc_col}', instruction='{inst_col}'")
 
             data_list = []
             for idx, row in df.iterrows():
@@ -485,7 +485,7 @@ class UMLDatasetLoader:
                                 filtered_json = filter_uml_json_positions(desc_json)
                                 description = normalize_json_string(json.dumps(filtered_json, ensure_ascii=False))
                             else:
-                                logger.warning(f"行{idx}: UML JSON格式不符合预期，跳过")
+                                logger.warning(f"Row {idx}: UML JSON has an unexpected structure; skipping")
                                 continue
                         except json.JSONDecodeError:
                             pass
@@ -500,14 +500,14 @@ class UMLDatasetLoader:
                     })
 
                 except Exception as e:
-                    logger.warning(f"处理第{idx}行时出错: {e}")
+                    logger.warning(f"Error while processing row {idx}: {e}")
                     continue
 
-            logger.info(f"成功加载UML数据: {len(data_list)}条")
+            logger.info(f"Loaded {len(data_list)} UML records")
             return data_list
 
         except Exception as e:
-            logger.error(f"加载UML数据失败: {e}")
+            logger.error(f"Failed to load UML dataset: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return []
@@ -519,14 +519,14 @@ class GeneralDatasetLoader:
     def __init__(self, use_domain_templates: bool = False):
         """Initialize the instance."""
         self.use_domain_templates = use_domain_templates
-        logger.info(f"初始化GeneralDatasetLoader - 将加载text + image + uml数据")
-        logger.info(f"模板模式: {'各领域专用模板 (lora_single)' if use_domain_templates else '通用模板 (general_expert)'}")
+        logger.info("Initializing GeneralDatasetLoader - loading text, image, and UML data")
+        logger.info(f"Template mode: {'domain-specific templates (lora_single)' if use_domain_templates else 'general template (general_expert)'}")
 
     def load_all_data(self) -> List[Dict]:
         """Load all data."""
         all_data = []
 
-        logger.info("加载文本数据...")
+        logger.info("Loading text data...")
         text_loader = TextDatasetLoader()
         text_raw = text_loader.load_csv_files()
 
@@ -546,9 +546,9 @@ class GeneralDatasetLoader:
                 'data_type': 'text'
             })
 
-        logger.info(f"文本数据: {len(text_raw)}条")
+        logger.info(f"Text records: {len(text_raw)}")
 
-        logger.info("加载图像数据...")
+        logger.info("Loading image data...")
         image_loader = ImageDatasetLoader()
         image_raw = image_loader.load_csv_file()
 
@@ -568,9 +568,9 @@ class GeneralDatasetLoader:
                 'data_type': 'image'
             })
 
-        logger.info(f"图像数据: {len(image_raw)}条")
+        logger.info(f"Image records: {len(image_raw)}")
 
-        logger.info(f"加载UML数据...")
+        logger.info("Loading UML data...")
         uml_loader = UMLDatasetLoader()
         uml_raw = uml_loader.load_csv_file()
 
@@ -592,12 +592,12 @@ class GeneralDatasetLoader:
                 'data_type': 'uml'
             })
 
-        logger.info(f"UML数据: {len(uml_raw)}条")
+        logger.info(f"UML records: {len(uml_raw)}")
 
-        logger.info(f"通用数据集总计: {len(all_data)}条")
-        logger.info(f"  - 文本: {len(text_raw)}条")
-        logger.info(f"  - 图像: {len(image_raw)}条")
-        logger.info(f"  - UML: {len(uml_raw)}条")
+        logger.info(f"Total general-dataset records: {len(all_data)}")
+        logger.info(f"  - Text: {len(text_raw)}")
+        logger.info(f"  - Image: {len(image_raw)}")
+        logger.info(f"  - UML: {len(uml_raw)}")
 
         return all_data
 
@@ -623,7 +623,7 @@ def split_dataset(
     val_data = shuffled_data[train_size:train_size + val_size]
     test_data = shuffled_data[train_size + val_size:]
 
-    logger.info(f"数据集划分 - 训练: {len(train_data)}, 验证: {len(val_data)}, 测试: {len(test_data)}")
+    logger.info(f"Dataset split - train: {len(train_data)}, validation: {len(val_data)}, test: {len(test_data)}")
 
     return train_data, val_data, test_data
 
@@ -638,10 +638,10 @@ def split_dataset_for_expert(
 
     if data_size < 500:
         train_ratio, val_ratio, test_ratio = 0.80, 0.15, 0.05
-        logger.info(f"小数据集({data_size}条)，使用80:15:5划分策略")
+        logger.info(f"Small dataset ({data_size} records); using an 80:15:5 split")
     else:
         train_ratio, val_ratio, test_ratio = 0.80, 0.10, 0.10
-        logger.info(f"大数据集({data_size}条)，使用80:10:10划分策略")
+        logger.info(f"Large dataset ({data_size} records); using an 80:10:10 split")
 
     return split_dataset(data, train_ratio, val_ratio, test_ratio, seed)
 

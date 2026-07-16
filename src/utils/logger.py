@@ -138,28 +138,25 @@ def get_logger(module_name: str) -> logging.Logger:
 
 
 
-def log_model_info(logger: logging.Logger, model: Any, model_name: str = "模型"):
+def log_model_info(logger: logging.Logger, model: Any, model_name: str = "Model"):
     """Log model metadata."""
     try:
         total_params = sum(p.numel() for p in model.parameters())
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-        logger.info("=" * 60)
-        logger.info(f"{model_name}信息")
-        logger.info("=" * 60)
-        logger.info(f"总参数量: {total_params:,}")
-        logger.info(f"可训练参数: {trainable_params:,}")
-        logger.info(f"可训练比例: {100 * trainable_params / total_params:.2f}%")
+        logger.info(f"{model_name} information")
+        logger.info(f"Total parameters: {total_params:,}")
+        logger.info(f"Trainable parameters: {trainable_params:,}")
+        logger.info(f"Trainable ratio: {100 * trainable_params / total_params:.2f}%")
 
         if next(model.parameters()).is_cuda:
             device_id = next(model.parameters()).get_device()
-            logger.info(f"GPU显存使用: {torch.cuda.memory_allocated(device_id) / 1024 ** 3:.2f} GB")
-            logger.info(f"GPU显存缓存: {torch.cuda.memory_reserved(device_id) / 1024 ** 3:.2f} GB")
+            logger.info(f"GPU memory allocated: {torch.cuda.memory_allocated(device_id) / 1024 ** 3:.2f} GB")
+            logger.info(f"GPU memory reserved: {torch.cuda.memory_reserved(device_id) / 1024 ** 3:.2f} GB")
 
-        logger.info("=" * 60)
 
     except Exception as e:
-        logger.warning(f"无法记录模型信息: {str(e)}")
+        logger.warning(f"Unable to log model information: {str(e)}")
 
 
 def log_training_metrics(
@@ -178,7 +175,7 @@ def log_training_metrics(
 def log_gpu_memory(logger: logging.Logger, device_id: int = 0):
     """Log GPU memory use."""
     if not torch.cuda.is_available():
-        logger.warning("CUDA不可用，无法记录GPU显存")
+        logger.warning("CUDA is unavailable; unable to log GPU memory usage")
         return
 
     try:
@@ -186,9 +183,9 @@ def log_gpu_memory(logger: logging.Logger, device_id: int = 0):
         reserved = torch.cuda.memory_reserved(device_id) / 1024 ** 3
         max_allocated = torch.cuda.max_memory_allocated(device_id) / 1024 ** 3
 
-        logger.info(f"GPU显存: 已分配={allocated:.2f}GB, 已缓存={reserved:.2f}GB, 峰值={max_allocated:.2f}GB")
+        logger.info(f"GPU memory: allocated={allocated:.2f} GB, reserved={reserved:.2f} GB, peak={max_allocated:.2f} GB")
     except Exception as e:
-        logger.warning(f"无法记录GPU显存: {str(e)}")
+        logger.warning(f"Unable to log GPU memory usage: {str(e)}")
 
 
 def log_data_info(
@@ -199,32 +196,26 @@ def log_data_info(
         test_size: Optional[int] = None
 ):
     """Log dataset metadata."""
-    logger.info("=" * 60)
-    logger.info(f"数据集: {dataset_name}")
-    logger.info("=" * 60)
-    logger.info(f"训练集样本数: {train_size}")
+    logger.info(f"Dataset: {dataset_name}")
+    logger.info(f"Training samples: {train_size}")
 
     if val_size is not None:
-        logger.info(f"验证集样本数: {val_size}")
+        logger.info(f"Validation samples: {val_size}")
 
     if test_size is not None:
-        logger.info(f"测试集样本数: {test_size}")
+        logger.info(f"Test samples: {test_size}")
 
     total = train_size + (val_size or 0) + (test_size or 0)
-    logger.info(f"总样本数: {total}")
-    logger.info("=" * 60)
+    logger.info(f"Total samples: {total}")
 
 
-def log_config(logger: logging.Logger, config: Dict[str, Any], config_name: str = "配置"):
+def log_config(logger: logging.Logger, config: Dict[str, Any], config_name: str = "Configuration"):
     """Log configuration values."""
-    logger.info("=" * 60)
     logger.info(f"{config_name}")
-    logger.info("=" * 60)
 
     for key, value in config.items():
         logger.info(f"{key}: {value}")
 
-    logger.info("=" * 60)
 
 def log_recognition_failure(
         logger: logging.Logger,
@@ -233,9 +224,9 @@ def log_recognition_failure(
         retry_count: int = 0
 ):
     """Log an input-recognition failure."""
-    retry_info = f"(重试{retry_count}次后)" if retry_count > 0 else ""
-    logger.error(f"识别失败{retry_info}: {file_path}")
-    logger.error(f"  错误详情: {error}")
+    retry_info = f" (after {retry_count} retries)" if retry_count > 0 else ""
+    logger.error(f"Recognition failed{retry_info}: {file_path}")
+    logger.error(f"  Error details: {error}")
 
 if __name__ == "__main__":
     print("=" * 60)
@@ -252,10 +243,10 @@ if __name__ == "__main__":
     print("\n【测试2】不同级别的日志输出")
     print("-" * 60)
 
-    logger_train.debug("这是DEBUG级别的消息（详细调试信息）")
-    logger_train.info("这是INFO级别的消息（关键流程信息）")
-    logger_train.warning("这是WARNING级别的消息（警告信息）")
-    logger_train.error("这是ERROR级别的消息（错误信息）")
+    logger_train.debug("DEBUG-level message with detailed diagnostic information")
+    logger_train.info("INFO-level message for a key workflow event")
+    logger_train.warning("WARNING-level message")
+    logger_train.error("ERROR-level message")
 
     print("\n【测试3】记录模型信息")
     print("-" * 60)
@@ -274,7 +265,7 @@ if __name__ == "__main__":
 
 
     mock_model = MockModel()
-    log_model_info(logger_train, mock_model, "测试模型")
+    log_model_info(logger_train, mock_model, "Test model")
 
     print("\n【测试4】记录训练指标")
     print("-" * 60)
@@ -289,7 +280,7 @@ if __name__ == "__main__":
     print("\n【测试5】记录数据集信息")
     print("-" * 60)
 
-    log_data_info(logger_data, "CCHIT数据集", train_size=800, val_size=100, test_size=100)
+    log_data_info(logger_data, "CCHIT dataset", train_size=800, val_size=100, test_size=100)
 
     print("\n【测试6】记录配置信息")
     print("-" * 60)
@@ -300,7 +291,7 @@ if __name__ == "__main__":
         'epochs': 3,
         'lora_rank': 8
     }
-    log_config(logger_train, config, "训练配置")
+    log_config(logger_train, config, "Training configuration")
 
     print("\n【测试7】GPU显存记录")
     print("-" * 60)
@@ -309,7 +300,7 @@ if __name__ == "__main__":
 
     print("\n【测试8】记录识别失败")
     print("-" * 60)
-    log_recognition_failure(logger_data, "/path/to/image.jpg", "JSON解析错误", retry_count=2)
+    log_recognition_failure(logger_data, "/path/to/image.jpg", "JSON parsing error", retry_count=2)
 
     print("\n日志系统测试完成！")
     print("请检查 logs/ 目录下的日志文件")

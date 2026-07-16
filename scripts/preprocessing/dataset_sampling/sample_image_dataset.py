@@ -24,7 +24,7 @@ DATASET_TOTAL = 1000
 def load_image_dataset(dataset_path: Path) -> pd.DataFrame:
     """Load image dataset."""
     if not dataset_path.exists():
-        raise FileNotFoundError(f"图像数据集文件不存在: {dataset_path}")
+        raise FileNotFoundError(f"Image dataset file not found: {dataset_path}")
 
     df = pd.read_csv(dataset_path, encoding="utf-8")
     print(f"加载图像数据集: {dataset_path.name}")

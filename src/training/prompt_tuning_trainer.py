@@ -42,18 +42,15 @@ class PromptTuningTrainer(BaseTrainer):
 
         original_lr = self.train_cfg.learning_rate
         self.train_cfg.learning_rate = 5e-5
-        logger.warning("=" * 80)
-        logger.warning("Prompt Tuning NaN防护配置已启用")
-        logger.warning("=" * 80)
-        logger.warning(f"学习率调整: {original_lr} → {self.train_cfg.learning_rate} (降低75%)")
-        logger.warning("原因: Prompt Tuning只训练virtual tokens，学习率过大会导致NaN")
-        logger.warning("其他防护: 严格梯度裁剪(0.5) + NaN-aware早停 + 20% warmup")
-        logger.warning("=" * 80)
+        logger.warning("Prompt Tuning NaN protections enabled")
+        logger.warning(f"Learning rate adjusted: {original_lr} → {self.train_cfg.learning_rate} (75% reduction)")
+        logger.warning("Reason: Prompt Tuning trains only virtual tokens, and an excessive learning rate can cause NaN values")
+        logger.warning("Additional protections: strict gradient clipping (0.5), NaN-aware early stopping, and 20% warmup")
 
         self.disable_load_best_model = True
 
-        logger.info(f"4bit量化: {use_4bit}")
-        logger.info(f"Prompt Tuning配置: virtual_tokens={self.num_virtual_tokens}, "
+        logger.info(f"4-bit quantization: {use_4bit}")
+        logger.info(f"Prompt Tuning configuration: virtual_tokens={self.num_virtual_tokens}, "
                     f"init=RANDOM")
 
         self._print_training_config()
@@ -76,7 +73,7 @@ class PromptTuningTrainer(BaseTrainer):
             if not self._load_base_model(self.use_4bit):
                 return False
 
-            logger.info("配置Prompt Tuning...")
+            logger.info("Configuring Prompt Tuning...")
             peft_config = PromptTuningConfig(
                 task_type=TaskType.CAUSAL_LM,
                 num_virtual_tokens=self.num_virtual_tokens,
@@ -90,24 +87,21 @@ class PromptTuningTrainer(BaseTrainer):
             total_params = sum(p.numel() for p in self.model.parameters())
             trainable_ratio = 100 * trainable_params / total_params
 
-            logger.info("=" * 80)
-            logger.info("Prompt Tuning配置完成")
-            logger.info("=" * 80)
-            logger.info(f"可训练参数: {trainable_params:,} ({trainable_ratio:.4f}%)")
-            logger.info(f"总参数: {total_params:,}")
+            logger.info("Prompt Tuning configuration complete")
+            logger.info(f"Trainable parameters: {trainable_params:,} ({trainable_ratio:.4f}%)")
+            logger.info(f"Total parameters: {total_params:,}")
             logger.info(f"Virtual Tokens: {self.num_virtual_tokens}")
-            logger.info(f"初始化方式: RANDOM")
-            logger.info("=" * 80)
+            logger.info("Initialization method: RANDOM")
 
             if self.expert_type in ['uml', 'general']:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
-                    logger.info(f"已清理GPU缓存（{self.expert_type}专家长序列优化）")
+                    logger.info(f"Cleared GPU cache for {self.expert_type} expert long-sequence optimization")
 
             return True
 
         except Exception as e:
-            logger.error(f"模型设置失败: {e}")
+            logger.error(f"Model setup failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False

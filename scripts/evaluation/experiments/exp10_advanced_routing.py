@@ -165,7 +165,7 @@ def _load_exp9_results():
     p2_path = EXP9_DIR / 'phase2_results.json'
 
     if not p1_path.exists():
-        raise FileNotFoundError(f"Exp9 phase1结果不存在: {p1_path}\n请先运行实验9！")
+        raise FileNotFoundError(f"Experiment 9 Phase 1 results not found: {p1_path}\nRun Experiment 9 first")
 
     with open(p1_path, 'r', encoding='utf-8') as f:
         phase1 = json.load(f)
@@ -174,9 +174,9 @@ def _load_exp9_results():
     if p2_path.exists():
         with open(p2_path, 'r', encoding='utf-8') as f:
             phase2 = json.load(f)
-        logger.info("已加载Exp9 Phase1 + Phase2结果")
+        logger.info("Loaded Experiment 9 Phase 1 and Phase 2 results")
     else:
-        logger.warning("Exp9 Phase2结果不存在，Soft Routing基线将缺失")
+        logger.warning("Experiment 9 Phase 2 results not found; the Soft Routing baseline will be unavailable")
 
     return phase1, phase2
 
@@ -186,21 +186,19 @@ def _load_exp9_results():
 
 def run_phase1(args, exp9_phase1):
     """Run phase1."""
-    logger.info("=" * 80)
-    logger.info("Phase 1: 特征提取 + Learned Router训练")
-    logger.info("=" * 80)
+    logger.info("Phase 1: Feature extraction and Learned Router training")
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
     FEATURE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
     ROUTER_CKPT_DIR.mkdir(parents=True, exist_ok=True)
 
-    logger.info("\n--- 步骤1: 加载测试集 ---")
+    logger.info("\n--- Step 1: Loading test sets ---")
     test_datasets = {}
     for et in ALL_TYPES:
         test_datasets[et] = _load_test_data(et)
-        logger.info(f"  {et}: {len(test_datasets[et])} 条")
+        logger.info(f"  {et}: {len(test_datasets[et])} samples")
 
-    logger.info("\n--- 步骤2: 特征提取 ---")
+    logger.info("\n--- Step 2: Extracting features ---")
 
     all_features = {}
     all_labels = {}
@@ -213,13 +211,13 @@ def run_phase1(args, exp9_phase1):
     for domain in SPECIALIZED_TYPES:
         feat_path = FEATURE_CACHE_DIR / f'{domain}_hidden_states.npz'
         if feat_path.exists() and not args.force_regenerate:
-            logger.info(f"  [缓存] 加载 {domain} 特征")
+            logger.info(f"  [Cache] Loading {domain} features")
             data = np.load(feat_path)
             all_features[domain] = data['features']
             all_labels[domain] = data['labels']
             continue
 
-        logger.info(f"  提取 {domain} 特征...")
+        logger.info(f"  Extracting {domain} features...")
         test_data = test_datasets[domain]
         if args.test_mode:
             test_data = test_data[:10]
@@ -237,16 +235,16 @@ def run_phase1(args, exp9_phase1):
         all_labels[domain] = np.array(labels, dtype=np.int64)
 
         np.savez(feat_path, features=features, labels=all_labels[domain])
-        logger.info(f"  {domain}: {len(features)} 条特征已保存")
+        logger.info(f"  {domain}: saved {len(features)} feature vectors")
 
     general_feat_path = FEATURE_CACHE_DIR / 'general_hidden_states.npz'
     if general_feat_path.exists() and not args.force_regenerate:
-        logger.info("  [缓存] 加载 general 特征")
+        logger.info("  [Cache] Loading general features")
         data = np.load(general_feat_path)
         general_features = data['features']
         general_labels = data['labels']
     else:
-        logger.info("  提取 general 特征...")
+        logger.info("  Extracting general features...")
         general_test = test_datasets['general']
         if args.test_mode:
             general_test = general_test[:20]
@@ -259,7 +257,7 @@ def run_phase1(args, exp9_phase1):
     del lm, base_model, tokenizer
     _cleanup_gpu()
 
-    logger.info("\n--- 步骤3: 组合训练数据 ---")
+    logger.info("\n--- Step 3: Assembling training data ---")
 
     #
     val_parts_X, val_parts_y = [], []
@@ -291,22 +289,22 @@ def run_phase1(args, exp9_phase1):
     test_X = general_features[n_val_end:]
     test_y = np.array(general_labels[n_val_end:])
 
-    logger.info(f"  训练集: {len(train_X)} 条 (specialized前80% + general前40%)")
-    logger.info(f"  验证集: {len(val_X)} 条 (specialized后20% + general 40%~80%，混合域)")
-    logger.info(f"  测试集: {len(test_X)} 条 (general后20%，最终评估)")
+    logger.info(f"  Training set: {len(train_X)} samples (first 80% of specialized domains + first 40% of general)")
+    logger.info(f"  Validation set: {len(val_X)} samples (last 20% of specialized domains + 40%-80% of general; mixed domains)")
+    logger.info(f"  Test set: {len(test_X)} samples (last 20% of general; final evaluation)")
 
     for i, name in IDX_TO_EXPERT.items():
         cnt = (train_y == i).sum()
-        logger.info(f"  训练集-{name}: {cnt} 条 ({cnt/len(train_y)*100:.1f}%)")
+        logger.info(f"  Training set - {name}: {cnt} samples ({cnt/len(train_y)*100:.1f}%)")
 
-    logger.info("\n--- 步骤4: 训练MLP路由器 ---")
+    logger.info("\n--- Step 4: Training MLP router ---")
 
     router = RouterMLP(input_dim=train_X.shape[1])
     history = _train_router(router, train_X, train_y, val_X, val_y, args)
 
     router.save(ROUTER_CKPT_DIR / 'router_mlp.pt')
 
-    logger.info("\n--- 步骤5: 评估路由准确率 ---")
+    logger.info("\n--- Step 5: Evaluating routing accuracy ---")
     accuracy_results = {}
 
     for domain in SPECIALIZED_TYPES:
@@ -315,13 +313,13 @@ def run_phase1(args, exp9_phase1):
         y_pred = router.predict(X)
         acc = (y_pred == y_true).mean()
         accuracy_results[domain] = float(acc)
-        logger.info(f"  {domain}: 路由准确率={acc:.4f} ({acc*100:.1f}%)")
+        logger.info(f"  {domain}: routing accuracy={acc:.4f} ({acc*100:.1f}%)")
 
     y_pred_general = router.predict(general_features)
     y_true_general = np.array(general_labels)
     acc_general = (y_pred_general == y_true_general).mean()
     accuracy_results['general'] = float(acc_general)
-    logger.info(f"  general: 路由准确率={acc_general:.4f} ({acc_general*100:.1f}%)")
+    logger.info(f"  general: routing accuracy={acc_general:.4f} ({acc_general*100:.1f}%)")
 
     from sklearn.metrics import confusion_matrix, classification_report
     all_y_true = np.concatenate(
@@ -337,7 +335,7 @@ def run_phase1(args, exp9_phase1):
         output_dict=True, zero_division=0
     )
     logger.info(
-        f"  全域分类报告:\n"
+        f"  Classification report across all domains:\n"
         f"{classification_report(all_y_true, all_y_pred, target_names=['text','image','uml','general'], zero_division=0)}"
     )
 
@@ -353,7 +351,7 @@ def run_phase1(args, exp9_phase1):
     }
 
     save_experiment_results(results, EXP_DIR, 'phase1_results.json')
-    logger.info(f"\nPhase 1 结果已保存: {EXP_DIR / 'phase1_results.json'}")
+    logger.info(f"\nPhase 1 results saved to: {EXP_DIR / 'phase1_results.json'}")
     return results
 
 
@@ -370,7 +368,7 @@ def _rebuild_per_sample_labels(domain, test_data, args):
         if expert_type == domain:
             cache = load_predictions_cache(CACHE_DIR / 'lora_moe', f'{domain}_predictions.json')
         elif expert_type == 'general' and domain in SPECIALIZED_TYPES:
-            logger.debug(f"  [标签重建] 跳过 general expert on {domain}（exp3 未生成此缓存）")
+            logger.debug(f"  [Label reconstruction] Skipping general expert on {domain} because Experiment 3 did not generate this cache")
             continue
         else:
             cache = load_predictions_cache(
@@ -380,7 +378,7 @@ def _rebuild_per_sample_labels(domain, test_data, args):
         if cache:
             expert_caches[expert_type] = cache.get('samples', [])
         else:
-            logger.warning(f"  [标签重建] 缓存未找到: {expert_type} on {domain}，该专家将被跳过")
+            logger.warning(f"  [Label reconstruction] Cache not found for {expert_type} on {domain}; skipping this expert")
 
     for i in range(n):
         best_expert = domain
@@ -431,10 +429,10 @@ def _rebuild_general_labels(test_data, args):
         if cache:
             samples = cache.get('samples', [])
             if len(samples) < len(test_data):
-                logger.warning(f"  [标签重建] {expert_type}缓存样本数({len(samples)}) < 测试集({len(test_data)})")
+                logger.warning(f"  [Label reconstruction] {expert_type} cache has {len(samples)} samples, fewer than the test set ({len(test_data)})")
             expert_caches[expert_type] = samples
         else:
-            logger.warning(f"  [标签重建] general域缓存未找到: {expert_type}")
+            logger.warning(f"  [Label reconstruction] General-domain cache not found for {expert_type}")
 
     for i in range(n):
         best_expert = 'general'
@@ -483,8 +481,8 @@ def _train_router(router, train_X, train_y, val_X, val_y, args):
     class_counts = np.bincount(train_y, minlength=4).astype(float)
     class_weights = np.where(class_counts > 0, 1.0 / class_counts, 0.0)
     class_weights = class_weights / (class_weights.mean() + 1e-9)
-    logger.info(f"  类别样本数: {dict(zip(['text','image','uml','general'], class_counts.astype(int)))}")
-    logger.info(f"  类别权重:   {dict(zip(['text','image','uml','general'], class_weights.round(3)))}")
+    logger.info(f"  Samples per class: {dict(zip(['text','image','uml','general'], class_counts.astype(int)))}")
+    logger.info(f"  Class weights:     {dict(zip(['text','image','uml','general'], class_weights.round(3)))}")
 
     criterion = nn.CrossEntropyLoss(
         weight=torch.tensor(class_weights, dtype=torch.float32).to(device),
@@ -548,7 +546,7 @@ def _train_router(router, train_X, train_y, val_X, val_y, args):
                 break
 
     router.load(ROUTER_CKPT_DIR / 'router_mlp_best.pt')
-    logger.info(f"训练完成，最优验证 macro-F1: {best_val_f1:.4f}")
+    logger.info(f"Training completed; best validation macro-F1: {best_val_f1:.4f}")
     history['best_val_f1'] = best_val_f1
     return history
 
@@ -556,25 +554,23 @@ def _train_router(router, train_X, train_y, val_X, val_y, args):
 
 def run_phase2(args, phase1_results, exp9_phase1):
     """Run phase2."""
-    logger.info("=" * 80)
-    logger.info("Phase 2: Output Ensemble + Learned Router评估")
-    logger.info("=" * 80)
+    logger.info("Phase 2: Output Ensemble and Learned Router evaluation")
 
     general_data = GeneralDatasetLoader().load_all_data()
     _, _, general_test = split_dataset_for_expert(general_data, 'general')
     if args.test_mode:
         general_test = general_test[:10]
-    logger.info(f"General测试集: {len(general_test)} 条")
+    logger.info(f"General test set: {len(general_test)} samples")
 
     router = RouterMLP()
     router_ckpt = ROUTER_CKPT_DIR / 'router_mlp_best.pt'
     if not router_ckpt.exists():
-        raise FileNotFoundError(f"Router权重不存在: {router_ckpt}，请先运行Phase 1")
+        raise FileNotFoundError(f"Router weights not found: {router_ckpt}. Run Phase 1 first")
     router.load(router_ckpt)
 
     general_feat_path = FEATURE_CACHE_DIR / 'general_hidden_states.npz'
     if not general_feat_path.exists():
-        raise FileNotFoundError(f"General特征缓存不存在: {general_feat_path}，请先运行Phase 1")
+        raise FileNotFoundError(f"General feature cache not found: {general_feat_path}. Run Phase 1 first")
 
     feat_data = np.load(general_feat_path)
     general_features = feat_data['features']
@@ -584,19 +580,19 @@ def run_phase2(args, phase1_results, exp9_phase1):
     n_cached = len(general_features)
     if len(general_test) != n_cached:
         logger.warning(
-            f"General测试集({len(general_test)})与缓存特征({n_cached})数量不匹配，"
-            f"截断测试集到缓存长度"
+            f"General test set size ({len(general_test)}) does not match cached feature count ({n_cached}); "
+            f"truncating the test set to the cache length"
         )
         general_test = general_test[:n_cached]
 
-    logger.info(f"General特征维度: {general_features.shape}")
+    logger.info(f"General feature shape: {general_features.shape}")
 
-    logger.info("\n--- 方案B: Learned Router 单路由推理 ---")
+    logger.info("\n--- Method B: Learned Router single-expert inference ---")
     router_result = _run_learned_router_inference(
         router, general_features, general_test, args
     )
 
-    logger.info("\n--- 方案A: Output Ensemble 推理 ---")
+    logger.info("\n--- Method A: Output Ensemble inference ---")
     ensemble_result = _run_output_ensemble(
         router, general_features, general_test, args
     )
@@ -610,14 +606,12 @@ def run_phase2(args, phase1_results, exp9_phase1):
     router_gap_reduction = (router_result['rougeL'] - hard_rougeL) / gap if gap > 0 else 0
     ensemble_gap_reduction = (ensemble_result['rougeL'] - hard_rougeL) / gap if gap > 0 else 0
 
-    logger.info("\n" + "=" * 60)
-    logger.info("Phase 2 结果汇总")
-    logger.info("=" * 60)
+    logger.info("Phase 2 results summary")
     logger.info(f"Hard Routing (baseline):   {hard_rougeL:.4f}")
     logger.info(f"Oracle Routing (upper):    {oracle_rougeL:.4f}")
     logger.info(f"Gap:                       {gap:.4f} ({gap*100:.2f}%)")
-    logger.info(f"Learned Router:            {router_result['rougeL']:.4f} | Gap缩小: {router_gap_reduction*100:.1f}%")
-    logger.info(f"Output Ensemble:           {ensemble_result['rougeL']:.4f} | Gap缩小: {ensemble_gap_reduction*100:.1f}%")
+    logger.info(f"Learned Router:            {router_result['rougeL']:.4f} | gap reduction: {router_gap_reduction*100:.1f}%")
+    logger.info(f"Output Ensemble:           {ensemble_result['rougeL']:.4f} | gap reduction: {ensemble_gap_reduction*100:.1f}%")
 
     results = {
         'phase': 'phase2',
@@ -639,7 +633,7 @@ def run_phase2(args, phase1_results, exp9_phase1):
     }
 
     save_experiment_results(results, EXP_DIR, 'phase2_results.json')
-    logger.info(f"Phase 2 结果已保存: {EXP_DIR / 'phase2_results.json'}")
+    logger.info(f"Phase 2 results saved to: {EXP_DIR / 'phase2_results.json'}")
     return results
 
 
@@ -652,7 +646,7 @@ def _run_learned_router_inference(router, features, general_test, args):
     if cache_file.exists() and not args.force_regenerate:
         cached = load_predictions_cache(cache_path, 'general_router_predictions.json')
         if cached and (cached.get('total_samples', 0) > 15 or args.test_mode):
-            logger.info(f"  [缓存命中] Learned Router: {cached.get('total_samples', 0)} 条")
+            logger.info(f"  [Cache hit] Learned Router: {cached.get('total_samples', 0)} samples")
             m = _metrics_from_samples(cached.get('samples', []))
             return {'rougeL': _get_rougeL(m), 'routing_stats': cached.get('routing_stats', {})}
 
@@ -662,7 +656,7 @@ def _run_learned_router_inference(router, features, general_test, args):
     routing_stats = defaultdict(int)
     for idx in predicted_experts:
         routing_stats[IDX_TO_EXPERT[idx]] += 1
-    logger.info(f"  路由分布: {dict(routing_stats)}")
+    logger.info(f"  Routing distribution: {dict(routing_stats)}")
 
     samples = []
     expert_caches = _load_all_expert_caches_for_general()
@@ -710,7 +704,7 @@ def _run_output_ensemble(router, features, general_test, args):
     if cache_file.exists() and not args.force_regenerate:
         cached = load_predictions_cache(cache_path, 'general_ensemble_predictions.json')
         if cached and (cached.get('total_samples', 0) > 15 or args.test_mode):
-            logger.info(f"  [缓存命中] Output Ensemble: {cached.get('total_samples', 0)} 条")
+            logger.info(f"  [Cache hit] Output Ensemble: {cached.get('total_samples', 0)} samples")
             m = _metrics_from_samples(cached.get('samples', []))
             return {
                 'rougeL': _get_rougeL(m),
@@ -723,12 +717,12 @@ def _run_output_ensemble(router, features, general_test, args):
     top1_probs = probs.max(axis=1)
     need_ensemble = (top1_probs < 0.85).sum()
     top2_rate = float(need_ensemble / len(probs))
-    logger.info(f"  需要双专家融合的样本数: {need_ensemble}/{len(probs)} ({top2_rate*100:.1f}%)")
+    logger.info(f"  Samples requiring two-expert ensembling: {need_ensemble}/{len(probs)} ({top2_rate*100:.1f}%)")
 
     if hasattr(args, 'debug_ensemble') and args.debug_ensemble:
         _reset_debug_stats()
         _DEBUG_ENSEMBLE_STATS['enabled'] = True
-        logger.info("  [v13] 诊断模式已激活：将收集 D1-D5 指标")
+        logger.info("  [v13] Diagnostic mode enabled; collecting D1-D5 metrics")
 
     import torch
     from peft import PeftModel
@@ -742,7 +736,7 @@ def _run_output_ensemble(router, features, general_test, args):
     for et in ALL_TYPES:
         adapter_paths[et] = str(path_cfg.get_expert_weight_path(et))
 
-    logger.info("  预加载所有专家 adapter（一次性，后续 set_adapter 切换）...")
+    logger.info("  Preloading all expert adapters once for subsequent set_adapter switching...")
     model_with_adapters = base_model
     for et in ALL_TYPES:
         try:
@@ -750,29 +744,29 @@ def _run_output_ensemble(router, features, general_test, args):
                 model_with_adapters, adapter_paths[et], adapter_name=et,
                 is_trainable=False,
             )
-            logger.info(f"    已加载 adapter: {et}")
+            logger.info(f"    Loaded adapter: {et}")
         except Exception as e:
-            logger.warning(f"    adapter 加载失败 {et}: {e}")
+            logger.warning(f"    Failed to load {et} adapter: {e}")
     model_with_adapters.eval()
 
     routing_stats = defaultdict(int)
     preloaded_caches = _load_all_expert_caches_for_general()
-    logger.info(f"  已预加载专家缓存: {list(preloaded_caches.keys())}")
+    logger.info(f"  Preloaded expert caches: {list(preloaded_caches.keys())}")
 
     dtype_counts: defaultdict = defaultdict(int)
     for sample in general_test:
         dt = _detect_datatype(sample)
         dtype_counts[dt] += 1
-    logger.info(f"  [DEBUG] general_test data_type 分布: {dict(dtype_counts)}")
+    logger.info(f"  [DEBUG] general_test data_type distribution: {dict(dtype_counts)}")
     if general_test:
         sample0 = general_test[0]
-        logger.info(f"  [DEBUG] 样本0 字段: {list(sample0.keys())}")
-        logger.info(f"  [DEBUG] 样本0 data_type字段值: "
+        logger.info(f"  [DEBUG] Sample 0 fields: {list(sample0.keys())}")
+        logger.info(f"  [DEBUG] Sample 0 data_type field values: "
                     f"data_type={sample0.get('data_type')!r}, "
                     f"type={sample0.get('type')!r}, "
                     f"domain={sample0.get('domain')!r}")
         prompt0, tpl0 = _build_prompt_for_sample(sample0)
-        logger.info(f"  [DEBUG] 样本0 使用模板: {tpl0}, prompt前80字符: {prompt0[:80]!r}")
+        logger.info(f"  [DEBUG] Sample 0 template: {tpl0}, first 80 prompt characters: {prompt0[:80]!r}")
 
     #
     #   soft_limit 65%→70%，eos_boost_rate 0.12→0.08。
@@ -838,8 +832,8 @@ def _run_output_ensemble(router, features, general_test, args):
             sample_meta.append((i, expert1, expert2, w1, w2, w1_raw, tpl_name))
             if i < 5:
                 logger.debug(
-                    f"  [v12] 样本{i}: OOD修正后dominant={dominant_expert}权重="
-                    f"{post_ood_dominant_w:.3f}>={_POST_OOD_CACHE_THRESHOLD}, 使用缓存"
+                    f"  [v12] Sample {i}: after OOD correction, dominant={dominant_expert} weight="
+                    f"{post_ood_dominant_w:.3f}>={_POST_OOD_CACHE_THRESHOLD}; using cache"
                 )
             continue
 
@@ -854,8 +848,8 @@ def _run_output_ensemble(router, features, general_test, args):
             sample_meta.append((i, expert1, expert2, w1, w2, w1_raw, tpl_name))
             ensemble_groups[(expert1, expert2)].append((i, prompt_str, w1, w2))
 
-    logger.info(f"  [DEBUG] 模板使用分布: {dict(template_usage)}")
-    logger.info(f"  [v12] UML域进入ensemble: {uml_ensemble_count}条 (双向OOD修正+增强参数)")
+    logger.info(f"  [DEBUG] Template usage distribution: {dict(template_usage)}")
+    logger.info(f"  [v12] UML-domain samples sent to the ensemble: {uml_ensemble_count} (bidirectional OOD correction + enhanced parameters)")
 
     n_raw_high_conf = sum(1 for (_, _, _, _, _, w1r, _) in sample_meta if w1r >= 0.85)
     n_post_ood_redirected = len(cache_results) - n_raw_high_conf
@@ -872,21 +866,21 @@ def _run_output_ensemble(router, features, general_test, args):
         ood_tag = ""
         if is_uml_grp:
             n_uml_tpl = tpl_counts.get('uml', 0)
-            ood_tag = f" [UML增强, UML模板={n_uml_tpl}条将做OOD修正]"
+            ood_tag = f" [UML enhancement: applying OOD correction to {n_uml_tpl} samples with the UML template]"
         logger.info(
-            f"    [v12 组] {e1}+{e2}: {len(items)}条, "
+            f"    [v12 group] {e1}+{e2}: {len(items)} samples, "
             f"avg_w1={avg_w1:.2f}, avg_w2={avg_w2:.2f}"
             + ood_tag
         )
     logger.info(
-        f"  样本分类: cache(w1>=0.85)={n_raw_high_conf}, "
-        f"cache(OOD修正后>={_POST_OOD_CACHE_THRESHOLD})={n_post_ood_redirected}, "
-        f"ensemble={n_ensemble}, 组数={len(ensemble_groups)}"
+        f"  Sample assignment: cache(w1>=0.85)={n_raw_high_conf}, "
+        f"cache(after OOD correction>={_POST_OOD_CACHE_THRESHOLD})={n_post_ood_redirected}, "
+        f"ensemble={n_ensemble}, groups={len(ensemble_groups)}"
     )
 
     if hasattr(args, 'quick_ensemble') and args.quick_ensemble and args.quick_ensemble > 0:
         quick_n = args.quick_ensemble
-        logger.info(f"  [快速测试] quick_ensemble={quick_n}，每组最多采样{quick_n}条")
+        logger.info(f"  [Quick test] quick_ensemble={quick_n}; sampling at most {quick_n} entries per group")
         trimmed_groups = {}
         for key, items in ensemble_groups.items():
             if len(items) > quick_n:
@@ -896,18 +890,18 @@ def _run_output_ensemble(router, features, general_test, args):
                 trimmed_groups[key] = items
         total_before = sum(len(v) for v in ensemble_groups.values())
         total_after = sum(len(v) for v in trimmed_groups.values())
-        logger.info(f"  [快速测试] 采样前={total_before}条, 采样后={total_after}条")
+        logger.info(f"  [Quick test] Before sampling={total_before}, after sampling={total_after}")
         ensemble_groups = trimmed_groups
 
     ensemble_results = {}   # {i: pred_str}
     for group_idx, ((expert1, expert2), group_items) in enumerate(ensemble_groups.items()):
         logger.info(
-            f"  Ensemble组 {group_idx+1}/{len(ensemble_groups)}: "
-            f"{expert1}+{expert2}, {len(group_items)} 条"
+            f"  Ensemble group {group_idx+1}/{len(ensemble_groups)}: "
+            f"{expert1}+{expert2}, {len(group_items)} samples"
         )
         if group_items:
             sample_prompts_debug = [item[1][:60] for item in group_items[:3]]
-            logger.debug(f"    [DEBUG] 组内前3个prompt前缀: {sample_prompts_debug}")
+            logger.debug(f"    [DEBUG] First three prompt prefixes in the group: {sample_prompts_debug}")
 
         preds = _logit_ensemble_generate_batched(
             model_with_adapters, tokenizer,
@@ -941,7 +935,7 @@ def _run_output_ensemble(router, features, general_test, args):
                         pass
             group_rougeL = np.mean(group_rougeL_scores) if group_rougeL_scores else 0.0
             logger.info(
-                f"    [DEBUG] 组 {expert1}+{expert2}: "
+                f"    [DEBUG] Group {expert1}+{expert2}: "
                 f"avg_len={avg_len:.0f}, empty={empty_count}, "
                 f"format_ok={format_ok}/{len(valid_preds)} ({format_ok/len(valid_preds)*100:.0f}%), "
                 f"ROUGE-L={group_rougeL:.4f}"
@@ -1023,8 +1017,8 @@ def _run_output_ensemble(router, features, general_test, args):
 
         if i < 5:
             logger.info(
-                f"  [DEBUG] 样本{i}: expert={expert1}+{expert2}, tpl={tpl_name}, "
-                f"pred_len={len(pred)}, pred前80: {pred[:80]!r}"
+                f"  [DEBUG] Sample {i}: expert={expert1}+{expert2}, tpl={tpl_name}, "
+                f"pred_len={len(pred)}, first 80 prediction characters: {pred[:80]!r}"
             )
 
         samples.append({
@@ -1041,19 +1035,19 @@ def _run_output_ensemble(router, features, general_test, args):
         })
 
     logger.info(
-        f"  [质量门控] ensemble样本={fallback_stats['total']}, "
-        f"格式通过={fallback_stats['passed']}, "
-        f"格式回退={fallback_stats['fallback']}, "
-        f"格式回退更优={fallback_stats['fallback_improved']}"
+        f"  [Quality gate] ensemble samples={fallback_stats['total']}, "
+        f"format passed={fallback_stats['passed']}, "
+        f"format fallback={fallback_stats['fallback']}, "
+        f"fallback improved quality={fallback_stats['fallback_improved']}"
     )
     logger.info(
-        f"  [v12质量比较] 比较次数={fallback_stats['quality_compare']}, "
-        f"缓存胜出={fallback_stats['cache_wins']}, "
-        f"ensemble胜出={fallback_stats['ensemble_wins']}"
+        f"  [v12 quality comparison] comparisons={fallback_stats['quality_compare']}, "
+        f"cache wins={fallback_stats['cache_wins']}, "
+        f"ensemble wins={fallback_stats['ensemble_wins']}"
     )
     if is_quick:
         logger.info(
-            f"  [快速测试] 未采样直接用缓存={fallback_stats['quick_no_result']}条"
+            f"  [Quick test] Unsampled entries served directly from cache={fallback_stats['quick_no_result']}"
         )
 
     del lm, model_with_adapters, tokenizer
@@ -1101,15 +1095,15 @@ def _run_output_ensemble(router, features, general_test, args):
                 except Exception:
                     pass
         logger.info(
-            f"  [DEBUG][UML-ensemble] ensemble输出={len(uml_ensemble_samples)}条, "
+            f"  [DEBUG][UML-ensemble] ensemble outputs={len(uml_ensemble_samples)}, "
             f"avg_ROUGE-L={np.mean(uml_ens_rouges):.4f}, "
             f"avg_chars={np.mean(uml_ens_lens):.0f}, "
-            f"长输出(>700chars)={sum(1 for l in uml_ens_lens if l > 700)}条"
+            f"long outputs (>700 characters)={sum(1 for l in uml_ens_lens if l > 700)}"
         )
     if uml_cache_samples:
         logger.info(
-            f"  [DEBUG][UML-cache] 缓存单专家={len(uml_cache_samples)}条 "
-            f"(w1>=0.85高置信度)"
+            f"  [DEBUG][UML-cache] cached single-expert outputs={len(uml_cache_samples)} "
+            f"(high confidence, w1>=0.85)"
         )
     # per-expert-pair ROUGE-L
     pair_scores = defaultdict(list)
@@ -1157,9 +1151,7 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
     from collections import defaultdict
     from rouge_score import rouge_scorer as rs_mod
 
-    logger.info("\n" + "=" * 60)
-    logger.info("[v13] 诊断分析 D1-D5")
-    logger.info("=" * 60)
+    logger.info("[v13] Diagnostic analysis D1-D5")
 
     diag = {
         'version': 'v13',
@@ -1211,8 +1203,8 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
             ),
         }
         logger.info(f"  [D1] H(prob1)={avg_h1:.3f}, H(prob2)={avg_h2:.3f}, H(fused)={avg_hf:.3f}")
-        logger.info(f"  [D1] 熵比 H(fused)/max(H1,H2) = {entropy_ratio:.3f} "
-                     f"{'→ 假设A成立！' if entropy_ratio > 1.3 else ''}")
+        logger.info(f"  [D1] Entropy ratio H(fused)/max(H1,H2) = {entropy_ratio:.3f} "
+                     f"{'-> Hypothesis A is supported' if entropy_ratio > 1.3 else ''}")
 
         # D1 per-pair
         d1_per_pair = {}
@@ -1242,7 +1234,7 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
             ),
         }
         logger.info(f"  [D2] avg Jaccard(top-10) = {avg_jac:.4f} "
-                     f"{'→ 极低重叠！' if avg_jac < 0.2 else ''}")
+                     f"{'-> Extremely low overlap' if avg_jac < 0.2 else ''}")
 
         # D2 per-pair
         d2_per_pair = {}
@@ -1416,15 +1408,15 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
         else 'v14: 需要更多样本运行完整诊断'
     )
 
-    logger.info("\n  [v13] === 诊断结论 ===")
+    logger.info("\n  [v13] === Diagnostic conclusions ===")
     for c in conclusions:
         logger.info(f"  → {c}")
-    logger.info(f"  推荐下一步: {diag['recommended_next_version']}")
+    logger.info(f"  Recommended next step: {diag['recommended_next_version']}")
 
     diag_path = EXP_DIR / 'debug_ensemble_diagnostics.json'
     with open(diag_path, 'w', encoding='utf-8') as f:
         json.dump(diag, f, indent=2, ensure_ascii=False, default=str)
-    logger.info(f"  诊断结果已保存: {diag_path}")
+    logger.info(f"  Diagnostic results saved to: {diag_path}")
 
 
 def _detect_template_from_prompt(prompt_str: str) -> str:
@@ -1469,7 +1461,7 @@ def _logit_ensemble_generate_batched(
         except RuntimeError as e:
             if 'out of memory' in str(e).lower():
                 logger.warning(
-                    f"  OOM (batch_size={len(batch)}), 降级到逐条推理..."
+                    f"  OOM (batch_size={len(batch)}); falling back to per-sample inference..."
                 )
                 torch.cuda.empty_cache()
                 for j, (i_s, prompt_str_s, w1_s, w2_s) in enumerate(batch):
@@ -1480,11 +1472,11 @@ def _logit_ensemble_generate_batched(
                             args
                         )
                     except Exception as inner_e:
-                        logger.warning(f"  单条回退失败 i={i_s}: {inner_e}")
+                        logger.warning(f"  Per-sample fallback failed for i={i_s}: {inner_e}")
                         pred = ''
                     all_preds[batch_start + j] = pred
             else:
-                logger.error(f"  批量推理非 OOM 错误: {e}")
+                logger.error(f"  Non-OOM error during batched inference: {e}")
                 for j in range(len(batch)):
                     all_preds[batch_start + j] = ''
 
@@ -1571,16 +1563,16 @@ def _process_minibatch(
 
     if mismatch_corrected > 0:
         logger.info(
-            f"    [OOD修正] {mismatch_corrected}/{B}条样本已修正权重 "
+            f"    [OOD correction] Adjusted weights for {mismatch_corrected}/{B} samples "
             f"(expert1={expert1}, expert2={expert2}), "
-            f"明细: {dict(ood_correction_detail)}"
+            f"details: {dict(ood_correction_detail)}"
         )
 
     logger.info(
         f"    [minibatch] B={B}, expert1={expert1}(T={T1}), expert2={expert2}(T={T2}), "
         f"max_new_tokens={max_new_tokens}, soft_limit={_SOFT_LIMIT}, "
         f"eos_boost_rate={_EOS_BOOST_RATE}"
-        + (f" [UML增强: max={max_new_tokens},sl={_SOFT_LIMIT},rate={_EOS_BOOST_RATE}]"
+        + (f" [UML enhancement: max={max_new_tokens},sl={_SOFT_LIMIT},rate={_EOS_BOOST_RATE}]"
            if _is_uml_involved else "")
     )
 
@@ -1638,7 +1630,7 @@ def _process_minibatch(
             logits1_init = out1.logits[:, -1, :]   # (B, vocab)
             past_kv1 = out1.past_key_values
     except Exception as e:
-        logger.warning(f"  prefill batch expert1={expert1} 失败: {e}")
+        logger.warning(f"  Prefill batch failed for expert1={expert1}: {e}")
 
     try:
         model_with_adapters.set_adapter(expert2)
@@ -1649,7 +1641,7 @@ def _process_minibatch(
             logits2_init = out2.logits[:, -1, :]   # (B, vocab)
             past_kv2 = out2.past_key_values
     except Exception as e:
-        logger.warning(f"  prefill batch expert2={expert2} 失败: {e}")
+        logger.warning(f"  Prefill batch failed for expert2={expert2}: {e}")
 
     if logits1_init is None and logits2_init is None:
         return [''] * B
@@ -1718,7 +1710,7 @@ def _process_minibatch(
                     logits1  = out1.logits[:, -1, :]   # (B, vocab)
                     past_kv1 = out1.past_key_values
             except Exception as e:
-                logger.warning(f"  decode step={decode_step} expert1={expert1} batch 失败: {e}")
+                logger.warning(f"  Decode batch failed at step={decode_step} for expert1={expert1}: {e}")
                 past_kv1 = None
 
         if past_kv2 is not None:
@@ -1734,7 +1726,7 @@ def _process_minibatch(
                     logits2  = out2.logits[:, -1, :]   # (B, vocab)
                     past_kv2 = out2.past_key_values
             except Exception as e:
-                logger.warning(f"  decode step={decode_step} expert2={expert2} batch 失败: {e}")
+                logger.warning(f"  Decode batch failed at step={decode_step} for expert2={expert2}: {e}")
                 past_kv2 = None
 
         if logits1 is None and logits2 is None:
@@ -1902,7 +1894,7 @@ def _logit_ensemble_generate(model_with_adapters, tokenizer,
             logits1_init = out1.logits[:, -1, :]   # (1, vocab_size)
             past_kv1 = out1.past_key_values
     except Exception as e:
-        logger.warning(f"  prefill expert1={expert1} 失败: {e}")
+        logger.warning(f"  Prefill failed for expert1={expert1}: {e}")
 
     try:
         model_with_adapters.set_adapter(expert2)
@@ -1912,7 +1904,7 @@ def _logit_ensemble_generate(model_with_adapters, tokenizer,
             logits2_init = out2.logits[:, -1, :]   # (1, vocab_size)
             past_kv2 = out2.past_key_values
     except Exception as e:
-        logger.warning(f"  prefill expert2={expert2} 失败: {e}")
+        logger.warning(f"  Prefill failed for expert2={expert2}: {e}")
 
     if logits1_init is None and logits2_init is None:
         return ''
@@ -1959,7 +1951,7 @@ def _logit_ensemble_generate(model_with_adapters, tokenizer,
                     logits1 = out1.logits[:, -1, :]
                     past_kv1 = out1.past_key_values
             except Exception as e:
-                logger.warning(f"  step={step} expert1={expert1} 推理失败: {e}")
+                logger.warning(f"  Inference failed at step={step} for expert1={expert1}: {e}")
                 past_kv1 = None
 
         if past_kv2 is not None:
@@ -1975,7 +1967,7 @@ def _logit_ensemble_generate(model_with_adapters, tokenizer,
                     logits2 = out2.logits[:, -1, :]
                     past_kv2 = out2.past_key_values
             except Exception as e:
-                logger.warning(f"  step={step} expert2={expert2} 推理失败: {e}")
+                logger.warning(f"  Inference failed at step={step} for expert2={expert2}: {e}")
                 past_kv2 = None
 
         if logits1 is None and logits2 is None:
@@ -2082,7 +2074,7 @@ def _load_all_expert_caches_for_general():
                 'general_via_text_predictions.json'
             )
             if cache is None:
-                logger.warning("  [缓存] text-on-general 主路径未找到，尝试 exp9_oracle 回退")
+                logger.warning("  [Cache] Primary text-on-general cache not found; trying exp9_oracle fallback")
                 cache = load_predictions_cache(
                     CACHE_DIR / 'exp9_oracle',
                     'text_expert_on_general_predictions.json'
@@ -2095,7 +2087,7 @@ def _load_all_expert_caches_for_general():
         if cache:
             caches[expert] = cache.get('samples', [])
         else:
-            logger.warning(f"  [缓存] 专家 '{expert}' 在 general 域的缓存未找到，该专家将被跳过")
+            logger.warning(f"  [Cache] General-domain cache not found for expert '{expert}'; skipping this expert")
     return caches
 
 
@@ -2108,9 +2100,7 @@ def _metrics_from_samples(samples, use_bertscore=False):
 
 def run_phase3(args, phase1_results, phase2_results, exp9_phase1, exp9_phase2):
     """Run phase3."""
-    logger.info("=" * 80)
-    logger.info("Phase 3: 对比分析与可视化")
-    logger.info("=" * 80)
+    logger.info("Phase 3: Comparative analysis and visualization")
 
     PLOT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -2160,7 +2150,7 @@ def run_phase3(args, phase1_results, phase2_results, exp9_phase1, exp9_phase2):
     )
 
     _generate_report(phase1_results, phase2_results, exp9_phase1, exp9_phase2)
-    logger.info(f"\n全部图表已保存至: {PLOT_DIR}")
+    logger.info(f"\nAll plots saved to: {PLOT_DIR}")
 
 
 def _plot_router_training(phase1_results):
@@ -2323,7 +2313,7 @@ def _plot_gap_reduction(hard_rougeL, oracle_rougeL, soft_rougeL, router_rougeL, 
     """Plot gap reduction."""
     gap = oracle_rougeL - hard_rougeL
     if gap <= 0:
-        logger.warning("  Oracle-Hard Gap<=0，跳过Gap缩小率图")
+        logger.warning("  Oracle-Hard gap <= 0; skipping the gap-reduction plot")
         return
 
     strategies = []
@@ -2400,9 +2390,9 @@ def _plot_general_domain_deep_dive(phase2_results, exp9_phase1):
                     total = general_row.sum()
                     if total > 0:
                         router_pct = (general_row / total * 100).tolist()
-                        logger.info(f"  [修复] 从混淆矩阵重建General域路由分布: {dict(zip(experts, router_pct))}")
+                        logger.info(f"  [Fallback] Reconstructed the general-domain routing distribution from the confusion matrix: {dict(zip(experts, router_pct))}")
         except Exception as e:
-            logger.warning(f"  [修复] 无法从混淆矩阵重建路由分布: {e}")
+            logger.warning(f"  [Fallback] Failed to reconstruct the routing distribution from the confusion matrix: {e}")
 
     bars1 = ax1.bar(x - width/2, hard_dist, width, label='Hard Routing',
                     color='#3498db', alpha=0.8, edgecolor='white')
@@ -2586,7 +2576,7 @@ def _generate_report(phase1_results, phase2_results, exp9_phase1, exp9_phase2):
     report_path = EXP_DIR / 'report.md'
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
-    logger.info(f"报告已保存: {report_path}")
+    logger.info(f"Report saved to: {report_path}")
 
 
 
@@ -2613,15 +2603,13 @@ def main():
                              '建议配合 --quick-ensemble 8 使用。')
     args = parser.parse_args()
 
-    logger.info("=" * 80)
-    logger.info("实验10：高级路由策略 — 学习路由器 vs 输出集成")
-    logger.info(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"参数: phase={args.phase}, all={args.all}, test_mode={args.test_mode}, quick_ensemble={args.quick_ensemble}, debug_ensemble={args.debug_ensemble}")
-    logger.info("=" * 80)
+    logger.info("Experiment 10: Advanced routing strategies - Learned Router versus Output Ensemble")
+    logger.info(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Arguments: phase={args.phase}, all={args.all}, test_mode={args.test_mode}, quick_ensemble={args.quick_ensemble}, debug_ensemble={args.debug_ensemble}")
 
     exp9_phase1, exp9_phase2 = _load_exp9_results()
-    logger.info(f"Exp9 Hard Routing平均: {exp9_phase1.get('strategies',{}).get('Hard Routing',{}).get('average',0):.4f}")
-    logger.info(f"Exp9 Oracle平均: {exp9_phase1.get('strategies',{}).get('Oracle Routing',{}).get('average',0):.4f}")
+    logger.info(f"Experiment 9 Hard Routing mean: {exp9_phase1.get('strategies',{}).get('Hard Routing',{}).get('average',0):.4f}")
+    logger.info(f"Experiment 9 Oracle mean: {exp9_phase1.get('strategies',{}).get('Oracle Routing',{}).get('average',0):.4f}")
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -2638,7 +2626,7 @@ def main():
                 with open(p1_path, 'r') as f:
                     phase1_results = json.load(f)
             else:
-                logger.error("Phase 1结果不存在，请先运行 --phase 1")
+                logger.error("Phase 1 results not found; run --phase 1 first")
                 return
         phase2_results = run_phase2(args, phase1_results, exp9_phase1)
 
@@ -2665,10 +2653,8 @@ def main():
         final_results['phase2'] = phase2_results
     save_experiment_results(final_results, EXP_DIR, 'results.json')
 
-    logger.info("\n" + "=" * 80)
-    logger.info(f"实验10完成 | 时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"结果目录: {EXP_DIR}")
-    logger.info("=" * 80)
+    logger.info(f"Experiment 10 completed | time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Results directory: {EXP_DIR}")
 
 
 if __name__ == '__main__':

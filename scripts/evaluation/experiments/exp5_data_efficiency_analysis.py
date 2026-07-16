@@ -91,21 +91,21 @@ def train_for_fraction(method, fraction, train_data, args):
     ckpt_path = _get_ckpt_path(method, fraction)
 
     if fraction == 1.00 and ckpt_path.exists():
-        logger.info(f'{method}/{_fraction_tag(fraction)}: 复用已有检查点 {ckpt_path}')
+        logger.info(f'{method}/{_fraction_tag(fraction)}: reusing checkpoint {ckpt_path}')
         return
 
     retrain_targets = set(args.retrain_only.split(',')) if getattr(args, 'retrain_only', None) else set()
     target_key = f'{method}_{_fraction_tag(fraction)}'
     if ckpt_path.exists() and not args.force_retrain and target_key not in retrain_targets:
-        logger.info(f'{method}/{_fraction_tag(fraction)}: 检查点已存在，跳过训练')
+        logger.info(f'{method}/{_fraction_tag(fraction)}: checkpoint already exists; skipping training')
         return
 
-    logger.info(f'训练 {method}，数据比例 {_fraction_tag(fraction)} -> {ckpt_path}')
+    logger.info(f'Training {method} with data fraction {_fraction_tag(fraction)} -> {ckpt_path}')
 
     n_train = max(1, int(len(train_data) * fraction))
     random.seed(42)
     subset = random.sample(train_data, n_train)
-    logger.info(f'使用 {len(subset)} 条训练样本（比例={fraction}）')
+    logger.info(f'Using {len(subset)} training samples (fraction={fraction})')
 
     trainer = None
     try:
@@ -140,7 +140,7 @@ def train_for_fraction(method, fraction, train_data, args):
             trainer.setup_model()
             trainer.train()
 
-        logger.info(f'训练完成: {ckpt_path}')
+        logger.info(f'Training completed: {ckpt_path}')
     finally:
         _release_gpu(trainer)
 
@@ -155,15 +155,15 @@ def run_inference(method, fraction, test_data, args):
     retrain_targets = set(args.retrain_only.split(',')) if getattr(args, 'retrain_only', None) else set()
     target_key = f'{method}_{tag}'
     if cached and not args.force_regenerate and target_key not in retrain_targets:
-        logger.info(f'{method}/{tag}: 从缓存加载')
+        logger.info(f'{method}/{tag}: loading from cache')
         return cached
 
     ckpt_path = _get_ckpt_path(method, fraction)
     if not ckpt_path.exists():
-        logger.warning(f'{method}/{tag}: 检查点不存在 {ckpt_path}')
+        logger.warning(f'{method}/{tag}: checkpoint not found: {ckpt_path}')
         return None
 
-    logger.info(f'{method}/{tag}: 从 {ckpt_path} 执行推理')
+    logger.info(f'{method}/{tag}: running inference from {ckpt_path}')
 
     if method in ('lora_moe', 'full_finetuning'):
         from src.experts import TextExpert
@@ -173,7 +173,7 @@ def run_inference(method, fraction, test_data, args):
         expert = GeneralExpert(lora_path=str(ckpt_path), use_4bit=True)
 
     if not expert.load_model():
-        logger.error(f'{method}/{tag}: 模型加载失败')
+        logger.error(f'{method}/{tag}: failed to load model')
         return None
 
     inputs = [d['input'] for d in test_data]
@@ -185,7 +185,7 @@ def run_inference(method, fraction, test_data, args):
     try:
         predictions = expert.batch_generate_instruction(inputs, batch_size=4)
     except Exception as e:
-        logger.error(f'{method}/{tag}: 生成失败: {e}')
+        logger.error(f'{method}/{tag}: generation failed: {e}')
         expert.unload_model()
         return None
     finally:
@@ -239,22 +239,20 @@ def plot_learning_curves(fraction_results, exp_dir):
     path = plots_dir / 'learning_curves.png'
     plt.savefig(path, dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'学习曲线图已保存: {path}')
+    logger.info(f'Learning curve plot saved to: {path}')
 
 
 def run(args):
     """Run the workflow."""
     global train_data_global
 
-    logger.info('=' * 80)
-    logger.info('实验5: 数据效率分析')
-    logger.info('=' * 80)
+    logger.info('Experiment 5: Data efficiency analysis')
 
-    logger.info('加载文本数据集...')
+    logger.info('Loading text dataset...')
     all_data = TextDatasetLoader().load_csv_files()
     train_data, _, test_data = split_dataset_for_expert(all_data, 'text')
     train_data_global = train_data
-    logger.info(f'训练集={len(train_data)}, 测试集={len(test_data)}')
+    logger.info(f'Training samples={len(train_data)}, test samples={len(test_data)}')
 
     results = {
         'experiment': 'exp5_data_efficiency_analysis',
@@ -267,7 +265,7 @@ def run(args):
     fraction_results = {}
 
     for method in METHODS:
-        logger.info(f'\n=== 方法: {method} ===')
+        logger.info(f'\n=== Method: {method} ===')
         for fraction in FRACTIONS:
             tag = _fraction_tag(fraction)
             label = f'{method}/{tag}'
@@ -281,13 +279,13 @@ def run(args):
             try:
                 train_for_fraction(method, fraction, train_data, args)
             except Exception as e:
-                logger.error(f'{label}: 训练失败: {e}')
+                logger.error(f'{label}: training failed: {e}')
                 logger.error(traceback.format_exc())
 
             try:
                 cached = run_inference(method, fraction, test_data, args)
                 if cached is None:
-                    logger.warning(f'{label}: 已跳过')
+                    logger.warning(f'{label}: skipped')
                     continue
 
                 preds = [s['prediction'] for s in cached['samples']]
@@ -312,7 +310,7 @@ def run(args):
                     f'F1={b.get("f1_score", 0):.4f}'
                 )
             except Exception as e:
-                logger.error(f'{label}: 评估失败: {e}')
+                logger.error(f'{label}: evaluation failed: {e}')
                 logger.error(traceback.format_exc())
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
@@ -321,16 +319,13 @@ def run(args):
     try:
         plot_learning_curves(fraction_results, EXP_DIR)
     except Exception as e:
-        logger.warning(f'绘图失败: {e}')
+        logger.warning(f'Plotting failed: {e}')
 
-    logger.info('\n' + '=' * 80)
-    logger.info('数据效率汇总')
-    logger.info('=' * 80)
+    logger.info('Data efficiency summary')
     header = f'{"方法":<18}'
     for f in FRACTIONS:
         header += f' {_fraction_tag(f):>8}'
     logger.info(header + '  (ROUGE-L)')
-    logger.info('-' * 70)
     for method in METHODS:
         row = f'{method:<18}'
         for f in FRACTIONS:
@@ -338,7 +333,7 @@ def run(args):
             val = fraction_results.get(key, {}).get('generation_quality', {}).get('rougeL', 0)
             row += f' {val:>8.4f}'
         logger.info(row)
-    logger.info(f'\n结果已保存至: {EXP_DIR}')
+    logger.info(f'\nResults saved to: {EXP_DIR}')
 
 
 def main():
