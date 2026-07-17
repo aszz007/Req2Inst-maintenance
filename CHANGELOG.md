@@ -23,8 +23,17 @@ policy will be adopted before the first public release.
   artifacts rather than source-controlled files.
 - Current Qwen3-8B/Qwen3-VL-8B model policy is documented without changing
   historical code metadata.
+- Source comments, docstrings, and 1,492 safe diagnostic messages are
+  standardized in English without changing prompts, result labels, generated
+  outputs, log levels, or control flow.
 - Legacy generated artifacts and superseded dependency notes are removed from
   the current source snapshot while remaining recoverable from Git history.
+
+### Removed
+
+- The obsolete `run_all_training.sh` workstation launcher.
+- 236 separator-only log calls that added console noise without diagnostic
+  content.
 
 ## [0.1.0] - Research prototype
 
