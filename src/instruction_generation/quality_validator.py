@@ -1,19 +1,4 @@
-"""
-Quality Validator - Instruction Quality Validation
-质量验证器 - 指令质量验证
-
-功能:
-  - 验证指令是否符合三段式格式
-  - 检查格式完整性和内容有效性
-  - 提供详细的验证报告
-  - 支持批量验证
-
-环境要求: instruction_generator
-依赖: 无特殊依赖
-
-作者: Quality Validation System
-日期: 2025-02-06
-"""
+"""Validate the three-part instruction format and basic content quality."""
 
 import re
 from typing import Dict, List, Tuple, Optional
@@ -26,7 +11,7 @@ logger = get_logger('instruction_generation.quality_validator')
 
 @dataclass
 class ValidationResult:
-    """验证结果数据类"""
+    """Store instruction-validation results."""
     is_valid: bool
     has_definition: bool
     has_emphasis: bool
@@ -41,38 +26,18 @@ class ValidationResult:
 
 
 class QualityValidator:
-    """
-    质量验证器
-
-    验证指令是否符合三段式格式要求
-    """
+    """Validate instruction structure and content quality."""
 
     def __init__(self, strict_mode: bool = False):
-        """
-        初始化验证器
-
-        Args:
-            strict_mode: 严格模式
-                - False: Definition必须有内容,Emphasis/Avoid可以是"-"
-                - True: 三个部分都必须有实际内容
-        """
+        """Initialize the instance."""
         self.strict_mode = strict_mode
-        logger.info(f"质量验证器初始化完成 - 严格模式: {strict_mode}")
+        logger.info(f"Quality validator initialized - strict mode: {strict_mode}")
 
     def validate_instruction(self, instruction: str) -> ValidationResult:
-        """
-        验证单条指令
-
-        Args:
-            instruction: 指令文本
-
-        Returns:
-            ValidationResult: 验证结果
-        """
+        """Validate instruction."""
         errors = []
         warnings = []
 
-        # 初始化结果
         result = {
             'is_valid': False,
             'has_definition': False,
@@ -85,15 +50,12 @@ class QualityValidator:
             'format_score': 0.0
         }
 
-        # 基本检查
         if not instruction or len(instruction.strip()) < 20:
             errors.append("指令内容过短或为空")
             return ValidationResult(**result, errors=errors, warnings=warnings)
 
-        # 按行分割
         lines = instruction.split('\n')
 
-        # 查找三段式的三个部分
         definition_line = None
         emphasis_line = None
         avoid_line = None
@@ -113,40 +75,33 @@ class QualityValidator:
                 avoid_line = line_stripped
                 result['has_things_to_avoid'] = True
 
-        # 检查Definition
         if definition_line:
             content = definition_line.split('Definition:', 1)[1].strip()
 
-            # Definition不能只是"-"或为空
             if content and content != '-':
                 result['definition_has_content'] = True
             else:
                 errors.append("Definition没有实际内容(不能只是'-')")
 
-            # 检查是否以"In this task"开头
             if content.lower().startswith('in this task'):
                 result['definition_starts_with_in_this_task'] = True
             else:
                 warnings.append("Definition建议以'In this task'开头")
 
-            # 检查Definition长度
             if len(content) < 10:
                 warnings.append("Definition内容过短")
         else:
             errors.append("缺少Definition部分")
 
-        # 检查Emphasis & Caution
         if emphasis_line:
             content = emphasis_line.split(':', 1)[1].strip()
 
             if self.strict_mode:
-                # 严格模式:必须有实际内容
                 if content and content != '-':
                     result['emphasis_is_valid'] = True
                 else:
                     errors.append("Emphasis & Caution必须有实际内容(严格模式)")
             else:
-                # 非严格模式:有内容或显式"-"都可以
                 if content:
                     result['emphasis_is_valid'] = True
                     if content == '-':
@@ -154,18 +109,15 @@ class QualityValidator:
         else:
             errors.append("缺少Emphasis & Caution部分")
 
-        # 检查Things to Avoid
         if avoid_line:
             content = avoid_line.split(':', 1)[1].strip()
 
             if self.strict_mode:
-                # 严格模式:必须有实际内容
                 if content and content != '-':
                     result['avoid_is_valid'] = True
                 else:
                     errors.append("Things to Avoid必须有实际内容(严格模式)")
             else:
-                # 非严格模式:有内容或显式"-"都可以
                 if content:
                     result['avoid_is_valid'] = True
                     if content == '-':
@@ -173,7 +125,6 @@ class QualityValidator:
         else:
             errors.append("缺少Things to Avoid部分")
 
-        # 计算格式分数(0-1)
         score_components = [
             result['has_definition'],
             result['definition_has_content'],
@@ -185,9 +136,7 @@ class QualityValidator:
         ]
         result['format_score'] = sum(score_components) / len(score_components)
 
-        # 综合判断是否有效
         if self.strict_mode:
-            # 严格模式:所有部分都必须有实际内容
             result['is_valid'] = (
                     result['definition_has_content'] and
                     result['has_emphasis'] and
@@ -196,7 +145,6 @@ class QualityValidator:
                     result['avoid_is_valid']
             )
         else:
-            # 非严格模式:Definition必须有内容,Emphasis/Avoid存在即可
             result['is_valid'] = (
                     result['definition_has_content'] and
                     result['has_emphasis'] and
@@ -209,16 +157,8 @@ class QualityValidator:
             self,
             instructions: List[str]
     ) -> Tuple[List[ValidationResult], Dict]:
-        """
-        批量验证指令
-
-        Args:
-            instructions: 指令列表
-
-        Returns:
-            tuple: (验证结果列表, 统计摘要字典)
-        """
-        logger.info(f"批量验证 - 共{len(instructions)}条指令")
+        """Validate instructions in batches."""
+        logger.info(f"Batch validation - {len(instructions)} instructions")
 
         results = []
         for i, instruction in enumerate(instructions, 1):
@@ -226,25 +166,16 @@ class QualityValidator:
             results.append(result)
 
             if not result.is_valid:
-                logger.debug(f"指令{i}验证失败: {result.errors}")
+                logger.debug(f"Instruction {i} failed validation: {result.errors}")
 
-        # 生成统计摘要
         summary = self._generate_summary(results)
 
-        logger.info(f"验证完成 - 通过率: {summary['pass_rate']:.2%}")
+        logger.info(f"Validation complete - pass rate: {summary['pass_rate']:.2%}")
 
         return results, summary
 
     def _generate_summary(self, results: List[ValidationResult]) -> Dict:
-        """
-        生成验证统计摘要
-
-        Args:
-            results: 验证结果列表
-
-        Returns:
-            dict: 统计摘要
-        """
+        """Generate summary."""
         total = len(results)
 
         if total == 0:
@@ -264,7 +195,6 @@ class QualityValidator:
             'failed': failed,
             'pass_rate': passed / total,
 
-            # 分项统计
             'definition_present_rate': sum(1 for r in results if r.has_definition) / total,
             'definition_has_content_rate': sum(1 for r in results if r.definition_has_content) / total,
             'definition_starts_with_in_this_task_rate': sum(
@@ -276,38 +206,26 @@ class QualityValidator:
             'avoid_present_rate': sum(1 for r in results if r.has_things_to_avoid) / total,
             'avoid_valid_rate': sum(1 for r in results if r.avoid_is_valid) / total,
 
-            # 格式分数
             'avg_format_score': sum(r.format_score for r in results) / total,
             'min_format_score': min(r.format_score for r in results),
             'max_format_score': max(r.format_score for r in results),
 
-            # 错误统计
             'total_errors': sum(len(r.errors) for r in results),
             'total_warnings': sum(len(r.warnings) for r in results),
 
-            # 常见错误
             'common_errors': self._count_common_errors(results)
         }
 
         return summary
 
     def _count_common_errors(self, results: List[ValidationResult]) -> Dict[str, int]:
-        """
-        统计常见错误
-
-        Args:
-            results: 验证结果列表
-
-        Returns:
-            dict: 错误类型及其出现次数
-        """
+        """Count common validation errors."""
         error_counts = {}
 
         for result in results:
             for error in result.errors:
                 error_counts[error] = error_counts.get(error, 0) + 1
 
-        # 按出现次数排序
         sorted_errors = dict(
             sorted(error_counts.items(), key=lambda x: x[1], reverse=True)
         )
@@ -320,64 +238,52 @@ class QualityValidator:
             summary: Dict,
             show_details: bool = False
     ):
-        """
-        打印验证报告
-
-        Args:
-            results: 验证结果列表
-            summary: 统计摘要
-            show_details: 是否显示详细信息
-        """
+        """Print validation report."""
         print("\n" + "=" * 80)
-        print("指令质量验证报告")
+        print("Instruction Quality Validation Report")
         print("=" * 80)
 
-        # 总体统计
-        print(f"\n[总体统计]")
-        print(f"  总计:     {summary['total']} 条")
-        print(f"  通过:     {summary['passed']} 条")
-        print(f"  失败:     {summary['failed']} 条")
-        print(f"  通过率:   {summary['pass_rate']:.2%}")
+        print(f"\n[Overall Statistics]")
+        print(f"  Total:     {summary['total']}")
+        print(f"  Passed:    {summary['passed']}")
+        print(f"  Failed:    {summary['failed']}")
+        print(f"  Pass rate: {summary['pass_rate']:.2%}")
 
-        # 格式分数
-        print(f"\n[格式分数]")
-        print(f"  平均分数: {summary['avg_format_score']:.4f}")
-        print(f"  最高分数: {summary['max_format_score']:.4f}")
-        print(f"  最低分数: {summary['min_format_score']:.4f}")
+        print(f"\n[Format Scores]")
+        print(f"  Average score: {summary['avg_format_score']:.4f}")
+        print(f"  Maximum score: {summary['max_format_score']:.4f}")
+        print(f"  Minimum score: {summary['min_format_score']:.4f}")
 
-        # 分项统计
-        print(f"\n[分项统计]")
-        print(f"  Definition存在率:   {summary['definition_present_rate']:.2%}")
-        print(f"  Definition有效率:   {summary['definition_has_content_rate']:.2%}")
-        print(f"  Emphasis存在率:     {summary['emphasis_present_rate']:.2%}")
-        print(f"  Emphasis有效率:     {summary['emphasis_valid_rate']:.2%}")
-        print(f"  Avoid存在率:        {summary['avoid_present_rate']:.2%}")
-        print(f"  Avoid有效率:        {summary['avoid_valid_rate']:.2%}")
+        print(f"\n[Component Statistics]")
+        print(f"  Definition presence rate:   {summary['definition_present_rate']:.2%}")
+        print(f"  Definition valid-content rate:   {summary['definition_has_content_rate']:.2%}")
+        print(f"  Emphasis presence rate:     {summary['emphasis_present_rate']:.2%}")
+        print(f"  Emphasis validity rate:     {summary['emphasis_valid_rate']:.2%}")
+        print(f"  Avoid presence rate:        {summary['avoid_present_rate']:.2%}")
+        print(f"  Avoid validity rate:        {summary['avoid_valid_rate']:.2%}")
 
-        # 错误统计
-        print(f"\n[错误统计]")
-        print(f"  总错误数:   {summary['total_errors']}")
-        print(f"  总警告数:   {summary['total_warnings']}")
+        print(f"\n[Error and Warning Statistics]")
+        print(f"  Total errors:   {summary['total_errors']}")
+        print(f"  Total warnings:   {summary['total_warnings']}")
 
         if summary['common_errors']:
-            print(f"\n[常见错误Top 5]")
+            print(f"\n[Top 5 Common Errors]")
             for i, (error, count) in enumerate(list(summary['common_errors'].items())[:5], 1):
-                print(f"  {i}. {error}: {count}次")
+                print(f"  {i}. {error}: {count} occurrences")
 
-        # 详细信息
         if show_details and results:
-            print(f"\n[详细信息]")
-            for i, result in enumerate(results[:10], 1):  # 只显示前10条
-                print(f"\n指令 {i}:")
-                print(f"  有效: {result.is_valid}")
-                print(f"  分数: {result.format_score:.4f}")
+            print(f"\n[Details]")
+            for i, result in enumerate(results[:10], 1):
+                print(f"\nInstruction {i}:")
+                print(f"  Valid: {result.is_valid}")
+                print(f"  Score: {result.format_score:.4f}")
                 if result.errors:
-                    print(f"  错误: {', '.join(result.errors)}")
+                    print(f"  Errors: {', '.join(result.errors)}")
                 if result.warnings:
-                    print(f"  警告: {', '.join(result.warnings)}")
+                    print(f"  Warnings: {', '.join(result.warnings)}")
 
             if len(results) > 10:
-                print(f"\n  ... (还有 {len(results) - 10} 条)")
+                print(f"\n  ... ({len(results) - 10} more entries)")
 
         print("=" * 80 + "\n")
 
@@ -385,15 +291,7 @@ class QualityValidator:
             self,
             instructions: List[str]
     ) -> Tuple[List[str], List[str]]:
-        """
-        过滤出有效的指令
-
-        Args:
-            instructions: 指令列表
-
-        Returns:
-            tuple: (有效指令列表, 无效指令列表)
-        """
+        """Filter valid instructions."""
         valid = []
         invalid = []
 
@@ -404,6 +302,6 @@ class QualityValidator:
             else:
                 invalid.append(instruction)
 
-        logger.info(f"过滤完成 - 有效: {len(valid)}, 无效: {len(invalid)}")
+        logger.info(f"Filtering complete - valid: {len(valid)}, invalid: {len(invalid)}")
 
         return valid, invalid

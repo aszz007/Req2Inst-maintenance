@@ -1,34 +1,4 @@
-"""
-Automated Instruction Generation Script
-自动化指令生成脚本
-
-功能:
-  - 扫描inputs/目录下的所有输入文件
-  - 自动识别文件类型（文本/图像/UML）
-  - 对于原始图像/UML：自动调用识别脚本生成JSON描述
-  - 对于文本/JSON：直接读取
-  - 使用MoE系统生成众包指令
-  - 保存结果到outputs/generated_instructions/
-
-环境要求: instruction_generator (统一Conda环境，transformers==4.57.0)
-  运行前请先激活环境: conda activate instruction_generator
-
-用法:
-  # 处理inputs/目录下的所有文件
-  python scripts/inference/generate_instructions.py
-
-  # 处理指定目录
-  python scripts/inference/generate_instructions.py --input-dir path/to/inputs
-
-  # 指定输出格式
-  python scripts/inference/generate_instructions.py --output-format json
-
-  # 指定vision模型版本
-  python scripts/inference/generate_instructions.py --vision-version qwen3
-
-作者: Inference System
-日期: 2025-02-06
-"""
+"""Generate crowdsourcing instructions from text, image, or UML inputs."""
 
 import argparse
 import json
@@ -349,14 +319,11 @@ def main():
     """Main function"""
     args = parse_args()
 
-    logger.info("=" * 80)
     logger.info("Automated Instruction Generation System")
-    logger.info("=" * 80)
     logger.info(f"Output Format: {args.output_format}")
     logger.info(f"Vision Model Version: {args.vision_version}")
     if args.expert_variant:
         logger.info(f"Expert Variant: {args.expert_variant}")
-    logger.info("=" * 80)
 
     # Determine input directory
     path_cfg = get_path_config()
@@ -454,9 +421,7 @@ def main():
         return
 
     # Generate instructions
-    logger.info("\n" + "=" * 80)
     logger.info("Generating Instructions")
-    logger.info("=" * 80)
 
     results = []
     success_count = 0
@@ -500,9 +465,7 @@ def main():
             })
 
     # Save results
-    logger.info("\n" + "=" * 80)
     logger.info("Saving Results")
-    logger.info("=" * 80)
 
     output_dir = path_cfg.GENERATED_INSTRUCTIONS_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -552,9 +515,7 @@ def main():
     logger.info(f"  - Main: {output_file}")
     logger.info(f"  - Detailed JSON: {json_file}")
 
-    logger.info("\n" + "=" * 80)
     logger.info("Generation Summary")
-    logger.info("=" * 80)
     logger.info(f"Total Processed: {len(results)}")
     logger.info(f"Successful: {success_count}")
     logger.info(f"Failed: {len(results) - success_count}")
@@ -568,9 +529,7 @@ def main():
             percentage = stats['expert_usage_percentage'][expert]
             logger.info(f"  - {expert}: {count} ({percentage:.1f}%)")
 
-    logger.info("=" * 80)
     logger.info("Instruction generation completed!")
-    logger.info("=" * 80)
 
 
 if __name__ == "__main__":

@@ -1,15 +1,4 @@
-"""
-众包指令自动生成脚本 - UML用例图版本
-基于UML用例图JSON数据批量生成众包业务逻辑实现指令
-
-优化要点:
-1. 专门处理UML用例图结构化数据
-2. 数据清洗：移除无关position字段
-3. Few-shot学习：包含高质量UML示例
-4. 单条处理高质量：BATCH_SIZE=1
-5. ✨ 增强生成检测稳定性（支持长响应+瞬间生成）
-6. ✨ 修复刷新计数bug（每条后自动刷新）
-"""
+"""Generate UML-domain crowdsourcing instructions with browser-assisted batching."""
 
 import os
 import time
@@ -25,25 +14,20 @@ from datetime import datetime
 import chardet
 import json
 
-# ==================== 配置参数 ====================
 CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 DATASET_PATH = r"dataset/uml"
 GPT_URL = "https://sass-node1.chatshare.biz/"
 
-# ✨ 修改：单个CSV文件
 CSV_FILE = "uml_dataset.csv"
 
-# ✨ 修改：优化批次参数
-BATCH_SIZE = 1  # 每批1条，质量优先
-REFRESH_INTERVAL = 1  # 每1条开启新对话（每批都刷新）
+BATCH_SIZE = 1
+REFRESH_INTERVAL = 1
 CHECK_INTERVAL = 100
-TEST_MODE_LIMIT = 10  # 测试模式：每个领域随机1条，总共10条
+TEST_MODE_LIMIT = 10
 
-# ✨ 新增：响应等待时间配置
-WAIT_NEW_RESPONSE_TIMEOUT = 60  # 等待新回复最多60秒（应对长响应）
-CONTENT_STABLE_CHECKS = 3  # 内容稳定性检查次数
+WAIT_NEW_RESPONSE_TIMEOUT = 60
+CONTENT_STABLE_CHECKS = 3
 
-# ==================== 10个领域的优质示例库 ====================
 DOMAIN_EXAMPLES = {
     "ecommerce": {
         "json": """{
@@ -266,7 +250,6 @@ Things to Avoid: Do not use actor position values to determine business logic or
     }
 }
 
-# ✨ System Prompt (统一使用英文版本，参考uml_template.py)
 SYSTEM_PROMPT = """You are a software architecture and crowdsourcing task design expert. Based on the input UML Use Case Diagram structured data (JSON format), write an English task instruction for crowdsourcing workers.
 
 Core Principles:
@@ -305,8 +288,8 @@ Emphasis & Caution: ...
 Things to Avoid: ...
 """
 
-# ==================== 工具函数 ====================
 class GPTAutomator:
+    """Automate browser-assisted prompt submission and response collection."""
     def __init__(self, test_mode=True):
         self.test_mode = test_mode
         self.driver = None
@@ -314,25 +297,22 @@ class GPTAutomator:
         self.processed_count = 0
         self.error_log = []
 
-        # 【优化】缓存成功的选择器
         self.cached_input_selector = None
         self.cached_button_selector = None
 
-        # 【新增】记录发送前的回复数量，避免检测到旧回复
         self.response_count_before_send = 0
 
-        # ✨ 【新增】批次计数器（修复刷新bug）
         self.batches_since_refresh = 0
 
     def init_driver(self):
-        """初始化Chrome浏览器"""
+        """Initialize the browser driver."""
         print("\n" + "="*60)
-        print("正在初始化浏览器...")
+        print("Initializing browser...")
         print("="*60)
 
         if not os.path.exists(CHROME_PATH):
-            raise FileNotFoundError(f"Chrome浏览器路径不存在: {CHROME_PATH}")
-        print(f"✓ Chrome路径验证成功")
+            raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
+        print(f" Chrome path validated successfully")
 
         try:
             options = webdriver.ChromeOptions()
@@ -352,40 +332,26 @@ class GPTAutomator:
             options.add_experimental_option('excludeSwitches', ['enable-automation'])
             options.add_experimental_option('useAutomationExtension', False)
 
-            print("✓ ChromeOptions配置完成")
-            print("正在启动ChromeDriver...")
+            print(" ChromeOptions configuration complete")
+            print("Starting ChromeDriver...")
             self.driver = webdriver.Chrome(options=options)
-            print(f"✓ ChromeDriver启动成功")
+            print(f" ChromeDriver started successfully")
 
-            print(f"\n正在导航到: {GPT_URL}")
+            print(f"\nNavigating to: {GPT_URL}")
             self.driver.get(GPT_URL)
             time.sleep(8)
 
-            print(f"✓ 页面加载完成: {self.driver.title}")
+            print(f" Page loaded: {self.driver.title}")
             print("="*60 + "\n")
 
         except Exception as e:
-            print(f"\n✗ 浏览器初始化失败: {e}")
+            print(f"\n Browser initialization failed: {e}")
             raise
 
     def extract_domain_from_header(self, header: str) -> str:
-        """
-        从Header列提取领域名称
-
-        Args:
-            header: 图片名（去掉文件扩展名）
-
-        Returns:
-            str: 领域名称，如果无法识别则返回"unknown"
-
-        Examples:
-            "ecommerce_simple_001" -> "ecommerce"
-            "authentication_medium_045" -> "authentication"
-            "social_interaction_complex_120" -> "social_interaction"
-        """
+        """Extract domain from header."""
         header = header.lower()
 
-        # 已知的10个领域列表
         known_domains = [
             "ecommerce", "authentication", "content_management",
             "social_interaction", "customer_service", "data_analysis",
@@ -393,7 +359,6 @@ class GPTAutomator:
             "file_management", "booking_system"
         ]
 
-        # 优先匹配多单词领域（避免误匹配）
         for domain in sorted(known_domains, key=len, reverse=True):
             if domain in header:
                 return domain
@@ -401,17 +366,8 @@ class GPTAutomator:
         return "unknown"
 
     def get_example_for_domain(self, domain: str) -> str:
-        """
-        根据领域获取对应的Few-shot示例
-
-        Args:
-            domain: 领域名称
-
-        Returns:
-            str: 格式化的示例文本
-        """
+        """Return example for domain."""
         if domain not in DOMAIN_EXAMPLES:
-            # 如果领域未知，使用authentication作为默认示例
             domain = "authentication"
 
         example_data = DOMAIN_EXAMPLES[domain]
@@ -420,35 +376,25 @@ class GPTAutomator:
         return example_text
 
     def normalize_three_part_format(self, text):
-        """
-        标准化三段式格式：确保三个关键词前有换行符
-        处理模型将三段式放在一句话中的情况
-        """
+        """Normalize three part format."""
         if not text:
             return text
 
-        # 检测三个关键词
         keywords = ['Definition:', 'Emphasis & Caution:', 'Things to Avoid:']
 
-        # 检查是否都存在
         all_present = all(keyword in text for keyword in keywords)
         if not all_present:
             return text
 
-        # 在每个关键词前确保有换行符（除非已经在开头）
         result = text
         for keyword in keywords:
-            # 查找关键词的位置
             parts = result.split(keyword)
             if len(parts) > 1:
-                # 重组：确保关键词前有换行符
                 normalized_parts = []
                 for i, part in enumerate(parts):
                     if i == 0:
-                        # 第一部分保持原样
                         normalized_parts.append(part.rstrip())
                     else:
-                        # 后续部分在关键词前添加换行符
                         if normalized_parts:
                             normalized_parts.append('\n' + keyword + part)
                         else:
@@ -458,33 +404,26 @@ class GPTAutomator:
         return result.strip()
 
     def clean_json_data(self, json_str):
-        """
-        ✨ UML专用：移除position等无关视觉字段
-        保留所有业务逻辑相关字段
-        """
+        """Clean JSON data."""
         try:
             data = json.loads(json_str)
 
-            # 移除actors中的position字段
             if 'actors' in data and isinstance(data['actors'], list):
                 for actor in data['actors']:
                     if 'position' in actor:
                         del actor['position']
 
-            # 保留所有其他字段：use_cases, relationships, system_boundary, overall_description
-            # 这些都是业务逻辑相关的有效信息
 
             return json.dumps(data, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"  ⚠ JSON清洗失败: {e}")
-            return json_str  # 返回原始数据
+            print(f"  JSON cleanup failed: {e}")
+            return json_str
 
     def find_input_box(self, debug=False):
-        """定位输入框 - 优化版,使用缓存"""
+        """Find input box."""
         if debug:
-            print("🔍 定位输入框...")
+            print(" Locating input field...")
 
-        # 【优化】如果有缓存的选择器,优先使用
         if self.cached_input_selector:
             try:
                 element = WebDriverWait(self.driver, 5).until(
@@ -492,15 +431,13 @@ class GPTAutomator:
                 )
                 if element.is_displayed() and element.is_enabled():
                     if debug:
-                        print(f"  ✓ 使用缓存选择器成功")
+                        print(f"  Cached selector used successfully")
                     return element
                 else:
-                    # 缓存失效,清除
                     self.cached_input_selector = None
             except:
                 self.cached_input_selector = None
 
-        # 【优化】调整选择器优先级,把成功率高的放前面
         selectors = [
             ("CSS", "div[contenteditable='true']"),
             ("CSS", "[contenteditable='true']"),
@@ -513,27 +450,25 @@ class GPTAutomator:
         for selector_type, selector in selectors:
             try:
                 if debug:
-                    print(f"  尝试: {selector}")
+                    print(f"  Attempt: {selector}")
 
                 element = WebDriverWait(self.driver, 3).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, selector))
                 )
 
                 if element.is_displayed() and element.is_enabled():
-                    # 【优化】缓存成功的选择器
                     self.cached_input_selector = selector
                     if debug:
-                        print(f"  ✓ 成功: {selector}")
+                        print(f"  Succeeded: {selector}")
                     return element
 
             except:
                 continue
 
-        raise NoSuchElementException("无法找到输入框")
+        raise NoSuchElementException("Unable to locate the input field")
 
     def find_submit_button(self):
-        """定位提交按钮 - 优化版,使用缓存"""
-        # 【优化】如果有缓存的选择器,优先使用
+        """Find submit button."""
         if self.cached_button_selector:
             try:
                 button = self.driver.find_element(By.CSS_SELECTOR, self.cached_button_selector)
@@ -544,7 +479,6 @@ class GPTAutomator:
             except:
                 self.cached_button_selector = None
 
-        # 【优化】按成功率排序
         selectors = [
             "button[data-testid='send-button']",
             "button[type='submit']",
@@ -558,7 +492,6 @@ class GPTAutomator:
                 buttons = self.driver.find_elements(By.CSS_SELECTOR, selector)
                 for button in buttons:
                     if button.is_displayed() and button.is_enabled():
-                        # 【优化】缓存成功的选择器
                         self.cached_button_selector = selector
                         return button
             except:
@@ -567,18 +500,11 @@ class GPTAutomator:
         return None
 
     def get_current_response_count(self):
-        """
-        ✨ 精确修复：基于实际DOM结构获取assistant回复数量
-        使用data-message-author-role="assistant"作为准确标记
-        """
+        """Return current response count."""
         try:
-            # 🎯 最精确的选择器（基于您提供的HTML结构）
             response_selectors = [
-                # 方法1：直接定位assistant消息（最可靠）
                 "div[data-message-author-role='assistant']",
-                # 方法2：通过article容器定位
                 "article[data-turn='assistant']",
-                # 方法3：备用 - markdown容器（但需要排除用户消息）
                 "article[data-testid*='conversation-turn'] div.markdown.prose",
             ]
 
@@ -587,11 +513,9 @@ class GPTAutomator:
                     elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
 
                     if selector == "article[data-testid*='conversation-turn'] div.markdown.prose":
-                        # 对于markdown选择器，需要确认是assistant的
                         valid_count = 0
                         for elem in elements:
                             try:
-                                # 检查父article是否是assistant
                                 parent_article = self.driver.execute_script(
                                     "return arguments[0].closest('article')",
                                     elem
@@ -605,7 +529,6 @@ class GPTAutomator:
                         if valid_count > 0:
                             return valid_count
                     else:
-                        # 对于前两个选择器，直接返回数量
                         if elements and len(elements) > 0:
                             return len(elements)
                 except:
@@ -615,112 +538,88 @@ class GPTAutomator:
             return 0
 
     def check_response_still_updating(self):
-        """
-        ✨ 精确修复：基于实际DOM检测内容是否还在生成
-        """
+        """Check response still updating."""
         try:
-            # 🎯 使用最精确的assistant选择器
             selector = "div[data-message-author-role='assistant']"
 
             elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
             current_count = len(elements)
 
-            # 确保检测的是新生成的回复
             if current_count <= self.response_count_before_send:
-                return True  # 还没有新回复
+                return True
 
             if not elements:
                 return True
 
-            # 获取最后一条assistant回复
             last_response = elements[-1]
             first_text = last_response.text
             first_len = len(first_text)
 
-            time.sleep(0.8)  # 等待0.8秒检测变化
+            time.sleep(0.8)
 
-            # 重新获取
             elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
             if len(elements) > 0:
                 last_response = elements[-1]
                 second_text = last_response.text
                 second_len = len(second_text)
 
-                # 内容增加 = 还在生成
                 if second_len > first_len:
                     return True
                 return False
 
             return False
         except Exception as e:
-            print(f"检测更新异常: {e}")
+            print(f"Error checking for updates: {e}")
             return False
 
     def wait_for_response_complete(self, timeout=300):
-        """
-        ✨✨ 终极修复：解决验证死循环和卡死问题
-
-        核心改进：
-        1. 限制连续验证失败次数（避免死循环）
-        2. 放宽验证条件（提高兼容性）
-        3. 增加超时逃生机制
-        """
-        print("  等待生成...", end='', flush=True)
+        """Wait for the browser response to finish."""
+        print("  Waiting for generation...", end='', flush=True)
         start_time = time.time()
         last_progress_time = start_time
 
-        # ✨ 阶段1：等待新回复出现
-        print(" [等待响应]", end='', flush=True)
+        print(" [Waiting for response]", end='', flush=True)
         response_appeared = False
 
-        # 🆕 防死循环：限制连续验证失败次数
         consecutive_validation_failures = 0
-        MAX_VALIDATION_FAILURES = 50  # 连续失败后强制接受
+        MAX_VALIDATION_FAILURES = 50
 
         check_count = 0
         while time.time() - start_time < WAIT_NEW_RESPONSE_TIMEOUT:
             try:
                 current_count = self.get_current_response_count()
 
-                # 🔧 检测到数量增加
                 if current_count > self.response_count_before_send:
-                    print(f" [检测到可能的新回复,验证中]", end='', flush=True)
-                    time.sleep(2)  # 等待DOM稳定
+                    print(f" [Possible new response detected; validating]", end='', flush=True)
+                    time.sleep(2)
 
-                    # 再次确认数量
                     recheck_count = self.get_current_response_count()
 
                     if recheck_count > self.response_count_before_send:
-                        # 🔧 验证内容
                         if self._validate_new_response():
                             elapsed = int(time.time() - start_time)
                             response_appeared = True
-                            print(f" ✓ [新回复已确认,耗时{elapsed}s]", end='', flush=True)
+                            print(f"  [New response confirmed; elapsed {elapsed}s]", end='', flush=True)
                             break
                         else:
-                            # 🆕 关键修复：累计验证失败次数
                             consecutive_validation_failures += 1
-                            print(f" [内容验证失败{consecutive_validation_failures}/{MAX_VALIDATION_FAILURES}]", end='',
+                            print(f" [Content validation failed{consecutive_validation_failures}/{MAX_VALIDATION_FAILURES}]", end='',
                                   flush=True)
 
-                            # 🚨 如果连续失败太多次，强制接受（避免死循环）
                             if consecutive_validation_failures >= MAX_VALIDATION_FAILURES:
                                 elapsed = int(time.time() - start_time)
-                                print(f" ⚠️ [验证失败但强制接受,耗时{elapsed}s]", end='', flush=True)
+                                print(f"  [Validation failed but accepted; elapsed {elapsed}s]", end='', flush=True)
                                 response_appeared = True
                                 break
 
-                            # 继续等待，但增加等待时间
                             time.sleep(2)
                     else:
-                        print(f" [数量未稳定,继续等待]", end='', flush=True)
-                        consecutive_validation_failures = 0  # 重置计数器
+                        print(f" [Count not stable; continuing to wait]", end='', flush=True)
+                        consecutive_validation_failures = 0
                         time.sleep(1)
                 else:
-                    # 数量还没增加，重置失败计数器
                     consecutive_validation_failures = 0
 
-                # 每2秒打印进度
                 check_count += 1
                 if check_count % 4 == 0:
                     elapsed = int(time.time() - start_time)
@@ -732,12 +631,11 @@ class GPTAutomator:
             time.sleep(0.5)
 
         if not response_appeared:
-            print(f" ✗ 等待响应超时({WAIT_NEW_RESPONSE_TIMEOUT}s)")
+            print(f"  Response wait timed out ({WAIT_NEW_RESPONSE_TIMEOUT}s)")
             return False
 
-        # ✨ 阶段2：等待内容生成完毕
         time.sleep(1)
-        print(" [检测完成]", end='', flush=True)
+        print(" [Check complete]", end='', flush=True)
 
         stable_count = 0
         max_stability_checks = 10
@@ -752,7 +650,7 @@ class GPTAutomator:
                 else:
                     stable_count += 1
                     if stable_count >= CONTENT_STABLE_CHECKS:
-                        print(" ✓ 完成")
+                        print("  Complete")
                         return True
                     else:
                         print(".", end='', flush=True)
@@ -766,29 +664,23 @@ class GPTAutomator:
                 time.sleep(1)
 
             except Exception as e:
-                print(f"⚠ [{str(e)[:20]}]", end='', flush=True)
+                print(f" [{str(e)[:20]}]", end='', flush=True)
                 time.sleep(1)
 
-        print(" ✓ 完成(达到检查上限)")
+        print("  Completed (reached check limit)")
         return True
 
     def extract_response(self):
-        """
-        ✨ 精确提取：基于data-message-author-role='assistant'提取回复
-        """
+        """Extract response."""
         try:
-            # 🎯 使用最可靠的选择器
             selector = "div[data-message-author-role='assistant']"
 
             response_elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
             current_count = len(response_elements)
 
-            # 确保提取的是新生成的回复
             if current_count > self.response_count_before_send:
-                # 获取最后一条（最新的回复）
                 last_response = response_elements[-1]
 
-                # 尝试获取markdown内容（更干净）
                 try:
                     markdown_div = last_response.find_element(
                         By.CSS_SELECTOR,
@@ -796,38 +688,33 @@ class GPTAutomator:
                     )
                     response_text = markdown_div.text
                 except:
-                    # 如果没有markdown容器，直接获取文本
                     response_text = last_response.text
 
-                # 验证内容有效性
                 if response_text and len(response_text) > 10:
-                    print(f"  ✓ 提取到回复 ({len(response_text)} 字符)")
+                    print(f"  Extracted response ({len(response_text)} characters)")
 
-                    # 验证：检查是否包含预期关键词
                     has_definition = "Definition:" in response_text
                     has_emphasis = "Emphasis" in response_text or "Caution" in response_text
                     has_avoid = "Avoid" in response_text
 
                     if has_definition or has_emphasis or has_avoid:
-                        print(f"  ✓ 内容验证通过（包含指令关键词）")
+                        print(f"  Content validation passed (contains instruction keywords)")
                     else:
-                        print(f"  ⚠ 警告：回复可能不包含预期格式")
+                        print(f"  Warning: response may not contain the expected format")
 
                     return response_text
                 else:
-                    print(f"  ⚠ 提取的内容太短: {len(response_text) if response_text else 0} 字符")
+                    print(f"  Extracted content is too short: {len(response_text) if response_text else 0} characters")
 
-            print(f"  ✗ 无法提取有效回复（当前{current_count}条，发送前{self.response_count_before_send}条）")
+            print(f"  Unable to extract a valid response (current {current_count} items, before sending {self.response_count_before_send} items)")
             return ""
 
         except Exception as e:
-            print(f"  ✗ 提取回复失败: {e}")
+            print(f"  Failed to extract response: {e}")
             return ""
 
     def _validate_new_response(self):
-        """
-        🆕 放宽验证条件：提高兼容性，减少误判
-        """
+        """Validate new response."""
         try:
             selector = "div[data-message-author-role='assistant']"
             elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
@@ -837,7 +724,6 @@ class GPTAutomator:
 
             last_response = elements[-1]
 
-            # 尝试从markdown容器获取文本
             try:
                 markdown_div = last_response.find_element(
                     By.CSS_SELECTOR,
@@ -847,73 +733,55 @@ class GPTAutomator:
             except:
                 text = last_response.text.strip()
 
-            # 🔧 放宽验证1：文本长度（降低到5个字符）
             if len(text) < 5:
                 return False
 
-            # 🔧 简化验证2：只排除明显的加载状态
-            # 如果只有加载图标且长度很短
             if len(text) <= 3 and text in ["●", "⚫", "🔴", "...", "•"]:
                 return False
 
-            # 🔧 放宽验证3：允许更多特殊字符
-            # 只要有任何字母、数字、中文字符就算有效
             has_content = any(c.isalnum() or '\u4e00' <= c <= '\u9fff' for c in text)
-            if not has_content and len(text) < 20:  # 如果没有字母数字但长度够长也接受
+            if not has_content and len(text) < 20:
                 return False
 
             return True
 
         except Exception as e:
-            # 🔧 验证异常时，如果有足够的等待时间，倾向于接受
-            print(f"[验证异常,接受]", end='', flush=True)
-            return True  # 改为True，避免因异常导致死循环
+            print(f"[Validation exception, accepted]", end='', flush=True)
+            return True
 
     def parse_instructions(self, response_text, expected_count):
-        """
-        ✨ 修改：解析LLM回复,提取UML业务逻辑指令
-        适配新的格式：【图像N】
-        """
+        """Parse instructions."""
         instructions = []
 
-        # 尝试匹配新格式：【图像N】
         pattern = r'【图像\d+】\s*\n(.*?)(?=【图像\d+】|$)'
         matches = re.findall(pattern, response_text, re.DOTALL)
 
         if len(matches) == expected_count:
             for match in matches:
                 instruction = match.strip()
-                # 标准化三段式格式
                 instruction = self.normalize_three_part_format(instruction)
                 instructions.append(instruction)
         else:
-            # 备用解析方法：按 Definition: 分割
             parts = response_text.split('Definition:')
             for part in parts[1:]:
                 if 'Emphasis & Caution:' in part and 'Things to Avoid:' in part:
                     instruction = 'Definition:' + part.strip()
-                    # 标准化三段式格式
                     instruction = self.normalize_three_part_format(instruction)
                     instructions.append(instruction)
 
         return instructions
 
     def send_prompt(self, prompt_text, max_retries=3):
-        """
-        发送提示词到LLM - 优化版
-        【修复】发送前记录当前回复数量
-        """
+        """Submit a prompt to the browser session."""
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
-                    print(f"\n📤 发送提示词...")
-                    # 【关键修复】发送前记录当前回复数量
+                    print(f"\n Sending prompt...")
                     self.response_count_before_send = self.get_current_response_count()
-                    print(f"  📊 当前页面已有 {self.response_count_before_send} 条回复")
+                    print(f"  Current page has {self.response_count_before_send} responses")
                 else:
-                    print(f"  🔄 重试 {attempt}/{max_retries-1}...")
+                    print(f"  Retry {attempt}/{max_retries-1}...")
 
-                # 定位输入框
                 input_box = self.find_input_box(debug=(attempt == 0))
                 if not input_box:
                     if attempt < max_retries - 1:
@@ -922,7 +790,6 @@ class GPTAutomator:
                         continue
                     return False
 
-                # 聚焦并清空
                 self.driver.execute_script("arguments[0].focus();", input_box)
                 time.sleep(0.3)
 
@@ -934,7 +801,6 @@ class GPTAutomator:
 
                 time.sleep(0.3)
 
-                # 设置文本
                 if tag_name == "textarea":
                     self.driver.execute_script("""
                         var elem = arguments[0];
@@ -953,38 +819,34 @@ class GPTAutomator:
 
                 time.sleep(1)
 
-                # 验证文本设置成功
                 current_value = input_box.get_attribute("value") if tag_name == "textarea" else input_box.text
                 if not current_value or len(current_value) < 100:
                     if attempt < max_retries - 1:
                         continue
                     return False
 
-                print(f"  ✓ 文本设置成功 ({len(current_value)} 字符)")
+                print(f"  Text set successfully ({len(current_value)} characters)")
 
-                # 发送消息
                 button = self.find_submit_button()
                 if button:
                     self.driver.execute_script("arguments[0].click();", button)
-                    print(f"  ✓ 点击发送按钮")
+                    print(f"  Clicked the Send button")
                 else:
-                    # 使用Enter键
                     input_box.send_keys(Keys.RETURN)
-                    print(f"  ✓ 使用Enter发送")
+                    print(f"  Sent with Enter")
 
                 time.sleep(2)
 
-                # 验证发送成功
                 check_value = input_box.get_attribute("value") if tag_name == "textarea" else input_box.text
                 if not check_value or len(check_value.strip()) < 50:
-                    print("  ✓ 确认消息已发送")
+                    print("  Confirmed message sent")
                     return True
 
                 time.sleep(2)
                 return True
 
             except Exception as e:
-                print(f"  ✗ 发送异常: {e}")
+                print(f"  Send error: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                 else:
@@ -993,38 +855,29 @@ class GPTAutomator:
         return False
 
     def process_batch(self, uml_data_batch, start_idx):
-        """
-        ✨ 优化：处理一批UML数据(1条)
-        【核心改进】根据Header识别领域，动态选择Few-shot示例
-        检测生成错误并自动重试
-        【新增】返回是否发生重试的标志
-        """
+        """Process batch."""
         print(f"\n{'=' * 60}")
-        print(f"处理第 {start_idx + 1}-{start_idx + len(uml_data_batch)} 条UML数据")
+        print(f"Processing record {start_idx + 1}-{start_idx + len(uml_data_batch)} UML records")
         print(f"{'=' * 60}")
 
-        # ✨ 核心改进：识别领域并选择示例
         first_header = uml_data_batch[0][0] if uml_data_batch else ""
         domain = self.extract_domain_from_header(first_header)
         example_text = self.get_example_for_domain(domain)
 
-        print(f"  🏷️ 识别领域: {domain}")
-        print(f"  📝 使用示例: {domain} 领域\n")
+        print(f"  Detected domain: {domain}")
+        print(f"  Example: {domain} domain\n")
 
-        # ✨ 构建UML数据文本（清洗后）
         data_text = ""
         for i, (header, description) in enumerate(uml_data_batch, 1):
-            # 清洗JSON数据（移除position等无关字段）
             cleaned_json = self.clean_json_data(description)
             data_text += f"{i}. [UML Diagram: {header}]\n{cleaned_json}\n\n"
 
         prompt = SYSTEM_PROMPT.format(
-            example=example_text,  # ✨ 使用领域匹配的示例
+            example=example_text,
             count=len(uml_data_batch),
             uml_data=data_text
         )
 
-        # ✨ 最大重试次数
         max_retries = 3
         response = None
         retry_happened = False
@@ -1032,12 +885,11 @@ class GPTAutomator:
         for retry_count in range(max_retries):
             if retry_count > 0:
                 retry_happened = True
-                print(f"\n🔄 检测到生成错误,正在重试 ({retry_count}/{max_retries - 1})...")
-                print("  🔄 开启新对话以重试...")
+                print(f"\n Generation error detected; retrying ({retry_count}/{max_retries - 1})...")
+                print("  Opening a new conversation to retry...")
                 self.start_new_chat()
                 time.sleep(2)
 
-            # 发送提示词
             if not self.send_prompt(prompt):
                 if retry_count < max_retries - 1:
                     continue
@@ -1048,7 +900,6 @@ class GPTAutomator:
                     })
                     return [None] * len(uml_data_batch), retry_happened
 
-            # 等待响应完成
             if not self.wait_for_response_complete():
                 if retry_count < max_retries - 1:
                     continue
@@ -1059,11 +910,9 @@ class GPTAutomator:
                     })
                     return [None] * len(uml_data_batch), retry_happened
 
-            # 提取响应
             response = self.extract_response()
-            print(f"\n响应预览: {response[:200]}...\n")
+            print(f"\nResponse preview: {response[:200]}...\n")
 
-            # ✨ 核心修改:检测是否为错误响应
             error_keywords = [
                 "Something went wrong",
                 "生成响应时出错",
@@ -1076,28 +925,26 @@ class GPTAutomator:
 
             is_error_response = any(keyword in response for keyword in error_keywords)
 
-            # 如果检测到错误响应
             if is_error_response:
-                print(f"  ⚠️ 检测到生成错误: {response[:100]}")
+                print(f"  Generation error detected: {response[:100]}")
                 if retry_count < max_retries - 1:
-                    print(f"  ↻ 将在3秒后重新发送...")
+                    print(f"  Will resend in 3 seconds...")
                     continue
                 else:
-                    print(f"  ✗ 已达到最大重试次数({max_retries}),放弃本批次")
+                    print(f"  Maximum retry count reached ({max_retries}),abandoning this batch")
                     self.error_log.append({
                         'range': f"{start_idx + 1}-{start_idx + len(uml_data_batch)}",
                         'error': f'生成错误(重试{max_retries}次后失败)'
                     })
                     return [None] * len(uml_data_batch), retry_happened
             else:
-                print(f"  ✓ 响应正常,准备解析")
+                print(f"  Response looks normal; preparing to parse")
                 break
 
-        # 解析指令
         instructions = self.parse_instructions(response, len(uml_data_batch))
 
         if len(instructions) != len(uml_data_batch):
-            print(f"  ⚠ 警告: 期望{len(uml_data_batch)}条,实际{len(instructions)}条")
+            print(f"  Warning: expected {len(uml_data_batch)} items, actual {len(instructions)} items")
             while len(instructions) < len(uml_data_batch):
                 instructions.append(None)
             instructions = instructions[:len(uml_data_batch)]
@@ -1105,57 +952,45 @@ class GPTAutomator:
         return instructions, retry_happened
 
     def start_new_chat(self):
-        """
-        ✨ 优化版:使用 Ctrl+Shift+O 快捷键开启新对话
-        更稳定、高效,避免复杂的按钮查找逻辑
-        """
-        print("\n>>> 开启新对话...")
+        """Start a new browser chat."""
+        print("\n>>> Opening a new conversation...")
         try:
-            # 直接使用键盘快捷键 Ctrl+Shift+O
             from selenium.webdriver.common.action_chains import ActionChains
 
-            print("  🔨 发送快捷键 Ctrl+Shift+O...")
+            print("  Sending shortcut Ctrl+Shift+O...")
             actions = ActionChains(self.driver)
             actions.key_down(Keys.CONTROL).key_down(Keys.SHIFT).send_keys('o').key_up(Keys.SHIFT).key_up(
                 Keys.CONTROL).perform()
-            print("  ✓ 快捷键已发送")
+            print("  Shortcut sent")
 
-            # 等待新对话页面加载
             time.sleep(3)
 
-            # 【重要】清除缓存和回复计数
             self.cached_input_selector = None
             self.cached_button_selector = None
             self.response_count_before_send = 0
 
-            # ✨ 【新增】重置批次计数器
             self.batches_since_refresh = 0
 
-            print("  ✓ 新对话已就绪\n")
+            print("  New conversation ready\n")
 
         except Exception as e:
-            print(f"  ✗ 开启新对话失败: {e}")
-            print("  ℹ 将继续在当前对话中处理")
+            print(f"  Failed to open a new conversation: {e}")
+            print("  Continuing in the current conversation")
 
     def process_file(self, csv_path):
-        """
-        ✨✨ 修复：处理UML数据CSV文件
-        【关键修复】正确处理刷新计数，避免对话过长
-        """
+        """Process file."""
         print(f"\n{'#' * 60}")
-        print(f"# 处理文件: {os.path.basename(csv_path)}")
+        print(f"# Processing file: {os.path.basename(csv_path)}")
         print(f"{'#' * 60}")
 
-        # 【关键修复1】每个文件开始前强制开启新对话
         self.start_new_chat()
 
         try:
-            # 读取CSV文件
             with open(csv_path, 'rb') as f:
                 raw_data = f.read(100000)
                 result = chardet.detect(raw_data)
                 encoding = result['encoding']
-                print(f"文件编码: {encoding}")
+                print(f"File encoding: {encoding}")
 
             try:
                 df = pd.read_csv(csv_path, encoding=encoding)
@@ -1163,47 +998,40 @@ class GPTAutomator:
                 for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                     try:
                         df = pd.read_csv(csv_path, encoding=enc)
-                        print(f"  ✓ 使用 {enc} 编码")
+                        print(f"  Using {enc} encoding")
                         break
                     except:
                         continue
                 else:
-                    raise Exception("无法读取文件")
+                    raise Exception("Failed to read the file")
 
         except Exception as e:
-            print(f"✗ 读取文件失败: {e}")
+            print(f" Failed to read file: {e}")
             return 0
 
-        # ✨ 验证列名
         required_columns = ['Header', 'Description', 'Instruction']
         if not all(col in df.columns for col in required_columns):
-            print(f"✗ CSV文件缺少必要的列: {required_columns}")
-            print(f"  当前列: {df.columns.tolist()}")
+            print(f" CSV file is missing required columns: {required_columns}")
+            print(f"  Current columns: {df.columns.tolist()}")
             return 0
 
-        # 【修复】明确设置Instruction列为字符串类型，避免FutureWarning
         if 'Instruction' not in df.columns:
             df['Instruction'] = ''
         df['Instruction'] = df['Instruction'].astype(str)
-        # 将 'nan' 字符串替换为空字符串
         df.loc[df['Instruction'] == 'nan', 'Instruction'] = ''
 
         total_rows = len(df)
 
         if self.test_mode:
-            # ✨✨ 新策略：每个领域随机选择1条，总共10条
-            print(f"*** 测试模式: 每个领域随机选择1条数据 ***\n")
+            print(f"*** Test mode: randomly select one item per domain ***\n")
 
-            # 为每条数据标记领域
             df['domain'] = df['Header'].apply(lambda h: self.extract_domain_from_header(h))
 
-            # 统计每个领域的数量
             domain_counts = df['domain'].value_counts()
-            print("领域分布：")
+            print("Domain distribution:")
             for domain, count in domain_counts.items():
-                print(f"  {domain}: {count} 条")
+                print(f"  {domain}: {count} items")
 
-            # 从每个领域随机选择1条
             selected_indices = []
             for domain in domain_counts.index:
                 domain_df = df[df['domain'] == domain]
@@ -1211,39 +1039,34 @@ class GPTAutomator:
                     sampled = domain_df.sample(n=1, random_state=None)
                     selected_indices.extend(sampled.index.tolist())
 
-            # 按索引排序（保持原始顺序）
             selected_indices.sort()
 
-            print(f"\n已选择 {len(selected_indices)} 条数据进行测试：")
+            print(f"\nSelected {len(selected_indices)} data items for testing:")
             for idx in selected_indices:
                 header = df.loc[idx, 'Header']
                 domain = df.loc[idx, 'domain']
-                print(f"  - {header} (领域: {domain})")
+                print(f"  - {header} (domain: {domain})")
             print()
 
-            # 创建测试子集
             df = df.loc[selected_indices].reset_index(drop=True)
             total_rows = len(df)
 
-        print(f"总计需处理: {total_rows} 条UML数据\n")
-        print(f"刷新策略: 每{REFRESH_INTERVAL}条数据（{REFRESH_INTERVAL//BATCH_SIZE}批）或发生重试后刷新对话\n")
+        print(f"Total to process: {total_rows} UML records\n")
+        print(f"Refresh strategy: every {REFRESH_INTERVAL} items ({REFRESH_INTERVAL//BATCH_SIZE} batches) or refresh the conversation after a retry\n")
 
         for i in range(0, total_rows, BATCH_SIZE):
             batch_end = min(i + BATCH_SIZE, total_rows)
 
-            # ✨ 修改：提取 Header 和 Description
             batch_data = []
             for idx in range(i, batch_end):
                 header = df.loc[idx, 'Header']
                 description = df.loc[idx, 'Description']
                 batch_data.append((header, description))
 
-            # 【关键】获取批处理结果和重试标志
             instructions, retry_happened = self.process_batch(batch_data, i)
 
             for j, instruction in enumerate(instructions):
                 if instruction:
-                    # 标准化三段式格式后再保存
                     instruction = self.normalize_three_part_format(instruction)
                     df.at[i + j, 'Instruction'] = instruction
                 else:
@@ -1252,102 +1075,98 @@ class GPTAutomator:
             self.processed_count += len(instructions)
             self.batches_since_refresh += 1
 
-            # ✨ 修改：每批次处理完成后立即刷新对话（除非是最后一批）
             if (i + BATCH_SIZE) < total_rows:
-                print(f"\n  🔄 批次完成刷新 - 已处理{self.batches_since_refresh}批({self.batches_since_refresh * BATCH_SIZE}条数据)")
-                print(f"  ℹ️ 当前进度: {i + BATCH_SIZE}/{total_rows}")
+                print(f"\n Batch complete; refreshed - processed {self.batches_since_refresh} batch ({self.batches_since_refresh * BATCH_SIZE} data items)")
+                print(f"  Current progress: {i + BATCH_SIZE}/{total_rows}")
                 self.start_new_chat()
 
-            # 定期保存进度
             if (i + BATCH_SIZE) % 50 == 0:
                 df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-                print(f"\n  💾 已保存进度: {i + BATCH_SIZE}/{total_rows}\n")
+                print(f"\n Progress saved: {i + BATCH_SIZE}/{total_rows}\n")
 
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-        print(f"\n✓ 文件处理完成: {os.path.basename(csv_path)}")
-        print(f"  已处理 {total_rows} 条UML数据\n")
+        print(f"\n File processing complete: {os.path.basename(csv_path)}")
+        print(f"  Processed {total_rows} UML records\n")
 
         return total_rows
 
     def run(self):
-        """主运行函数"""
+        """Run the workflow."""
         start_time = datetime.now()
         print(f"\n{'=' * 60}")
-        print(f"{'批量UML业务逻辑指令生成系统':^60}")
+        print(f"{'Batch UML business-logic instruction generation system':^60}")
         print(f"{'=' * 60}")
-        print(f"开始时间: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"模式: {'测试模式 (每领域1条,共10条)' if self.test_mode else '完整模式'}")
-        print(f"批次大小: {BATCH_SIZE} 条/批")
-        print(f"刷新间隔: {REFRESH_INTERVAL} 条 ({REFRESH_INTERVAL//BATCH_SIZE} 批)")
-        print(f"响应超时: {WAIT_NEW_RESPONSE_TIMEOUT} 秒")
+        print(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Mode: {'Test mode (one item per domain, 10 items total)' if self.test_mode else 'Full mode'}")
+        print(f"Batch size: {BATCH_SIZE} items/batch")
+        print(f"Refresh interval: {REFRESH_INTERVAL} items ({REFRESH_INTERVAL//BATCH_SIZE} batches)")
+        print(f"Response timeout: {WAIT_NEW_RESPONSE_TIMEOUT} seconds")
         print(f"{'=' * 60}\n")
 
         try:
             self.init_driver()
 
-            # ✨ 处理单个CSV文件
             csv_path = os.path.join(DATASET_PATH, CSV_FILE)
             if os.path.exists(csv_path):
                 total_processed = self.process_file(csv_path)
             else:
-                print(f"✗ 文件不存在: {csv_path}")
+                print(f" File not found: {csv_path}")
                 total_processed = 0
 
             end_time = datetime.now()
             duration = end_time - start_time
 
             print(f"\n{'=' * 60}")
-            print(f"{'处理完成':^60}")
+            print(f"{'Processing complete':^60}")
             print(f"{'=' * 60}")
-            print(f"结束时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"耗时: {duration}")
-            print(f"总计处理: {total_processed} 条UML数据")
-            print(f"成功: {total_processed - len(self.error_log)} 条")
-            print(f"失败: {len(self.error_log)} 条")
+            print(f"End time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Elapsed time: {duration}")
+            print(f"Total processed: {total_processed} UML records")
+            print(f"Succeeded: {total_processed - len(self.error_log)} items")
+            print(f"Failed: {len(self.error_log)} items")
 
             if self.error_log:
-                print(f"\n错误日志:")
+                print(f"\nError log:")
                 for error in self.error_log:
                     print(f"  - {error['range']}: {error['error']}")
 
             print(f"{'=' * 60}\n")
 
         except Exception as e:
-            print(f"\n✗ 运行错误: {e}")
+            print(f"\n Runtime error: {e}")
             import traceback
             traceback.print_exc()
         finally:
             if self.driver:
                 input("按 Enter 关闭浏览器...")
                 self.driver.quit()
-                print("✓ 浏览器已关闭")
+                print(" Browser closed")
 
 
-# ==================== 主程序 ====================
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("请选择运行模式:")
-    print(f"  1. 测试模式 (每个领域随机1条,总共10条)")
-    print("  2. 完整模式 (处理所有数据)")
+    print("Select run mode:")
+    print(f"  1. Test mode (one random item per domain, 10 items total)")
+    print("  2. Full mode (process all data)")
     print("="*60)
 
     while True:
         choice = input("\n请输入选项 (1 或 2): ").strip()
         if choice == "1":
             test_mode = True
-            print("\n✓ 已选择: 测试模式")
+            print("\n Selected: test mode")
             break
         elif choice == "2":
             test_mode = False
-            print("\n✓ 已选择: 完整模式")
-            confirm = input("⚠ 完整模式将处理大量数据,确认继续? (y/n): ").strip().lower()
+            print("\n Selected: full mode")
+            confirm = input(" 完整模式将处理大量数据,确认继续? (y/n): ").strip().lower()
             if confirm == 'y':
                 break
             else:
-                print("已取消")
+                print("Cancelled")
                 exit(0)
         else:
-            print("✗ 无效选项,请输入 1 或 2")
+            print(" Invalid option; enter 1 or 2")
 
     automator = GPTAutomator(test_mode=test_mode)
     automator.run()

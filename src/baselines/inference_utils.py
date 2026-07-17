@@ -190,21 +190,12 @@ def save_predictions_cache(
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
-    logger.info(f'缓存已保存: {filepath}（{len(samples)}个样本）')
+    logger.info(f'Cache saved: {filepath} ({len(samples)} samples)')
     return filepath
 
 
 def load_predictions_cache(cache_dir: Path, filename: str) -> Optional[Dict]:
-    """
-    加载预测缓存JSON文件。
-
-    Args:
-        cache_dir: 缓存文件所在目录
-        filename: 缓存文件名
-
-    Returns:
-        解析后的字典，若文件不存在则返回None
-    """
+    """Load predictions cache."""
     filepath = Path(cache_dir) / filename
     if not filepath.exists():
         return None
@@ -212,7 +203,7 @@ def load_predictions_cache(cache_dir: Path, filename: str) -> Optional[Dict]:
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    logger.info(f'缓存已加载: {filepath}（{data.get("total_samples", "?")}个样本）')
+    logger.info(f'Cache loaded: {filepath} ({data.get("total_samples", "?")} samples)')
     return data
 
 
@@ -242,10 +233,10 @@ def compute_all_metrics(
 
     skipped = len(predictions) - len(valid_pairs)
     if skipped:
-        logger.warning(f'已跳过 {skipped} 条空预测（共{len(predictions)}条）')
+        logger.warning(f'Skipped {skipped} empty predictions out of {len(predictions)}')
 
     if not valid_pairs:
-        logger.error('没有有效预测，无法评估')
+        logger.error('No valid predictions are available for evaluation')
         return {}
 
     valid_preds = [pair[0] for pair in valid_pairs]
@@ -258,7 +249,6 @@ def compute_all_metrics(
         references=valid_refs
     )
     format_m = metrics.calculate_format_metrics(instructions=valid_preds)
-    # 复用 generate_quality 已计算的 per-sample BERTScore F1，避免 calculate_binary 重复推理
     precomputed_bs = quality.get('bertscore_f1_scores', None)
     binary = metrics.calculate_binary_classification_metrics(
         predictions=valid_preds,
@@ -278,7 +268,7 @@ def compute_all_metrics(
     }
 
     logger.info(
-        f'指标计算完成 | ROUGE-L={quality.get("rougeL", 0):.4f} '
+        f'Metric computation complete | ROUGE-L={quality.get("rougeL", 0):.4f} '
         f'F1={binary.get("f1_score", 0):.4f}'
     )
 
@@ -323,5 +313,5 @@ def save_experiment_results(
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False, default=str)
 
-    logger.info(f'实验结果已保存: {filepath}')
+    logger.info(f'Experiment results saved: {filepath}')
     return filepath

@@ -1,15 +1,4 @@
-"""
-文件操作工具集
-功能：提供统一的文件、路径、JSON、CSV操作接口
-特性：
-  - 跨平台路径处理
-  - 安全的文件读写
-  - JSON/CSV批量处理
-  - 模型权重管理
-  - 错误处理和日志记录
-作者：File Utils System
-日期：2025-01-23
-"""
+"""Provide safe file, path, checkpoint, and JSON utilities."""
 
 import json
 import csv
@@ -21,41 +10,16 @@ import warnings
 from datetime import datetime
 
 
-# ===== 路径操作 =====
 
 def ensure_dir(path: Union[str, Path]) -> Path:
-    """
-    确保目录存在，不存在则创建
-
-    Args:
-        path: 目录路径
-
-    Returns:
-        Path: 目录的Path对象
-
-    Example:
-        >>> ensure_dir('outputs/results')
-        PosixPath('outputs/results')
-    """
+    """Create a directory if needed."""
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def safe_path_join(*paths: Union[str, Path]) -> Path:
-    """
-    安全的跨平台路径拼接
-
-    Args:
-        *paths: 要拼接的路径片段
-
-    Returns:
-        Path: 拼接后的Path对象
-
-    Example:
-        >>> safe_path_join('data', 'raw', 'images')
-        PosixPath('data/raw/images')
-    """
+    """Join path components safely."""
     if not paths:
         return Path('.')
 
@@ -67,27 +31,13 @@ def safe_path_join(*paths: Union[str, Path]) -> Path:
 
 
 def get_relative_path(path: Union[str, Path], base: Union[str, Path]) -> Path:
-    """
-    获取相对路径
-
-    Args:
-        path: 目标路径
-        base: 基准路径
-
-    Returns:
-        Path: 相对路径
-
-    Example:
-        >>> get_relative_path('/home/user/project/data', '/home/user/project')
-        PosixPath('data')
-    """
+    """Return relative path."""
     path = Path(path).resolve()
     base = Path(base).resolve()
 
     try:
         return path.relative_to(base)
     except ValueError:
-        # 如果无法计算相对路径，返回绝对路径
         return path
 
 
@@ -96,59 +46,30 @@ def validate_path_exists(
         path_type: str = 'auto',
         raise_error: bool = True
 ) -> bool:
-    """
-    验证路径是否存在
-
-    Args:
-        path: 要验证的路径
-        path_type: 路径类型 ('file', 'dir', 'auto')
-        raise_error: 如果路径不存在是否抛出异常
-
-    Returns:
-        bool: 路径是否存在
-
-    Raises:
-        FileNotFoundError: 当路径不存在且raise_error=True时
-    """
+    """Validate path exists."""
     path = Path(path)
 
-    # 检查路径是否存在
     if not path.exists():
         if raise_error:
-            raise FileNotFoundError(f"路径不存在: {path}")
+            raise FileNotFoundError(f"Path does not exist: {path}")
         return False
 
-    # 检查路径类型
     if path_type == 'file' and not path.is_file():
         if raise_error:
-            raise ValueError(f"期望文件，但路径是目录: {path}")
+            raise ValueError(f"Expected a file, but the path is a directory: {path}")
         return False
 
     if path_type == 'dir' and not path.is_dir():
         if raise_error:
-            raise ValueError(f"期望目录，但路径是文件: {path}")
+            raise ValueError(f"Expected a directory, but the path is a file: {path}")
         return False
 
     return True
 
 
-# ===== JSON操作 =====
 
 def load_json(filepath: Union[str, Path], encoding: str = 'utf-8') -> Dict:
-    """
-    加载JSON文件
-
-    Args:
-        filepath: JSON文件路径
-        encoding: 文件编码
-
-    Returns:
-        dict: JSON数据
-
-    Raises:
-        FileNotFoundError: 文件不存在
-        json.JSONDecodeError: JSON格式错误
-    """
+    """Load JSON."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
 
@@ -157,7 +78,7 @@ def load_json(filepath: Union[str, Path], encoding: str = 'utf-8') -> Dict:
             return json.load(f)
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(
-            f"JSON格式错误 ({filepath}): {str(e)}",
+            f"Invalid JSON format ({filepath}): {str(e)}",
             e.doc, e.pos
         )
 
@@ -169,16 +90,7 @@ def save_json(
         encoding: str = 'utf-8',
         ensure_ascii: bool = False
 ) -> None:
-    """
-    保存JSON文件
-
-    Args:
-        data: 要保存的数据
-        filepath: 保存路径
-        indent: 缩进空格数
-        encoding: 文件编码
-        ensure_ascii: 是否转义非ASCII字符
-    """
+    """Save JSON."""
     filepath = Path(filepath)
     ensure_dir(filepath.parent)
 
@@ -191,37 +103,23 @@ def update_json(
         updates: Dict,
         create_if_missing: bool = True
 ) -> Dict:
-    """
-    更新JSON文件（合并字典）
-
-    Args:
-        filepath: JSON文件路径
-        updates: 要更新的数据
-        create_if_missing: 如果文件不存在是否创建
-
-    Returns:
-        dict: 更新后的完整数据
-    """
+    """Update JSON."""
     filepath = Path(filepath)
 
-    # 加载现有数据
     if filepath.exists():
         data = load_json(filepath)
     elif create_if_missing:
         data = {}
     else:
-        raise FileNotFoundError(f"JSON文件不存在: {filepath}")
+        raise FileNotFoundError(f"JSON file does not exist: {filepath}")
 
-    # 合并数据
     data.update(updates)
 
-    # 保存
     save_json(data, filepath)
 
     return data
 
 
-# ===== CSV操作 =====
 
 def load_csv(
         filepath: Union[str, Path],
@@ -229,18 +127,7 @@ def load_csv(
         delimiter: str = ',',
         skip_header: bool = False
 ) -> List[Dict]:
-    """
-    加载CSV文件为字典列表
-
-    Args:
-        filepath: CSV文件路径
-        encoding: 文件编码
-        delimiter: 分隔符
-        skip_header: 是否跳过标题行
-
-    Returns:
-        list: 字典列表，每个字典代表一行
-    """
+    """Load CSV."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
 
@@ -259,22 +146,7 @@ def load_csv_chunks(
         encoding: str = 'utf-8',
         delimiter: str = ','
 ) -> Iterator[List[Dict]]:
-    """
-    分块读取大型CSV文件（生成器）
-
-    Args:
-        filepath: CSV文件路径
-        chunksize: 每块行数
-        encoding: 文件编码
-        delimiter: 分隔符
-
-    Yields:
-        list: 每块数据（字典列表）
-
-    Example:
-        >>> for chunk in load_csv_chunks('large_file.csv', chunksize=1000):
-        ...     process(chunk)
-    """
+    """Load CSV chunks."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
 
@@ -289,7 +161,6 @@ def load_csv_chunks(
                 yield chunk
                 chunk = []
 
-        # 最后一块（可能不足chunksize）
         if chunk:
             yield chunk
 
@@ -301,24 +172,14 @@ def save_csv(
         encoding: str = 'utf-8',
         delimiter: str = ','
 ) -> None:
-    """
-    保存数据为CSV文件
-
-    Args:
-        data: 要保存的数据（字典列表）
-        filepath: 保存路径
-        fieldnames: 列名（如果为None则从第一行数据推断）
-        encoding: 文件编码
-        delimiter: 分隔符
-    """
+    """Save CSV."""
     if not data:
-        warnings.warn("保存的数据为空")
+        warnings.warn("No data to save")
         return
 
     filepath = Path(filepath)
     ensure_dir(filepath.parent)
 
-    # 推断fieldnames
     if fieldnames is None:
         fieldnames = list(data[0].keys())
 
@@ -328,18 +189,9 @@ def save_csv(
         writer.writerows(data)
 
 
-# ===== 模型权重操作 =====
 
 def load_lora_weights(expert_name: str) -> Optional[Path]:
-    """
-    加载LoRA权重路径
-
-    Args:
-        expert_name: 专家名称 ('text', 'image', 'uml', 'general')
-
-    Returns:
-        Path: LoRA权重目录路径，如果不存在返回None
-    """
+    """Load LoRA weights."""
     try:
         from config import get_path_config
         path_cfg = get_path_config()
@@ -348,10 +200,10 @@ def load_lora_weights(expert_name: str) -> Optional[Path]:
         if weight_path.exists():
             return weight_path
         else:
-            warnings.warn(f"{expert_name}专家的LoRA权重未找到: {weight_path}")
+            warnings.warn(f"LoRA weights for the {expert_name} expert were not found: {weight_path}")
             return None
     except ImportError:
-        warnings.warn("配置模块未加载，无法获取权重路径")
+        warnings.warn("The configuration module is not loaded; unable to resolve the weight path")
         return None
 
 
@@ -361,27 +213,14 @@ def save_lora_weights(
         checkpoint_name: Optional[str] = None,
         save_method: str = 'peft'
 ) -> Path:
-    """
-    保存LoRA权重
-
-    Args:
-        model: 模型对象（PEFT模型）
-        expert_name: 专家名称
-        checkpoint_name: checkpoint名称（如果为None则使用时间戳）
-        save_method: 保存方法 ('peft' 或 'custom')
-
-    Returns:
-        Path: 保存路径
-    """
+    """Save LoRA weights."""
     try:
         from config import get_path_config
         path_cfg = get_path_config()
 
-        # 确定保存目录
         weight_path = path_cfg.get_expert_weight_path(expert_name)
         ensure_dir(weight_path)
 
-        # 生成checkpoint名称
         if checkpoint_name is None:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             checkpoint_name = f"checkpoint_{timestamp}"
@@ -389,30 +228,20 @@ def save_lora_weights(
         save_path = weight_path / checkpoint_name
         ensure_dir(save_path)
 
-        # 保存权重
         if save_method == 'peft':
             model.save_pretrained(save_path)
         else:
-            # 自定义保存逻辑
             import torch
             torch.save(model.state_dict(), save_path / "model.pt")
 
         return save_path
 
     except Exception as e:
-        raise RuntimeError(f"保存LoRA权重失败: {str(e)}")
+        raise RuntimeError(f"Failed to save LoRA weights: {str(e)}")
 
 
 def list_checkpoints(expert_name: str) -> List[Path]:
-    """
-    列出指定专家的所有checkpoint
-
-    Args:
-        expert_name: 专家名称
-
-    Returns:
-        list: checkpoint路径列表（按时间排序）
-    """
+    """List available checkpoints."""
     try:
         from config import get_path_config
         path_cfg = get_path_config()
@@ -422,41 +251,24 @@ def list_checkpoints(expert_name: str) -> List[Path]:
         if not checkpoint_dir.exists():
             return []
 
-        # 获取所有子目录
         checkpoints = [d for d in checkpoint_dir.iterdir() if d.is_dir()]
 
-        # 按修改时间排序
         checkpoints.sort(key=lambda x: x.stat().st_mtime, reverse=True)
 
         return checkpoints
 
     except Exception as e:
-        warnings.warn(f"列出checkpoint失败: {str(e)}")
+        warnings.warn(f"Failed to list checkpoints: {str(e)}")
         return []
 
 
-# ===== 批量操作 =====
 
 def scan_files(
         directory: Union[str, Path],
         pattern: str = "*",
         recursive: bool = False
 ) -> List[Path]:
-    """
-    扫描目录下的文件
-
-    Args:
-        directory: 目录路径
-        pattern: 文件匹配模式（如 "*.csv", "*.json"）
-        recursive: 是否递归扫描子目录
-
-    Returns:
-        list: 文件路径列表
-
-    Example:
-        >>> scan_files('dataset', pattern='*.csv', recursive=True)
-        [PosixPath('dataset/text/data.csv'), ...]
-    """
+    """Scan files that match the requested criteria."""
     directory = Path(directory)
     validate_path_exists(directory, path_type='dir')
 
@@ -471,21 +283,7 @@ def batch_process_files(
         process_fn: Callable[[Path], Any],
         error_handling: str = 'skip'
 ) -> List[Any]:
-    """
-    批量处理文件
-
-    Args:
-        file_list: 文件路径列表
-        process_fn: 处理函数，接受Path参数
-        error_handling: 错误处理方式 ('skip', 'raise', 'collect')
-
-    Returns:
-        list: 处理结果列表
-
-    Example:
-        >>> files = scan_files('dataset', '*.csv')
-        >>> results = batch_process_files(files, load_csv)
-    """
+    """Process files in batches."""
     results = []
     errors = []
 
@@ -497,32 +295,22 @@ def batch_process_files(
             if error_handling == 'raise':
                 raise
             elif error_handling == 'skip':
-                warnings.warn(f"处理文件失败 ({file_path}): {str(e)}")
+                warnings.warn(f"Failed to process file ({file_path}): {str(e)}")
                 continue
             elif error_handling == 'collect':
                 errors.append({'file': file_path, 'error': str(e)})
                 continue
 
     if error_handling == 'collect' and errors:
-        warnings.warn(f"批量处理完成，{len(errors)}个文件失败")
+        warnings.warn(f"Batch processing complete; {len(errors)} files failed")
         results.append({'errors': errors})
 
     return results
 
 
-# ===== 其他工具函数 =====
 
 def get_file_size(filepath: Union[str, Path], human_readable: bool = True) -> Union[int, str]:
-    """
-    获取文件大小
-
-    Args:
-        filepath: 文件路径
-        human_readable: 是否返回人类可读格式（如 "1.5 MB"）
-
-    Returns:
-        int 或 str: 文件大小（字节或可读格式）
-    """
+    """Return file size."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
 
@@ -531,7 +319,6 @@ def get_file_size(filepath: Union[str, Path], human_readable: bool = True) -> Un
     if not human_readable:
         return size_bytes
 
-    # 转换为人类可读格式
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size_bytes < 1024.0:
             return f"{size_bytes:.2f} {unit}"
@@ -545,20 +332,7 @@ def copy_file_safe(
         dst: Union[str, Path],
         overwrite: bool = False
 ) -> Path:
-    """
-    安全复制文件
-
-    Args:
-        src: 源文件路径
-        dst: 目标文件路径
-        overwrite: 是否覆盖已存在的文件
-
-    Returns:
-        Path: 目标文件路径
-
-    Raises:
-        FileExistsError: 当目标文件已存在且overwrite=False时
-    """
+    """Copy a file with safety checks."""
     src = Path(src)
     dst = Path(dst)
 
@@ -566,7 +340,7 @@ def copy_file_safe(
     ensure_dir(dst.parent)
 
     if dst.exists() and not overwrite:
-        raise FileExistsError(f"目标文件已存在: {dst}")
+        raise FileExistsError(f"Destination file already exists: {dst}")
 
     shutil.copy2(src, dst)
     return dst
@@ -577,21 +351,10 @@ def create_backup(
         backup_dir: Optional[Union[str, Path]] = None,
         timestamp: bool = True
 ) -> Path:
-    """
-    创建文件备份
-
-    Args:
-        filepath: 要备份的文件
-        backup_dir: 备份目录（如果为None则在原目录创建）
-        timestamp: 是否在备份文件名中添加时间戳
-
-    Returns:
-        Path: 备份文件路径
-    """
+    """Create backup."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
 
-    # 确定备份目录
     if backup_dir is None:
         backup_dir = filepath.parent / 'backups'
     else:
@@ -599,7 +362,6 @@ def create_backup(
 
     ensure_dir(backup_dir)
 
-    # 生成备份文件名
     if timestamp:
         timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_name = f"{filepath.stem}_{timestamp_str}{filepath.suffix}"
@@ -608,7 +370,6 @@ def create_backup(
 
     backup_path = backup_dir / backup_name
 
-    # 复制文件
     shutil.copy2(filepath, backup_path)
 
     return backup_path

@@ -69,16 +69,16 @@ def _load_test_data(expert_type):
 
 
 def _run_or_load(cache_subdir, filename, run_fn, args):
-    """从缓存加载或执行推理。"""
+    """Run or load."""
     cached = load_predictions_cache(cache_subdir, filename)
     if cached and not args.force_regenerate:
-        logger.info(f'缓存命中: {cache_subdir.name}/{filename}')
+        logger.info(f'Cache hit: {cache_subdir.name}/{filename}')
         return cached
     return run_fn()
 
 
 def run_matched_expert(expert_type, test_data, args):
-    """运行与其领域匹配的专家（MoE-4对角线）。"""
+    """Run matched expert."""
     cache_subdir = CACHE_DIR / 'lora_moe'
     filename = f'{expert_type}_predictions.json'
 
@@ -103,7 +103,7 @@ def run_matched_expert(expert_type, test_data, args):
 
 
 def run_cross_domain(expert_type, eval_domain, test_data, args):
-    """使用expert_type训练的专家评估eval_domain领域的测试数据。"""
+    """Run cross domain."""
     cache_subdir = CACHE_DIR / 'exp3_cross_domain'
     filename = f'{expert_type}_expert_on_{eval_domain}_predictions.json'
 
@@ -116,7 +116,7 @@ def run_cross_domain(expert_type, eval_domain, test_data, args):
         try:
             preds = expert.batch_generate_instruction(inputs, batch_size=4)
         except Exception as e:
-            logger.error(f'跨域评估 {expert_type}->>{eval_domain}: {e}')
+            logger.error(f'Cross-domain evaluation failed for {expert_type}->{eval_domain}: {e}')
             preds = [''] * len(inputs)
         finally:
             expert.unload_model()
@@ -177,7 +177,7 @@ def run_general_via_text_expert(test_data, args):
 
 
 def run_single_model(expert_type, test_data, args):
-    """在给定专家类型的测试数据上运行lora_single统一模型。"""
+    """Run single model."""
     cache_subdir = CACHE_DIR / 'lora_single'
     filename = f'{expert_type}_predictions.json'
 
@@ -226,6 +226,7 @@ def _is_full_run_cache(cache_subdir, filename):
 
 
 def plot_cross_domain_heatmap(cross_domain_rougeL, exp_dir):
+    """Plot cross domain heatmap."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -253,10 +254,11 @@ def plot_cross_domain_heatmap(cross_domain_rougeL, exp_dir):
     path = plots_dir / 'cross_domain_heatmap.png'
     plt.savefig(path, dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'热图已保存: {path}')
+    logger.info(f'Heatmap saved to: {path}')
 
 
 def plot_architecture_comparison(arch_scores, exp_dir):
+    """Plot architecture comparison."""
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -280,13 +282,12 @@ def plot_architecture_comparison(arch_scores, exp_dir):
     path = plots_dir / 'architecture_comparison.png'
     plt.savefig(path, dpi=150, bbox_inches='tight')
     plt.close()
-    logger.info(f'架构对比图已保存: {path}')
+    logger.info(f'Architecture comparison plot saved to: {path}')
 
 
 def run(args):
-    logger.info('=' * 80)
-    logger.info('实验3: MoE架构验证')
-    logger.info('=' * 80)
+    """Run the workflow."""
+    logger.info('Experiment 3: MoE architecture validation')
 
     results = {
         'experiment': 'exp3_moe_architecture_validation',
@@ -299,17 +300,15 @@ def run(args):
         'architecture_comparison': {},
     }
 
-    # 加载所有专项领域的测试数据，以及General测试数据（用于MoE-3对比）
     test_datasets = {}
     for et in SPECIALIZED_TYPES + ['general']:
         try:
             test_datasets[et] = _load_test_data(et)
-            logger.info(f'{et} 测试集: {len(test_datasets[et])} 个样本')
+            logger.info(f'{et} test set: {len(test_datasets[et])} samples')
         except Exception as e:
-            logger.error(f'加载 {et} 数据失败: {e}')
+            logger.error(f'Failed to load {et} data: {e}')
 
-    # 1. 匹配专家（MoE-4对角线）
-    logger.info('\n--- MoE-4: 匹配专家 ---')
+    logger.info('\n--- MoE-4: Matched experts ---')
     matched_rougeL = {}
     matched_f1 = {}
     for et in SPECIALIZED_TYPES:
@@ -317,7 +316,7 @@ def run(args):
             continue
         if getattr(args, 'only_missing', False) and _is_full_run_cache(
                 CACHE_DIR / 'lora_moe', f'{et}_predictions.json'):
-            logger.info(f'--only-missing: 跳过 {et} 匹配专家（缓存已存在）')
+            logger.info(f'--only-missing: skipping matched {et} expert because cache exists')
             continue
         try:
             cached = run_matched_expert(et, test_datasets[et], args)
@@ -331,12 +330,11 @@ def run(args):
             }
             matched_rougeL[et] = q.get('rougeL', 0)
             matched_f1[et] = b.get('f1_score', 0)
-            logger.info(f'匹配 {et}: ROUGE-L={q.get("rougeL", 0):.4f}')
+            logger.info(f'Matched {et}: ROUGE-L={q.get("rougeL", 0):.4f}')
         except Exception as e:
-            logger.error(f'匹配 {et} 失败: {e}')
+            logger.error(f'Matched {et} evaluation failed: {e}')
 
-    # 2. 跨域评估: expert_i在domain_j上（3x3矩阵，跳过对角线）
-    logger.info('\n--- 跨域分析 ---')
+    logger.info('\n--- Cross-domain analysis ---')
     cross_domain_rougeL = {}
     for expert_type in SPECIALIZED_TYPES:
         for eval_domain in SPECIALIZED_TYPES:
@@ -349,7 +347,7 @@ def run(args):
             cd_filename = f'{expert_type}_expert_on_{eval_domain}_predictions.json'
             if getattr(args, 'only_missing', False) and _is_full_run_cache(
                     CACHE_DIR / 'exp3_cross_domain', cd_filename):
-                logger.info(f'--only-missing: 跳过跨域 {expert_type}->>{eval_domain}（缓存已存在）')
+                logger.info(f'--only-missing: skipping cross-domain {expert_type}->{eval_domain} because cache exists')
                 continue
             try:
                 cached = run_cross_domain(expert_type, eval_domain, test_datasets[eval_domain], args)
@@ -361,18 +359,17 @@ def run(args):
                     'n_samples': len(cached['samples']) if cached else 0,
                     'generation_quality': q,
                 }
-                logger.info(f'跨域 {expert_type}->>{eval_domain}: ROUGE-L={q.get("rougeL", 0):.4f}')
+                logger.info(f'Cross-domain {expert_type}->{eval_domain}: ROUGE-L={q.get("rougeL", 0):.4f}')
             except Exception as e:
-                logger.error(f'跨域 {expert_type}->>{eval_domain} 失败: {e}')
+                logger.error(f'Cross-domain {expert_type}->{eval_domain} failed: {e}')
 
-    # 3. MoE-3: General测试集通过TextExpert（退化路由）
-    logger.info('\n--- MoE-3: General域退化路由（TextExpert）---')
+    logger.info('\n--- MoE-3: Degraded general-domain routing through TextExpert ---')
     moe3_general_rougeL = 0.0
     moe3_general_f1 = 0.0
     if 'general' in test_datasets:
         if getattr(args, 'only_missing', False) and _is_full_run_cache(
                 CACHE_DIR / 'exp3_moe3_general_via_text', 'general_via_text_predictions.json'):
-            logger.info('--only-missing: 跳过 MoE-3 general退化路由（缓存已存在）')
+            logger.info('--only-missing: skipping degraded MoE-3 general-domain routing because cache exists')
         else:
             try:
                 cached = run_general_via_text_expert(test_datasets['general'], args)
@@ -390,10 +387,9 @@ def run(args):
                 }
                 logger.info(f'MoE-3 general(via text): ROUGE-L={moe3_general_rougeL:.4f}')
             except Exception as e:
-                logger.error(f'MoE-3 general退化路由失败: {e}')
+                logger.error(f'Degraded MoE-3 general-domain routing failed: {e}')
 
-    # 4. 单模型（lora_single）在所有领域上的评估（含general，与MoE-4/MoE-3四域平均保持一致）
-    logger.info('\n--- 单模型（lora_single）---')
+    logger.info('\n--- Single model (lora_single) ---')
     single_rougeL_list = []
     single_f1_list = []
     for et in SPECIALIZED_TYPES + ['general']:
@@ -401,7 +397,7 @@ def run(args):
             continue
         if getattr(args, 'only_missing', False) and _is_full_run_cache(
                 CACHE_DIR / 'lora_single', f'{et}_predictions.json'):
-            logger.info(f'--only-missing: 跳过单模型 {et}（缓存已存在）')
+            logger.info(f'--only-missing: skipping single-model {et} because cache exists')
             continue
         try:
             cached = run_single_model(et, test_datasets[et], args)
@@ -415,12 +411,10 @@ def run(args):
             }
             single_rougeL_list.append(q.get('rougeL', 0))
             single_f1_list.append(b.get('f1_score', 0))
-            logger.info(f'单模型 {et}: ROUGE-L={q.get("rougeL", 0):.4f}')
+            logger.info(f'Single-model {et}: ROUGE-L={q.get("rougeL", 0):.4f}')
         except Exception as e:
-            logger.error(f'单模型 {et} 失败: {e}')
+            logger.error(f'Single-model {et} failed: {e}')
 
-    # MoE-4: text/image/uml匹配 + general匹配，四域平均
-    # general匹配分复用exp2的lora_moe/general缓存
     moe4_general_rougeL = 0.0
     moe4_general_f1 = 0.0
     if 'general' in test_datasets:
@@ -432,16 +426,15 @@ def run(args):
                 moe4_general_f1 = m.get('binary_classification', {}).get('f1_score', 0)
                 logger.info(f'MoE-4 general(matched): ROUGE-L={moe4_general_rougeL:.4f}')
             else:
-                logger.warning('lora_moe/general缓存未找到，MoE-4 general分设为0')
+                logger.warning('lora_moe/general cache not found; setting the MoE-4 general score to 0')
         except Exception as e:
-            logger.error(f'加载lora_moe general缓存失败: {e}')
+            logger.error(f'Failed to load lora_moe general cache: {e}')
 
     moe4_all_rougeL = list(matched_rougeL.values()) + [moe4_general_rougeL]
     moe4_all_f1 = list(matched_f1.values()) + [moe4_general_f1]
     moe4_rougeL = np.mean(moe4_all_rougeL) if moe4_all_rougeL else 0
     moe4_f1 = np.mean(moe4_all_f1) if moe4_all_f1 else 0
 
-    # MoE-3: text/image/uml匹配 + general通过TextExpert退化路由，四域平均
     moe3_all_rougeL = list(matched_rougeL.values()) + [moe3_general_rougeL]
     moe3_all_f1 = list(matched_f1.values()) + [moe3_general_f1]
     moe3_rougeL = np.mean(moe3_all_rougeL) if moe3_all_rougeL else 0
@@ -473,20 +466,17 @@ def run(args):
         plot_cross_domain_heatmap(cross_domain_rougeL, EXP_DIR)
         plot_architecture_comparison(arch_scores, EXP_DIR)
     except Exception as e:
-        logger.warning(f'绘图失败: {e}')
+        logger.warning(f'Plotting failed: {e}')
 
-    # 汇总
-    logger.info('\n' + '=' * 80)
-    logger.info('架构对比汇总')
-    logger.info('=' * 80)
-    logger.info(f'{"配置":<12} {"ROUGE-L":>10} {"F1":>10}')
-    logger.info('-' * 34)
+    logger.info('Architecture comparison summary')
+    logger.info(f'{"Configuration":<12} {"ROUGE-L":>10} {"F1":>10}')
     for config, scores in arch_scores.items():
         logger.info(f'{config:<12} {scores["rougeL"]:>10.4f} {scores["f1"]:>10.4f}')
-    logger.info(f'\n结果已保存至: {EXP_DIR}')
+    logger.info(f'\nResults saved to: {EXP_DIR}')
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp3: MoE architecture validation')
     parser.add_argument('--force-regenerate', action='store_true')
     parser.add_argument('--from-cache', action='store_true')

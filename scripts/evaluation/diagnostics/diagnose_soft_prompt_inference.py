@@ -150,6 +150,7 @@ def _run_config(expert_type, ckpt_path, samples, use_4bit):
 
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Diagnose p_tuning/prompt_tuning inference precision')
     parser.add_argument('--method', required=True, choices=['p_tuning', 'prompt_tuning'])
     parser.add_argument('--expert-type', required=True, choices=['text', 'image', 'uml', 'general'])
@@ -176,16 +177,12 @@ def main():
     report = {}
     for use_4bit in configs_to_test:
         label = '4bit' if use_4bit else 'FP16'
-        logger.info(f'\n{"="*60}')
         logger.info(f'Testing config: {label}')
-        logger.info('='*60)
         result = _run_config(args.expert_type, ckpt_path, samples, use_4bit)
         if result:
             report[label] = result
 
-    logger.info(f'\n{"="*60}')
     logger.info('DIAGNOSIS SUMMARY')
-    logger.info('='*60)
     for label, r in report.items():
         verdict = 'PASS' if r['avg_score'] >= 2.5 else 'FAIL'
         logger.info(f'  {label}: avg_score={r["avg_score"]:.1f}/4  [{verdict}]')

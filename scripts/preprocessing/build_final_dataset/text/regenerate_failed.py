@@ -1,16 +1,4 @@
-"""
-Text众包指令批次修复脚本
-基于generate_instructions_text.py的稳定生成逻辑
-核心特性:
-1. 继承稳定的浏览器自动化功能
-2. 批次完整性检查:如果批次中有任何ERROR,整个批次重新生成
-3. 自动检测需要修复的批次范围
-4. 精准检测"ERROR: 生成失败",支持多种引号格式
-5. 三段式完整性检查(Definition/Emphasis/Things to Avoid)
-6. 句号检查(可通过ENABLE_PERIOD_CHECK参数配置,默认关闭)
-7. 详细错误报告,列出每条错误数据及具体问题
-8. 使用与generate文件完全一致的硬编码Prompt
-"""
+"""Repair failed text-domain instruction batches."""
 
 import os
 import time
@@ -25,46 +13,41 @@ import re
 from datetime import datetime
 import chardet
 
-# ==================== 配置参数 ====================
 CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 DATASET_PATH = r"D:\MyPyProject\crowdsourcing_instruction_generator\dataset\Requirements_data\Text_data"
 GPT_URL = "https://sass-node1.chatshare.biz/"
 
-# 目标文件
-CSV_FILE = "enhanced_CCHIT.csv"  # 可修改为需要修复的文件
+CSV_FILE = "enhanced_CCHIT.csv"
 
-# 批次参数
-BATCH_SIZE = 10  # 批次大小(与首次生成保持一致)
+BATCH_SIZE = 10
 CHECK_INTERVAL = 100
-WAIT_NEW_RESPONSE_TIMEOUT = 60  # 等待新回复最多60秒
-CONTENT_STABLE_CHECKS = 3  # 内容稳定性检查次数
-ENABLE_PERIOD_CHECK = False  # 句号检测开关（默认关闭）
+WAIT_NEW_RESPONSE_TIMEOUT = 60
+CONTENT_STABLE_CHECKS = 3
+ENABLE_PERIOD_CHECK = False
 
-# ==================== 工具函数 ====================
 class TextBatchRepairer:
+    """Repair failed text-instruction batches."""
     def __init__(self):
         self.driver = None
         self.current_tab = None
         self.repaired_count = 0
         self.error_log = []
-        self.error_details = []  # 存储详细错误信息
+        self.error_details = []
 
-        # 缓存成功的选择器
         self.cached_input_selector = None
         self.cached_button_selector = None
 
-        # 记录发送前的回复数量
         self.response_count_before_send = 0
 
     def init_driver(self):
-        """初始化Chrome浏览器"""
+        """Initialize the browser driver."""
         print("\n" + "="*60)
-        print("正在初始化浏览器...")
+        print("Initializing browser...")
         print("="*60)
 
         if not os.path.exists(CHROME_PATH):
-            raise FileNotFoundError(f"Chrome浏览器路径不存在: {CHROME_PATH}")
-        print(f"✓ Chrome路径验证成功")
+            raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
+        print(f" Chrome path validated successfully")
 
         try:
             options = webdriver.ChromeOptions()
@@ -84,28 +67,27 @@ class TextBatchRepairer:
             options.add_experimental_option('excludeSwitches', ['enable-automation'])
             options.add_experimental_option('useAutomationExtension', False)
 
-            print("✓ ChromeOptions配置完成")
-            print("正在启动ChromeDriver...")
+            print(" ChromeOptions configuration complete")
+            print("Starting ChromeDriver...")
             self.driver = webdriver.Chrome(options=options)
-            print(f"✓ ChromeDriver启动成功")
+            print(f" ChromeDriver started successfully")
 
-            print(f"\n正在导航到: {GPT_URL}")
+            print(f"\nNavigating to: {GPT_URL}")
             self.driver.get(GPT_URL)
             time.sleep(8)
 
-            print(f"✓ 页面加载完成: {self.driver.title}")
+            print(f" Page loaded: {self.driver.title}")
             print("="*60 + "\n")
 
         except Exception as e:
-            print(f"\n✗ 浏览器初始化失败: {e}")
+            print(f"\n Browser initialization failed: {e}")
             raise
 
     def find_input_box(self, debug=False):
-        """定位输入框 - 优化版,使用缓存"""
+        """Find input box."""
         if debug:
-            print("🔍 定位输入框...")
+            print(" Locating input field...")
 
-        # 如果有缓存的选择器,优先使用
         if self.cached_input_selector:
             try:
                 element = WebDriverWait(self.driver, 5).until(
@@ -113,7 +95,7 @@ class TextBatchRepairer:
                 )
                 if element.is_displayed() and element.is_enabled():
                     if debug:
-                        print(f"  ✓ 使用缓存选择器成功")
+                        print(f"  Cached selector used successfully")
                     return element
                 else:
                     self.cached_input_selector = None
@@ -132,7 +114,7 @@ class TextBatchRepairer:
         for selector_type, selector in selectors:
             try:
                 if debug:
-                    print(f"  尝试: {selector}")
+                    print(f"  Attempt: {selector}")
 
                 element = WebDriverWait(self.driver, 3).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, selector))
@@ -141,16 +123,16 @@ class TextBatchRepairer:
                 if element.is_displayed() and element.is_enabled():
                     self.cached_input_selector = selector
                     if debug:
-                        print(f"  ✓ 成功: {selector}")
+                        print(f"  Succeeded: {selector}")
                     return element
 
             except:
                 continue
 
-        raise NoSuchElementException("无法找到输入框")
+        raise NoSuchElementException("Unable to locate the input field")
 
     def find_submit_button(self):
-        """定位提交按钮 - 优化版,使用缓存"""
+        """Find submit button."""
         if self.cached_button_selector:
             try:
                 button = self.driver.find_element(By.CSS_SELECTOR, self.cached_button_selector)
@@ -182,10 +164,7 @@ class TextBatchRepairer:
         return None
 
     def get_current_response_count(self):
-        """
-        基于实际DOM结构获取assistant回复数量
-        使用data-message-author-role="assistant"作为准确标记
-        """
+        """Return current response count."""
         try:
             response_selectors = [
                 "div[data-message-author-role='assistant']",
@@ -217,23 +196,20 @@ class TextBatchRepairer:
                 except:
                     continue
 
-            print(f"  ⚠ 未找到assistant回复,返回0")
+            print(f"  No assistant response found; returning 0")
             return 0
 
         except Exception as e:
-            print(f"  ⚠ 获取回复数量异常: {e}")
+            print(f"  Unexpected response count: {e}")
             return 0
 
     def wait_for_response(self, timeout=60):
-        """
-        等待新回复生成,支持长响应和瞬间生成
-        返回: 新回复的文本 或 空字符串
-        """
-        print(f"\n⏳ 等待回复生成...")
+        """Wait for a browser response."""
+        print(f"\n Waiting for response generation...")
         start_time = time.time()
 
         target_count = self.response_count_before_send + 1
-        print(f"  期望回复数量: {target_count}")
+        print(f"  Expected response count: {target_count}")
 
         last_content = ""
         stable_count = 0
@@ -243,7 +219,7 @@ class TextBatchRepairer:
                 current_count = self.get_current_response_count()
 
                 if current_count >= target_count:
-                    print(f"  ✓ 检测到新回复 (当前{current_count}条)")
+                    print(f"  New response detected (current {current_count} items)")
 
                     response_selectors = [
                         "div[data-message-author-role='assistant']",
@@ -259,10 +235,10 @@ class TextBatchRepairer:
 
                                 if current_content == last_content:
                                     stable_count += 1
-                                    print(f"    内容稳定 ({stable_count}/{CONTENT_STABLE_CHECKS})", end='\r', flush=True)
+                                    print(f"  Content stable ({stable_count}/{CONTENT_STABLE_CHECKS})", end='\r', flush=True)
 
                                     if stable_count >= CONTENT_STABLE_CHECKS:
-                                        print(f"\n  ✓ 内容已稳定")
+                                        print(f"\n Content is stable")
                                         return current_content
                                 else:
                                     last_content = current_content
@@ -276,20 +252,14 @@ class TextBatchRepairer:
                 time.sleep(2)
 
             except Exception as e:
-                print(f"  ⚠ 检查异常: {e}")
+                print(f"  Check error: {e}")
                 time.sleep(2)
 
-        print(f"\n  ⚠ 等待超时 ({timeout}秒)")
+        print(f"\n Response wait timed out ({timeout} seconds)")
         return ""
 
     def _clean_and_merge_content(self, text):
-        """
-        清理和合并内容：
-        1. 移除换行符
-        2. 处理bullet points，用分号分隔
-        3. 清理多余空格
-        4. 保留单独的"-"（表示无内容）
-        """
+        """Clean and merge content."""
         if not text:
             return ""
 
@@ -322,9 +292,7 @@ class TextBatchRepairer:
         return result
 
     def normalize_three_part_format(self, text):
-        """
-        标准化三段式格式：解析并合并多行内容
-        """
+        """Normalize three part format."""
         if not text:
             return text
 
@@ -350,11 +318,7 @@ class TextBatchRepairer:
         return result
 
     def parse_text_instruction(self, response_text):
-        """
-        解析Text指令 - 三段式格式
-        适配【需求N】格式和普通格式
-        返回: instruction字符串 或 None
-        """
+        """Parse text instruction."""
         pattern = r'【需求\d+】\s*\n(.*?)(?=【需求\d+】|$)'
         matches = re.findall(pattern, response_text, re.DOTALL)
 
@@ -389,15 +353,15 @@ class TextBatchRepairer:
             return None
 
     def send_prompt(self, prompt_text, max_retries=3):
-        """发送提示词到LLM"""
+        """Submit a prompt to the browser session."""
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
-                    print(f"\n📤 发送提示词...")
+                    print(f"\n Sending prompt...")
                     self.response_count_before_send = self.get_current_response_count()
-                    print(f"  📊 当前页面已有 {self.response_count_before_send} 条回复")
+                    print(f"  Current page has {self.response_count_before_send} responses")
                 else:
-                    print(f"  🔄 重试 {attempt}/{max_retries-1}...")
+                    print(f"  Retry {attempt}/{max_retries-1}...")
 
                 input_box = self.find_input_box(debug=(attempt == 0))
                 if not input_box:
@@ -442,28 +406,28 @@ class TextBatchRepairer:
                         continue
                     return False
 
-                print(f"  ✓ 文本设置成功 ({len(current_value)} 字符)")
+                print(f"  Text set successfully ({len(current_value)} characters)")
 
                 button = self.find_submit_button()
                 if button:
                     self.driver.execute_script("arguments[0].click();", button)
-                    print(f"  ✓ 点击发送按钮")
+                    print(f"  Clicked the Send button")
                 else:
                     input_box.send_keys(Keys.RETURN)
-                    print(f"  ✓ 使用Enter发送")
+                    print(f"  Sent with Enter")
 
                 time.sleep(2)
 
                 check_value = input_box.get_attribute("value") if tag_name == "textarea" else input_box.text
                 if not check_value or len(check_value.strip()) < 50:
-                    print("  ✓ 确认消息已发送")
+                    print("  Confirmed message sent")
                     return True
 
                 time.sleep(2)
                 return True
 
             except Exception as e:
-                print(f"  ✗ 发送异常: {e}")
+                print(f"  Send error: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                 else:
@@ -472,12 +436,9 @@ class TextBatchRepairer:
         return False
 
     def process_batch(self, batch_data, start_idx):
-        """
-        处理单个批次的Text数据
-        返回是否发生重试的标志
-        """
+        """Process batch."""
         print(f"\n{'=' * 60}")
-        print(f"处理批次 {start_idx + 1}-{start_idx + len(batch_data)}")
+        print(f"Processing batch {start_idx + 1}-{start_idx + len(batch_data)}")
         print(f"{'=' * 60}")
 
         requirements_text = ""
@@ -516,11 +477,11 @@ Things to Avoid: ..."""
 
         for retry in range(max_retries):
             if retry > 0:
-                print(f"\n⚠ 批次重试 {retry}/{max_retries-1}")
+                print(f"\n Batch retry {retry}/{max_retries-1}")
                 retry_happened = True
 
             if not self.send_prompt(prompt):
-                print(f"  ✗ 提示词发送失败")
+                print(f"  Failed to send prompt")
                 if retry < max_retries - 1:
                     time.sleep(3)
                     continue
@@ -534,7 +495,7 @@ Things to Avoid: ..."""
             response = self.wait_for_response(timeout=WAIT_NEW_RESPONSE_TIMEOUT)
 
             if not response or len(response) < 50:
-                print(f"  ✗ 回复为空或过短")
+                print(f"  Response is empty or too short")
                 if retry < max_retries - 1:
                     time.sleep(3)
                     continue
@@ -545,7 +506,7 @@ Things to Avoid: ..."""
                     })
                     return [None] * len(batch_data), retry_happened
             else:
-                print(f"  ✓ 响应正常,准备解析")
+                print(f"  Response looks normal; preparing to parse")
                 break
 
         instructions = []
@@ -566,22 +527,22 @@ Things to Avoid: ..."""
                     instructions.append(instruction)
 
         if len(instructions) != len(batch_data):
-            print(f"  ⚠ 解析数量不匹配: 期望{len(batch_data)}, 实际{len(instructions)}")
+            print(f"  Parsed count mismatch: expected {len(batch_data)}, actual {len(instructions)}")
             return [None] * len(batch_data), retry_happened
 
         return instructions, retry_happened
 
     def start_new_chat(self):
-        """使用 Ctrl+Shift+O 快捷键开启新对话"""
-        print("\n>>> 开启新对话...")
+        """Start a new browser chat."""
+        print("\n>>> Opening a new conversation...")
         try:
             from selenium.webdriver.common.action_chains import ActionChains
 
-            print("  🔨 发送快捷键 Ctrl+Shift+O...")
+            print("  Sending shortcut Ctrl+Shift+O...")
             actions = ActionChains(self.driver)
             actions.key_down(Keys.CONTROL).key_down(Keys.SHIFT).send_keys('o').key_up(Keys.SHIFT).key_up(
                 Keys.CONTROL).perform()
-            print("  ✓ 快捷键已发送")
+            print("  Shortcut sent")
 
             time.sleep(3)
 
@@ -589,14 +550,14 @@ Things to Avoid: ..."""
             self.cached_button_selector = None
             self.response_count_before_send = 0
 
-            print("  ✓ 新对话已就绪\n")
+            print("  New conversation ready\n")
 
         except Exception as e:
-            print(f"  ✗ 开启新对话失败: {e}")
-            print("  ℹ 将继续在当前对话中处理")
+            print(f"  Failed to open a new conversation: {e}")
+            print("  Continuing in the current conversation")
 
     def validate_instruction_format(self, instruction):
-        """验证指令格式完整性"""
+        """Validate instruction format."""
         errors = []
 
         if not instruction or instruction.strip() == "":
@@ -645,9 +606,9 @@ Things to Avoid: ..."""
         return is_valid, errors
 
     def detect_error_batches(self, df):
-        """检测需要修复的批次"""
+        """Detect error batches."""
         print("\n" + "="*60)
-        print("开始检测错误数据...")
+        print("Starting error-data scan...")
         print("="*60)
 
         error_batches = []
@@ -696,32 +657,32 @@ Things to Avoid: ..."""
 
                 error_batches.append((len(error_batches) + 1, i, batch_data))
 
-        print(f"\n检测结果:")
-        print(f"  总数据条数: {total_rows}")
-        print(f"  错误数据条数: {error_count}")
-        print(f"  需修复批次数: {len(error_batches)}")
+        print(f"\nScan results:")
+        print(f"  Total data items: {total_rows}")
+        print(f"  Erroneous data items: {error_count}")
+        print(f"  Batches requiring repair: {len(error_batches)}")
 
         return error_batches
 
     def print_error_report(self):
-        """打印详细错误报告"""
+        """Print error report."""
         if not self.error_details:
             return
 
         print("\n" + "="*60)
-        print("详细错误报告")
+        print("Detailed error report")
         print("="*60)
 
         for row_num, req_id, error_msg in self.error_details:
-            print(f"\n第{row_num}行: {req_id}")
-            print(f"  错误: {error_msg}")
+            print(f"\nRow {row_num} line: {req_id}")
+            print(f"  Error: {error_msg}")
 
         print("\n" + "="*60)
 
     def repair_file(self, csv_path):
-        """修复文件中的错误批次"""
+        """Repair failed records in one file."""
         print(f"\n{'#' * 60}")
-        print(f"# 处理文件: {os.path.basename(csv_path)}")
+        print(f"# Processing file: {os.path.basename(csv_path)}")
         print(f"{'#' * 60}")
 
         try:
@@ -729,7 +690,7 @@ Things to Avoid: ..."""
                 raw_data = f.read(100000)
                 result = chardet.detect(raw_data)
                 encoding = result['encoding']
-                print(f"文件编码: {encoding}")
+                print(f"File encoding: {encoding}")
 
             try:
                 df = pd.read_csv(csv_path, encoding=encoding)
@@ -737,15 +698,15 @@ Things to Avoid: ..."""
                 for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                     try:
                         df = pd.read_csv(csv_path, encoding=enc)
-                        print(f"  ✓ 使用 {enc} 编码")
+                        print(f"  Using {enc} encoding")
                         break
                     except:
                         continue
                 else:
-                    raise Exception("无法读取文件")
+                    raise Exception("Failed to read the file")
 
         except Exception as e:
-            print(f"✗ 读取文件失败: {e}")
+            print(f" Failed to read file: {e}")
             return 0
 
         if 'Instruction' not in df.columns:
@@ -756,16 +717,16 @@ Things to Avoid: ..."""
         error_batches = self.detect_error_batches(df)
 
         if not error_batches:
-            print("\n✓ 未发现需要修复的错误数据")
+            print("\n No erroneous data requiring repair found")
             self.print_error_report()
             return 0
 
         self.print_error_report()
 
-        print(f"\n⚠️ 发现 {len(error_batches)} 个错误批次,共约 {len(error_batches) * BATCH_SIZE} 条数据需要修复")
+        print(f"\n Found {len(error_batches)} erroneous batches, about {len(error_batches) * BATCH_SIZE} data items require repair")
         user_input = input("是否继续修复? (y/n): ").strip().lower()
         if user_input != 'y':
-            print("❌ 用户取消修复")
+            print(" User cancelled repair")
             return 0
 
         self.start_new_chat()
@@ -786,29 +747,29 @@ Things to Avoid: ..."""
             repaired_batches += 1
 
             df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-            print(f"  ✓ 已保存进度: {start_idx + len(batch_data)}/{len(df)}")
+            print(f"  Progress saved: {start_idx + len(batch_data)}/{len(df)}")
 
             if repaired_batches < len(error_batches):
                 self.start_new_chat()
 
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-        print(f"\n✓ 文件修复完成: {os.path.basename(csv_path)}")
-        print(f"  修复批次: {repaired_batches}")
-        print(f"  修复数据: {self.repaired_count} 条\n")
+        print(f"\n File repair complete: {os.path.basename(csv_path)}")
+        print(f"  Batches repaired: {repaired_batches}")
+        print(f"  Data items repaired: {self.repaired_count} items\n")
 
         return self.repaired_count
 
     def run(self):
-        """主运行函数"""
+        """Run the workflow."""
         start_time = datetime.now()
         print(f"\n{'=' * 60}")
-        print(f"{'Text批次完整性修复系统':^60}")
+        print(f"{'Text batch integrity repair system':^60}")
         print(f"{'=' * 60}")
-        print(f"开始时间: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"批次大小: {BATCH_SIZE} 条/批")
+        print(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Batch size: {BATCH_SIZE} items/batch")
         period_check_status = "启用" if ENABLE_PERIOD_CHECK else "关闭"
-        print(f"检测功能: ERROR标记 + 三段式格式 + 句号检查({period_check_status})")
-        print(f"目标文件: {CSV_FILE}")
+        print(f"Checks: ERROR markers + three-part format + period check ({period_check_status})")
+        print(f"Target file: {CSV_FILE}")
         print(f"{'=' * 60}\n")
 
         try:
@@ -818,38 +779,37 @@ Things to Avoid: ..."""
             if os.path.exists(csv_path):
                 total_repaired = self.repair_file(csv_path)
             else:
-                print(f"✗ 文件不存在: {csv_path}")
+                print(f" File not found: {csv_path}")
                 total_repaired = 0
 
             end_time = datetime.now()
             duration = end_time - start_time
 
             print(f"\n{'=' * 60}")
-            print(f"{'修复完成':^60}")
+            print(f"{'Repair complete':^60}")
             print(f"{'=' * 60}")
-            print(f"结束时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"耗时: {duration}")
-            print(f"总计修复: {total_repaired} 条数据")
+            print(f"End time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Elapsed time: {duration}")
+            print(f"Total repaired: {total_repaired} data items")
 
             if self.error_log:
-                print(f"\n错误日志:")
+                print(f"\nError log:")
                 for error in self.error_log:
                     print(f"  - {error['range']}: {error['error']}")
 
             print(f"{'=' * 60}\n")
 
         except Exception as e:
-            print(f"\n✗ 运行错误: {e}")
+            print(f"\n Runtime error: {e}")
             import traceback
             traceback.print_exc()
         finally:
             if self.driver:
                 input("按 Enter 关闭浏览器...")
                 self.driver.quit()
-                print("✓ 浏览器已关闭")
+                print(" Browser closed")
 
 
-# ==================== 主程序 ====================
 if __name__ == "__main__":
     repairer = TextBatchRepairer()
     repairer.run()

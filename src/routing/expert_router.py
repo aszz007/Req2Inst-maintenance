@@ -1,15 +1,4 @@
-"""
-MoE Expert Router - Simple Rule-based Routing with Parameterized Expert Selection
-基于规则的简单路由 + 参数化专家选择
-
-路由策略:
-1. 根据输入类型(text/image/uml/general)进行简单规则路由
-2. 支持通过参数指定专家变体(用于对比实验)
-3. 使用最优默认变体(对比实验后确定)
-
-Author: Claude
-Date: 2026-02-03
-"""
+"""Select a domain expert with rule-based input-type routing."""
 
 import json
 from typing import Dict, List, Optional
@@ -20,7 +9,7 @@ from collections import defaultdict
 
 @dataclass
 class RoutingResult:
-    """路由结果"""
+    """Store expert-routing output and metadata."""
     expert_name: str
     expert_path: str
     expert_type: str
@@ -29,7 +18,7 @@ class RoutingResult:
 
 @dataclass
 class ExpertConfig:
-    """专家配置"""
+    """Store expert model and adapter configuration."""
     name: str
     expert_type: str
     model_version: str
@@ -39,14 +28,7 @@ class ExpertConfig:
 
 
 class ExpertRouter:
-    """
-    MoE专家路由器
-
-    简单的基于规则的路由:
-    - 根据输入类型路由到对应的专家类型
-    - 支持通过参数选择专家变体(对比实验用)
-    - 使用经过实验验证的最优默认变体
-    """
+    """Select experts with rule-based input-type routing."""
 
     DEFAULT_EXPERTS = {
         'text': 'text_expert',
@@ -56,28 +38,13 @@ class ExpertRouter:
     }
 
     def __init__(self, lora_weights_dir: str = "lora_weights/experts"):
-        """
-        初始化路由器
-
-        Args:
-            lora_weights_dir: LoRA权重根目录
-        """
+        """Initialize the instance."""
         self.lora_weights_dir = Path(lora_weights_dir)
         self.expert_registry = self._build_expert_registry()
         self.routing_stats = defaultdict(int)
 
     def _build_expert_registry(self) -> Dict[str, List[ExpertConfig]]:
-        """
-        构建专家注册表
-
-        包含4个专家:
-        - text_expert: 1个
-        - image_expert: 1个
-        - uml_expert: 1个
-        - general_expert: 1个
-
-        重要：所有Expert都基于Qwen-7B-Chat训练，在qwen_text环境执行
-        """
+        """Build expert registry."""
         registry = {
             'text': [],
             'image': [],
@@ -85,7 +52,6 @@ class ExpertRouter:
             'general': []
         }
 
-        # Text Expert: 1个
         registry['text'].append(ExpertConfig(
             name='text_expert',
             expert_type='text',
@@ -95,7 +61,6 @@ class ExpertRouter:
             is_default=True
         ))
 
-        # Image Expert: 1个
         registry['image'].append(ExpertConfig(
             name='image_expert',
             expert_type='image',
@@ -105,7 +70,6 @@ class ExpertRouter:
             is_default=True
         ))
 
-        # UML Expert: 1个
         registry['uml'].append(ExpertConfig(
             name='uml_expert',
             expert_type='uml',
@@ -115,7 +79,6 @@ class ExpertRouter:
             is_default=True
         ))
 
-        # General Expert: 1个
         registry['general'].append(ExpertConfig(
             name='general_expert',
             expert_type='general',
@@ -132,21 +95,7 @@ class ExpertRouter:
             input_data: dict,
             expert_variant: Optional[str] = None
     ) -> RoutingResult:
-        """
-        主路由函数
-
-        Args:
-            input_data: 输入数据字典，包含:
-                - type: 'text', 'image', 'uml', 'general'
-                - content: 实际内容
-            expert_variant: 指定专家变体(对比实验用)，例如:
-                - 'image_expert_qwen25'
-                - 'uml_expert_dataset_qwen3'
-                - None表示使用默认专家
-
-        Returns:
-            RoutingResult: 路由结果
-        """
+        """Route an input to an expert."""
         input_type = input_data.get('type', '').lower()
 
         if input_type not in ['text', 'image', 'uml', 'general']:
@@ -178,7 +127,7 @@ class ExpertRouter:
         )
 
     def _get_expert_by_name(self, expert_name: str) -> Optional[ExpertConfig]:
-        """根据名称获取专家配置"""
+        """Return expert by name."""
         for expert_list in self.expert_registry.values():
             for expert in expert_list:
                 if expert.name == expert_name:
@@ -190,16 +139,7 @@ class ExpertRouter:
             expert_type: Optional[str] = None,
             only_defaults: bool = False
     ) -> List[ExpertConfig]:
-        """
-        列出专家
-
-        Args:
-            expert_type: 专家类型过滤('text'/'image'/'uml'/'general')
-            only_defaults: 只列出默认专家
-
-        Returns:
-            专家配置列表
-        """
+        """List configured experts."""
         if expert_type:
             experts = self.expert_registry.get(expert_type, [])
         else:
@@ -213,25 +153,12 @@ class ExpertRouter:
         return experts
 
     def get_available_variants(self, expert_type: str) -> List[str]:
-        """
-        获取指定类型的所有可用专家变体名称
-
-        Args:
-            expert_type: 'text', 'image', 'uml', 'general'
-
-        Returns:
-            专家变体名称列表
-        """
+        """Return available variants."""
         experts = self.expert_registry.get(expert_type, [])
         return [e.name for e in experts]
 
     def get_routing_statistics(self) -> Dict:
-        """
-        获取路由统计信息
-
-        Returns:
-            统计字典
-        """
+        """Return routing statistics."""
         total_routings = sum(self.routing_stats.values())
 
         stats = {
@@ -251,5 +178,5 @@ class ExpertRouter:
         return stats
 
     def reset_statistics(self):
-        """重置路由统计"""
+        """Reset statistics."""
         self.routing_stats.clear()

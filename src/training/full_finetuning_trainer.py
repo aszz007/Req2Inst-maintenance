@@ -1,33 +1,4 @@
-"""
-Full Fine-tuning训练器 - 高rank LoRA配置（Full Fine-tuning对比基线）
-
-功能：
-  - 支持四种专家类型（text, image, uml, general）
-  - 使用rank=16的高质量LoRA作为Full Fine-tuning对比基线
-  - 可选4bit量化训练
-  - 仅覆盖attention层（节省显存）
-  - 继承BaseTrainer的全部训练优化策略：
-      - RTX 4090自动检测与优化
-      - 自适应早停机制
-      - Cosine学习率调度 + Warmup
-      - 步级验证策略
-      - 训练曲线可视化
-      - 梯度检查点
-      - 权重衰减
-
-显存策略（RTX 4090 24GB）：
-  - LoRA Rank: 16（高质量配置）
-  - LoRA Alpha: 32（标准2倍rank配置）
-  - Target Modules: 仅attention层（节省显存）
-  - Max Seq Length: 768（由_get_max_seq_length统一管理）
-  - Batch Size: 按expert类型自适应
-  - Gradient Checkpointing: 由TrainingArguments统一启用
-  - 4bit量化: 启用（模型占用约4-5GB）
-  - 内存碎片优化: 启用expandable_segments
-
-作者：Training System
-日期：2025-02-15
-"""
+"""Implement full-finetuning training."""
 
 import torch
 from typing import Optional
@@ -44,19 +15,7 @@ logger = get_logger('training.full_finetuning_trainer')
 
 
 class FullFineTuningTrainer(BaseTrainer):
-    """
-    Full Fine-tuning训练器 - 使用标准rank LoRA（显存优化版）
-
-    继承BaseTrainer，添加Full Fine-tuning特有的：
-    - 可选4bit量化配置
-    - 标准rank LoRA配置（rank=8）
-    - 覆盖attention层（移除FFN节省显存）
-    - 激进的显存优化策略
-    - Full Fine-tuning权重保存
-
-    注意：调用顺序必须为 setup_model() -> prepare_data() -> train()
-    prepare_data()创建InstructionDataset时需要tokenizer已完成初始化
-    """
+    """Train models with full finetuning."""
 
     def __init__(self,
                  expert_type: str,
@@ -65,17 +24,7 @@ class FullFineTuningTrainer(BaseTrainer):
                  use_4bit: bool = True,
                  use_rtx4090_optimization: bool = True,
                  debug_samples: bool = True):
-        """
-        初始化Full Fine-tuning训练器
-
-        Args:
-            expert_type: 专家类型（'text', 'image', 'uml', 'general'）
-            base_model_path: 基础模型路径（None则从配置获取）
-            output_dir: 输出目录（None则使用checkpoints/full_finetuning/{expert_type}_expert/）
-            use_4bit: 是否使用4bit量化训练
-            use_rtx4090_optimization: 是否启用RTX 4090优化
-            debug_samples: 是否在训练开始前打印前3个训练样本（默认开启）
-        """
+        """Initialize the instance."""
         super().__init__(
             expert_type=expert_type,
             method_name='full_finetuning',
@@ -84,94 +33,62 @@ class FullFineTuningTrainer(BaseTrainer):
             use_rtx4090_optimization=use_rtx4090_optimization,
             debug_samples=debug_samples
         )
-        # 显式再赋值，确保 __pycache__ 旧字节码不会覆盖用户传入的值
         self.debug_samples = debug_samples
 
         self.use_4bit = use_4bit
 
-        # Full Fine-tuning LoRA超参数（直接定义，便于实验调整）
-        # 使用较小rank以适配24GB显存，与LoRA-MoE的rank=8区分作为对比基线
         self.lora_rank = 16
         self.lora_alpha = 32
         self.lora_dropout = 0.05
-        # 【修改点】：扩展 Target Modules，包含所有线性层（MLP + Attention）
-        # 以前只有 ["q_proj", "k_proj", "v_proj", "o_proj"]
-        # 现在加入 MLP 层，这才是真正的 "QLoRA" 完全体
         self.target_modules = [
-            "q_proj", "k_proj", "v_proj", "o_proj",  # Attention层
-            "gate_proj", "up_proj", "down_proj"  # MLP层 (新增)
+            "q_proj", "k_proj", "v_proj", "o_proj",
+            "gate_proj", "up_proj", "down_proj"
         ]
 
-        # Full Fine-tuning显存优化：减少dataloader workers
         self.reduced_workers = True
 
-        # 使用统一的序列长度管理（由base_trainer的_get_max_seq_length()决定）
         self.train_cfg.max_seq_length = self._get_max_seq_length()
 
-        logger.info(f"4bit量化: {use_4bit}")
-        logger.info(f"Full Fine-tuning配置: rank={self.lora_rank}, alpha={self.lora_alpha}")
+        logger.info(f"4-bit quantization: {use_4bit}")
+        logger.info(f"Full fine-tuning configuration: rank={self.lora_rank}, alpha={self.lora_alpha}")
         logger.info(f"Max seq length: {self.train_cfg.max_seq_length}")
         logger.info(f"Target modules: {self.target_modules}")
-        logger.info("训练稳定性配置:")
-        logger.info("  - 梯度裁剪: max_grad_norm=0.8 (较严格设置)")
-        logger.info("  - Warmup比例: 10% (标准设置)")
-        logger.info("  - NaN-aware早停: 自动忽略NaN验证损失")
+        logger.info("Training-stability configuration:")
+        logger.info("  - Gradient clipping: max_grad_norm=0.8 (strict setting)")
+        logger.info("  - Warmup ratio: 10% (standard setting)")
+        logger.info("  - NaN-aware early stopping: automatically ignores NaN validation loss")
 
         self._print_training_config()
 
     def _get_batch_config(self):
-        """
-        获取Full Fine-tuning专用的batch配置
-
-        极保守配置以避免OOM（Full Fine-tuning显存占用最高）：
-        - Image (数据最短，但需保守): batch=2, grad_accum=64
-        - Text/UML/General (统一保守配置): batch=1, grad_accum=128
-
-        保持有效batch=128以保证训练稳定性
-
-        Returns:
-            (batch_size, gradient_accumulation_steps)
-        """
+        """Return batch config."""
         if self.use_rtx4090_optimization:
-            # 根据专家类型优化batch配置
             if self.expert_type == 'image':
-                # Image数据最短（~500 tokens），可用稍大batch
                 return 2, 64
             elif self.expert_type in ['text', 'uml', 'general']:
-                # Text/UML/General使用最保守配置
                 return 1, 128
             else:
-                # 默认最保守配置
                 return 1, 128
         else:
-            # 非优化配置：使用保守设置
             return 1, 128
 
     def setup_model(self) -> bool:
-        """
-        设置模型和Full Fine-tuning LoRA配置
-
-        必须在prepare_data()之前调用，以确保tokenizer在
-        InstructionDataset初始化时已完成加载
-
-        Returns:
-            bool: 是否成功
-        """
+        """Configure the model."""
         try:
             import os
             os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-            logger.info("已设置PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True")
+            logger.info("Set PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True")
 
             if torch.cuda.is_available():
                 for i in range(3):
                     torch.cuda.empty_cache()
                     torch.cuda.synchronize()
-                logger.info("已三重清空GPU缓存")
+                logger.info("Cleared the GPU cache three times")
 
                 allocated = torch.cuda.memory_allocated() / 1024**3
                 reserved = torch.cuda.memory_reserved() / 1024**3
                 total = torch.cuda.get_device_properties(0).total_memory / 1024**3
-                logger.info(f"[初始状态] GPU显存: 已分配={allocated:.2f}GB, 已保留={reserved:.2f}GB, 总计={total:.2f}GB")
+                logger.info(f"[Initial state] GPU memory: allocated={allocated:.2f} GB, reserved={reserved:.2f} GB, total={total:.2f} GB")
 
             if not self._load_base_model(self.use_4bit):
                 return False
@@ -179,12 +96,11 @@ class FullFineTuningTrainer(BaseTrainer):
             if torch.cuda.is_available() and self.use_4bit:
                 allocated = torch.cuda.memory_allocated() / 1024**3
                 if allocated > 8.0:
-                    logger.error(f"警告: 4bit量化可能未生效，模型占用{allocated:.2f}GB，预期应<6GB")
+                    logger.error(f"Warning: 4-bit quantization may not be active; model uses {allocated:.2f} GB, expected <6 GB")
                 else:
-                    logger.info(f"4bit量化正常: 模型占用{allocated:.2f}GB")
+                    logger.info(f"4-bit quantization is active: model uses {allocated:.2f} GB")
 
-            # 配置LoRA（高rank版本，作为Full Fine-tuning对比基线）
-            logger.info(f"配置Full Fine-tuning LoRA（rank={self.lora_rank}）...")
+            logger.info(f"Configuring full fine-tuning LoRA (rank={self.lora_rank})...")
             peft_config = LoraConfig(
                 task_type=TaskType.CAUSAL_LM,
                 r=self.lora_rank,
@@ -200,22 +116,19 @@ class FullFineTuningTrainer(BaseTrainer):
             total_params = sum(p.numel() for p in self.model.parameters())
             trainable_ratio = 100 * trainable_params / total_params
 
-            logger.info("=" * 80)
-            logger.info("Full Fine-tuning配置完成")
-            logger.info("=" * 80)
-            logger.info(f"可训练参数: {trainable_params:,} ({trainable_ratio:.2f}%)")
-            logger.info(f"总参数: {total_params:,}")
+            logger.info("Full fine-tuning configuration complete")
+            logger.info(f"Trainable parameters: {trainable_params:,} ({trainable_ratio:.2f}%)")
+            logger.info(f"Total parameters: {total_params:,}")
             logger.info(f"LoRA Rank: {self.lora_rank}")
             logger.info(f"LoRA Alpha: {self.lora_alpha}")
             logger.info(f"LoRA Dropout: {self.lora_dropout}")
             logger.info(f"Target Modules: {self.target_modules}")
             logger.info(f"Max Seq Length: {self.train_cfg.max_seq_length}")
-            logger.info("=" * 80)
 
             return True
 
         except Exception as e:
-            logger.error(f"模型设置失败: {e}")
+            logger.error(f"Model setup failed: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return False

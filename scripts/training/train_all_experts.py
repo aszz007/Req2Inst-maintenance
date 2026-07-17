@@ -1,39 +1,4 @@
-"""
-一键训练所有专家脚本
-
-按顺序执行所有训练任务：
-  - 第1轮：Prompt Tuning (4个专家，约4小时)
-  - 第2轮：P-Tuning v2 (4个专家，约5小时)
-  - 第3轮：准全参数微调 (4个专家，约7小时)
-
-总计：12个模型，预计约16小时
-
-使用方法：
-  python scripts/training/train_all_experts.py
-
-  可选参数：
-    --method {prompt_tuning,p_tuning,full_finetuning,all} [...]
-             训练指定方法，可指定多个（默认：all）
-    --expert {text,image,uml,general,all}
-             仅训练指定专家（默认：all）
-
-示例：
-  # 训练所有方法和专家
-  python scripts/training/train_all_experts.py
-
-  # 仅训练Prompt Tuning
-  python scripts/training/train_all_experts.py --method prompt_tuning
-
-  # 训练P-Tuning v2和准全参数微调（跳过Prompt Tuning）
-  python scripts/training/train_all_experts.py --method p_tuning full_finetuning --skip-failed
-
-  # 仅训练文本专家（所有方法）
-  python scripts/training/train_all_experts.py --expert text
-
-环境：instruction_generator (transformers==4.57.0)
-作者：Training Pipeline System
-日期：2025-02-15
-"""
+"""Run the configured expert-training tasks."""
 
 import sys
 import os
@@ -50,7 +15,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 TRAINING_TASKS = {
     'lora_moe': {
-        # 'text': 'scripts/training/lora_moe/train_text_expert.py',  # 已完成，跳过
         'image': 'scripts/training/lora_moe/train_image_expert.py',
         'uml': 'scripts/training/lora_moe/train_uml_expert.py',
         'general': 'scripts/training/lora_moe/train_general_expert.py',
@@ -85,29 +49,29 @@ ESTIMATED_TIME = {
 
 
 def print_header():
-    """打印训练标题"""
+    """Print header."""
     print("\n" + "=" * 80)
-    print(" " * 22 + "一键训练所有专家")
+    print(" " * 22 + "Train All Experts")
     print("=" * 80)
-    print("\n本脚本将按顺序训练16个模型：")
-    print("  - 第1轮：LoRA-MoE (4个专家，约3小时)")
-    print("  - 第2轮：Prompt Tuning (4个专家，约4小时)")
-    print("  - 第3轮：P-Tuning v2 (4个专家，约5小时)")
-    print("  - 第4轮：准全参数微调 (4个专家，约7小时)")
-    print("\n总预计时间：约19小时")
+    print("\nThis script will train 16 models in sequence:")
+    print("  - Round 1: LoRA-MoE (4 experts, about 3 hours)")
+    print("  - Round 2: Prompt Tuning (4 experts, about 4 hours)")
+    print("  - Round 3: P-Tuning v2 (4 experts, about 5 hours)")
+    print("  - Round 4: Near-full fine-tuning (4 experts, about 7 hours)")
+    print("\nEstimated total time: about 19 hours")
     print("=" * 80 + "\n")
 
 
 def print_session_header(session_num, method_name, total_time):
-    """打印训练轮次标题"""
+    """Print session header."""
     print("\n" + "=" * 80)
-    print(f"第{session_num}轮：{method_name}")
-    print(f"预计耗时：{total_time:.1f}小时")
+    print(f"Round {session_num}: {method_name}")
+    print(f"Estimated time: {total_time:.1f} hours")
     print("=" * 80 + "\n")
 
 
 def format_time(seconds):
-    """将秒数格式化为可读的时间字符串"""
+    """Format time."""
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
@@ -121,15 +85,15 @@ def format_time(seconds):
 
 
 def run_training_task(method, expert, script_path):
-    """执行单个训练任务"""
+    """Run training task."""
     full_path = PROJECT_ROOT / script_path
 
     if not full_path.exists():
-        print(f"错误：脚本未找到: {full_path}")
+        print(f"Error: script not found: {full_path}")
         return False
 
-    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] 开始训练: {method}/{expert}")
-    print(f"脚本: {script_path}")
+    print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting training: {method}/{expert}")
+    print(f"Script: {script_path}")
     print("-" * 80)
 
     start_time = time.time()
@@ -148,52 +112,52 @@ def run_training_task(method, expert, script_path):
 
         elapsed = time.time() - start_time
         print("-" * 80)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 完成: {method}/{expert}")
-        print(f"耗时: {format_time(elapsed)}")
-        print(f"状态: 成功")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Completed: {method}/{expert}")
+        print(f"Elapsed: {format_time(elapsed)}")
+        print(f"Status: succeeded")
 
         return True
 
     except subprocess.CalledProcessError as e:
         elapsed = time.time() - start_time
         print("-" * 80)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 失败: {method}/{expert}")
-        print(f"耗时: {format_time(elapsed)}")
-        print(f"状态: 失败")
-        print(f"错误码: {e.returncode}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Failed: {method}/{expert}")
+        print(f"Elapsed: {format_time(elapsed)}")
+        print(f"Status: failed")
+        print(f"Exit code: {e.returncode}")
 
         return False
 
     except KeyboardInterrupt:
         elapsed = time.time() - start_time
         print("\n" + "-" * 80)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 中断: {method}/{expert}")
-        print(f"耗时: {format_time(elapsed)}")
-        print(f"状态: 用户中断")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Interrupted: {method}/{expert}")
+        print(f"Elapsed: {format_time(elapsed)}")
+        print(f"Status: interrupted by user")
 
         raise
 
 
 def main():
-    """主训练流程"""
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
-        description='一键训练所有专家',
+        description='Train all experts in one command',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-示例：
-  # 训练所有方法和专家
+Examples:
+  # Train all methods and experts
   python scripts/training/train_all_experts.py
   
-  # 仅训练Prompt Tuning
+  # Train Prompt Tuning only
   python scripts/training/train_all_experts.py --method prompt_tuning
   
-  # 训练P-Tuning v2和准全参数微调（跳过Prompt Tuning）
+  # Train P-Tuning v2 and full fine-tuning (skip Prompt Tuning)
   python scripts/training/train_all_experts.py --method p_tuning full_finetuning --skip-failed
   
-  # 仅训练文本专家（所有方法）
+  # Train the text expert only (all methods)
   python scripts/training/train_all_experts.py --expert text
   
-  # 自动跳过失败的任务继续训练
+  # Continue automatically after failed tasks
   python scripts/training/train_all_experts.py --skip-failed
         """
     )
@@ -203,21 +167,21 @@ def main():
         nargs='+',
         choices=['lora_moe', 'prompt_tuning', 'p_tuning', 'full_finetuning', 'all'],
         default=['all'],
-        help='训练指定方法，可指定多个（默认：all）'
+        help='Training methods; may specify multiple (default: all)'
     )
 
     parser.add_argument(
         '--expert',
         choices=['text', 'image', 'uml', 'general', 'all'],
         default='all',
-        help='仅训练指定专家（默认：all）'
+        help='Train only the specified expert (default: all)'
     )
 
     parser.add_argument(
         '--skip-failed',
         action='store_true',
         default=False,
-        help='自动跳过失败的任务继续训练（默认：失败后停止）'
+        help='Continue automatically after failed tasks (default: stop on failure)'
     )
 
     args = parser.parse_args()
@@ -236,7 +200,7 @@ def main():
 
     overall_start = time.time()
     results = []
-    failed_tasks = []  # 记录失败的任务
+    failed_tasks = []
 
     try:
         session_num = 1
@@ -258,9 +222,8 @@ def main():
             session_num += 1
 
             for expert in experts_to_train:
-                # 检查任务是否存在（支持手动注释跳过）
                 if expert not in TRAINING_TASKS[method]:
-                    print(f"\n跳过: {method}/{expert} (已注释)")
+                    print(f"\nSkipping: {method}/{expert} (commented out)")
                     continue
 
                 script_path = TRAINING_TASKS[method][expert]
@@ -277,25 +240,25 @@ def main():
 
                     if args.skip_failed:
                         print("\n" + "=" * 80)
-                        print("任务失败，跳过并继续训练下一个任务")
+                        print("Task failed; skipping it and continuing with the next task")
                         print("=" * 80)
-                        print(f"失败任务: {method}/{expert}")
-                        print("继续执行...")
+                        print(f"Failed task: {method}/{expert}")
+                        print("Continuing...")
                         print("=" * 80 + "\n")
                         continue
                     else:
                         print("\n" + "=" * 80)
-                        print("训练失败！")
+                        print("Training failed!")
                         print("=" * 80)
-                        print(f"失败任务: {method}/{expert}")
-                        print("停止执行。")
-                        print("提示: 使用 --skip-failed 参数可自动跳过失败任务")
+                        print(f"Failed task: {method}/{expert}")
+                        print("Stopping execution.")
+                        print("Tip: use --skip-failed to skip failed tasks automatically")
                         print("=" * 80 + "\n")
                         return 1
 
     except KeyboardInterrupt:
         print("\n\n" + "=" * 80)
-        print("训练被用户中断")
+        print("Training interrupted by user")
         print("=" * 80 + "\n")
         return 1
 
@@ -303,36 +266,36 @@ def main():
 
     print("\n\n" + "=" * 80)
     if failed_tasks:
-        print(" " * 25 + "训练完成（有失败任务）")
+        print(" " * 25 + "Training finished (some tasks failed)")
     else:
-        print(" " * 28 + "训练完成！")
+        print(" " * 28 + "Training complete!")
     print("=" * 80)
-    print(f"\n总耗时: {format_time(overall_elapsed)}")
+    print(f"\nTotal elapsed: {format_time(overall_elapsed)}")
 
     success_count = sum(1 for r in results if r['success'])
-    print(f"成功任务: {success_count}/{len(results)}")
+    print(f"Successful tasks: {success_count}/{len(results)}")
 
     if failed_tasks:
-        print(f"失败任务: {len(failed_tasks)}/{len(results)}")
+        print(f"Failed tasks: {len(failed_tasks)}/{len(results)}")
 
-    print("\n结果：")
+    print("\nResults:")
     print("-" * 80)
 
     for result in results:
-        status = "✓ 成功" if result['success'] else "✗ 失败"
+        status = " 成功" if result['success'] else " 失败"
         print(f"  {result['method']:20s} / {result['expert']:10s} : {status}")
 
     if failed_tasks:
         print("\n" + "=" * 80)
-        print("失败任务详情:")
+        print("Failed task details:")
         print("=" * 80)
         for method, expert in failed_tasks:
             print(f"  - {method}/{expert}")
-        print("\n建议:")
-        print("  1. 检查对应专家的训练日志: logs/training/")
-        print("  2. 如果是OOM错误，考虑进一步降低序列长度或batch size")
-        print("  3. 如果是配置错误，检查 config/settings.py")
-        print("  4. 可以单独重新训练失败的专家")
+        print("\nSuggestions:")
+        print("  1. Check the training logs for the affected expert: logs/training/")
+        print("  2. For OOM errors, consider reducing the sequence length or batch size further")
+        print("  3. For configuration errors, check config/settings.py")
+        print("  4. Retrain failed experts individually if needed")
 
     print("=" * 80 + "\n")
 

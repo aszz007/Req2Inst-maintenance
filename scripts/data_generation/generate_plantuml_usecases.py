@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""
-PlantUML用例图批量生成工具（随机化版本）
-功能：自动生成1500张真正不同的高清用例图用于模型训练
-输出：PNG格式，150 DPI，保存至data/raw/uml/plantuml_usecase/
-策略：
-- 总数：1500张图（10领域 × 150张/领域）
-- 复杂度分布（优化版）：简单75张 + 中等60张 + 复杂15张
-- 分布理由：50%简单样本让模型先学好基础，40%中等覆盖常见场景，10%复杂保证难度
-- 真正的随机化：随机actors、usecases、relationships
-"""
+"""Generate synthetic PlantUML use-case diagrams and metadata."""
 
 import subprocess
 import shutil
@@ -20,15 +11,10 @@ import random
 
 
 class PlantUMLGenerator:
-    """PlantUML用例图生成器 - 支持真正的随机化"""
+    """Generate synthetic PlantUML use-case diagrams."""
 
     def __init__(self, output_dir: Path):
-        """
-        初始化生成器
-
-        Args:
-            output_dir: 输出目录路径
-        """
+        """Initialize the instance."""
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.plantuml_jar = Path(__file__).parent.parent / "plantuml.jar"
@@ -42,12 +28,7 @@ class PlantUMLGenerator:
         }
 
     def _init_domain_pools(self) -> dict:
-        """
-        初始化10个领域的资源池（actors和use cases）
-
-        Returns:
-            dict: 领域资源池字典
-        """
+        """Initialize domain-specific generation pools."""
         return {
             "ecommerce": self._get_ecommerce_pool(),
             "authentication": self._get_authentication_pool(),
@@ -62,7 +43,7 @@ class PlantUMLGenerator:
         }
 
     def _get_ecommerce_pool(self) -> dict:
-        """电商系统资源池"""
+        """Return ecommerce pool."""
         return {
             'actors': [
                 "Customer", "Guest", "Admin", "Seller", "Buyer",
@@ -87,7 +68,7 @@ class PlantUMLGenerator:
         }
 
     def _get_authentication_pool(self) -> dict:
-        """认证系统资源池"""
+        """Return authentication pool."""
         return {
             'actors': [
                 "User", "Admin", "Guest", "System Administrator",
@@ -113,7 +94,7 @@ class PlantUMLGenerator:
         }
 
     def _get_content_management_pool(self) -> dict:
-        """内容管理系统资源池"""
+        """Return content management pool."""
         return {
             'actors': [
                 "Author", "Editor", "Moderator", "Admin", "Reviewer",
@@ -139,7 +120,7 @@ class PlantUMLGenerator:
         }
 
     def _get_social_interaction_pool(self) -> dict:
-        """社交互动系统资源池"""
+        """Return social interaction pool."""
         return {
             'actors': [
                 "User", "Friend", "Follower", "Group Admin", "Moderator",
@@ -167,7 +148,7 @@ class PlantUMLGenerator:
         }
 
     def _get_customer_service_pool(self) -> dict:
-        """客户服务系统资源池"""
+        """Return customer service pool."""
         return {
             'actors': [
                 "Customer", "Support Agent", "Supervisor", "Manager",
@@ -193,7 +174,7 @@ class PlantUMLGenerator:
         }
 
     def _get_data_analysis_pool(self) -> dict:
-        """数据分析系统资源池"""
+        """Return data analysis pool."""
         return {
             'actors': [
                 "Analyst", "Data Scientist", "Manager", "Admin",
@@ -219,7 +200,7 @@ class PlantUMLGenerator:
         }
 
     def _get_permission_management_pool(self) -> dict:
-        """权限管理系统资源池"""
+        """Return permission management pool."""
         return {
             'actors': [
                 "Admin", "User", "Manager", "Security Officer",
@@ -248,7 +229,7 @@ class PlantUMLGenerator:
         }
 
     def _get_notification_system_pool(self) -> dict:
-        """通知系统资源池"""
+        """Return notification system pool."""
         return {
             'actors': [
                 "User", "System", "Admin", "Service",
@@ -277,7 +258,7 @@ class PlantUMLGenerator:
         }
 
     def _get_file_management_pool(self) -> dict:
-        """文件管理系统资源池"""
+        """Return file management pool."""
         return {
             'actors': [
                 "User", "Admin", "Collaborator", "Viewer",
@@ -307,7 +288,7 @@ class PlantUMLGenerator:
         }
 
     def _get_booking_system_pool(self) -> dict:
-        """预订系统资源池"""
+        """Return booking system pool."""
         return {
             'actors': [
                 "Customer", "Admin", "Service Provider", "Guest",
@@ -338,18 +319,7 @@ class PlantUMLGenerator:
 
     def _generate_random_diagram(self, domain_name: str, pool: dict,
                                  complexity: str, index: int) -> Tuple[str, str, List[str], List[str], List[Tuple]]:
-        """
-        生成随机用例图
-
-        Args:
-            domain_name: 领域名称
-            pool: 资源池
-            complexity: 复杂度级别（simple/medium/complex）
-            index: 序号
-
-        Returns:
-            Tuple: (file_id, scenario_name, actors, use_cases, relationships)
-        """
+        """Generate random diagram."""
         config = self.complexity_config[complexity]
 
         num_actors = random.randint(config['min_actors'], config['max_actors'])
@@ -366,16 +336,7 @@ class PlantUMLGenerator:
         return file_id, scenario_name, selected_actors, selected_usecases, relationships
 
     def _generate_relationships(self, actors: List[str], usecases: List[str]) -> List[Tuple]:
-        """
-        自动生成合理的relationships
-
-        Args:
-            actors: actors列表
-            usecases: use cases列表
-
-        Returns:
-            List[Tuple]: relationships列表
-        """
+        """Generate relationships."""
         relationships = []
 
         used_usecases = set()
@@ -402,15 +363,7 @@ class PlantUMLGenerator:
         return relationships
 
     def _sanitize_name(self, name: str) -> str:
-        """
-        清理名称中的特殊字符，确保PlantUML兼容性
-
-        Args:
-            name: 原始名称
-
-        Returns:
-            str: 清理后的名称
-        """
+        """Sanitize a generated name."""
         name = name.replace('"', '')
         name = name.replace("'", '')
         name = name.replace('\\', '')
@@ -418,18 +371,7 @@ class PlantUMLGenerator:
 
     def generate_plantuml_code(self, scenario_name: str, actors: List[str],
                                use_cases: List[str], relationships: List[Tuple]) -> str:
-        """
-        生成PlantUML代码
-
-        Args:
-            scenario_name: 场景名称
-            actors: 参与者列表
-            use_cases: 用例列表
-            relationships: 关系列表 [(from, to, type), ...]
-
-        Returns:
-            str: PlantUML代码
-        """
+        """Generate plantuml code."""
         scenario_name = self._sanitize_name(scenario_name)
         actors = [self._sanitize_name(a) for a in actors]
         use_cases = [self._sanitize_name(uc) for uc in use_cases]
@@ -470,12 +412,7 @@ class PlantUMLGenerator:
         return "\n".join(code_lines)
 
     def check_java(self) -> bool:
-        """
-        检查Java是否安装
-
-        Returns:
-            bool: True表示Java已安装
-        """
+        """Check java."""
         try:
             result = subprocess.run(
                 ["java", "-version"],
@@ -488,12 +425,7 @@ class PlantUMLGenerator:
             return False
 
     def download_plantuml(self) -> bool:
-        """
-        下载PlantUML JAR文件
-
-        Returns:
-            bool: True表示下载成功
-        """
+        """Download the PlantUML runtime."""
         if self.plantuml_jar.exists():
             print(f"PlantUML already exists: {self.plantuml_jar}")
             return True
@@ -510,15 +442,7 @@ class PlantUMLGenerator:
             return False
 
     def generate_png(self, puml_file: Path) -> Tuple[bool, str]:
-        """
-        使用PlantUML生成PNG图像
-
-        Args:
-            puml_file: PlantUML源文件路径
-
-        Returns:
-            Tuple[bool, str]: (是否成功, 错误信息)
-        """
+        """Generate png."""
         try:
             result = subprocess.run(
                 [
@@ -544,12 +468,7 @@ class PlantUMLGenerator:
             return False, str(e)
 
     def generate_all(self, target_count: int = 1500):
-        """
-        批量生成所有用例图
-
-        Args:
-            target_count: 目标生成数量（默认1500张）
-        """
+        """Generate all."""
         if not self.check_java():
             print("Error: Java is not installed. Please install Java 8+ first.")
             sys.exit(1)
@@ -622,7 +541,7 @@ class PlantUMLGenerator:
 
 
 def main():
-    """主函数"""
+    """Run the command-line entry point."""
     try:
         from config.settings import get_path_config
 

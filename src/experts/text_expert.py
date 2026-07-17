@@ -1,17 +1,4 @@
-"""
-文本专家 - 将文本需求转换为众包指令
-功能:
-  - 处理Low_Requirements文本需求
-  - 生成三段式众包指令
-  - 使用Qwen3-8B + LoRA微调权重
-
-环境要求: instruction_generator
-模型: Qwen3-8B（默认）
-训练数据: dataset/text/
-
-作者: Expert System
-日期: 2025-02-13
-"""
+"""Implement the text-domain expert."""
 
 import json
 from pathlib import Path
@@ -29,21 +16,7 @@ logger = get_logger('experts.text')
 
 
 def _build_prompt_for_domain(input_data):
-    """
-    根据输入数据的实际领域类型构建对应的prompt（跨域评估场景使用）。
-
-    检测规则（按优先级）：
-      - json解析失败的字符串 → text → TextInstructionTemplate
-      - JSON含 actors + use_cases → uml → UMLInstructionTemplate
-      - JSON含 description + details(objects或scene) → image → ImageInstructionTemplate
-      - 其他JSON → text → TextInstructionTemplate
-
-    正常领域推理场景（text专家收到纯文本）同样会路由到TextInstructionTemplate，
-    与原有逻辑行为一致。
-
-    Returns:
-        tuple(str, str): (构建的prompt, 检测到的领域类型 'text'/'image'/'uml')
-    """
+    """Build prompt for domain."""
     if isinstance(input_data, dict):
         data = input_data
         text_fallback = str(input_data)
@@ -67,35 +40,28 @@ def _build_prompt_for_domain(input_data):
 
 
 class TextExpert(BaseExpert):
-    """文本专家 - 文本需求转众包指令"""
+    """Generate instructions for text-domain inputs."""
 
     def __init__(self, lora_path: Optional[str] = None, use_4bit: bool = True):
-        """
-        初始化文本专家
-
-        Args:
-            lora_path: LoRA权重路径(None则使用默认配置)
-            use_4bit: 是否使用4bit量化
-        """
+        """Initialize the instance."""
         path_cfg = get_path_config()
 
-        # 如果没有提供lora_path,使用配置中的路径
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get('text_expert')
             if lora_weight_path is None:
-                logger.warning("配置中未找到text_expert的LoRA权重路径,将使用基础模型")
+                logger.warning("No LoRA weight path is configured for text_expert; using the base model")
                 lora_path = None
             else:
                 lora_path_obj = Path(lora_weight_path)
                 if not lora_path_obj.exists():
-                    logger.warning(f"LoRA权重路径不存在: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path does not exist: {lora_path_obj}; using the base model")
                     lora_path = None
                 elif not lora_path_obj.is_dir():
-                    logger.warning(f"LoRA权重路径不是目录: {lora_path_obj},将使用基础模型")
+                    logger.warning(f"LoRA weight path is not a directory: {lora_path_obj}; using the base model")
                     lora_path = None
                 else:
                     lora_path = str(lora_path_obj)
-                    logger.info(f"找到LoRA权重路径: {lora_path}")
+                    logger.info(f"Found LoRA weight path: {lora_path}")
 
         super().__init__(
             expert_name='text_expert',
@@ -104,37 +70,26 @@ class TextExpert(BaseExpert):
             use_4bit=use_4bit
         )
 
-        logger.info("文本专家初始化完成")
+        logger.info("Text expert initialized")
 
     def generate_instruction(self, input_data: str, sample_index: int = None) -> str:
-        """
-        生成文本众包指令
-
-        Args:
-            input_data: Low_Requirements文本需求
-            sample_index: 样本索引（用于控制日志输出）
-
-        Returns:
-            str: 生成的三段式指令
-        """
+        """Generate instruction."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return ""
 
         try:
-            # 构建prompt（跨域评估时自动检测输入类型并使用对应模板）
             prompt, detected_domain = _build_prompt_for_domain(input_data)
             if detected_domain != 'text' and (sample_index is None or sample_index < 3):
                 logger.warning(
-                    f"输入数据检测为{detected_domain}类型，使用对应模板（跨域评估场景）"
+                    f"Input detected as {detected_domain}; using the matching template for cross-domain evaluation"
                 )
 
             if sample_index is None or sample_index < 3:
-                logger.debug(f"生成指令 - 输入需求: {input_data[:100]}...")
+                logger.debug(f"Generating instruction - input requirement: {input_data[:100]}...")
 
-            # 调用模型生成
             infer_cfg = get_inference_config()
             instruction = self._generate_with_model(
                 prompt=prompt,
@@ -147,69 +102,48 @@ class TextExpert(BaseExpert):
                 verbose=(sample_index is None or sample_index < 3)
             )
 
-            # 规范化输出（补全 Definition: 标签、去除行尾分隔符等）
             instruction = self._normalize_instruction(instruction)
 
-            # 只在前3个样本输出模型原始输出
             if sample_index is None or sample_index < 3:
-                logger.info("=" * 80)
-                logger.info("模型原始输出:")
-                logger.info("-" * 80)
+                logger.info("Raw model output:")
                 logger.info(instruction)
-                logger.info("=" * 80)
 
-            # 验证输出格式（仅记录日志，不覆盖模型输出）
             if self.validate_output(instruction):
-                logger.info("指令生成成功,格式验证通过")
+                logger.info("Instruction generated successfully and passed format validation")
             else:
                 if sample_index is None or sample_index < 3:
-                    logger.warning("指令格式验证失败，直接返回模型输出")
-                    logger.warning(f"验证未通过的指令内容：\n{instruction}")
+                    logger.warning("Instruction failed format validation; returning the model output directly")
+                    logger.warning(f"Instruction that failed validation:\n{instruction}")
             return instruction
 
         except Exception as e:
-            logger.error(f"指令生成失败: {e}")
+            logger.error(f"Instruction generation failed: {e}")
             return ""
 
     def batch_generate_instruction(self, input_data_list: list, batch_size: int = 16) -> list:
-        """
-        批量生成文本众包指令（提高GPU利用率）
-
-        Args:
-            input_data_list: 文本需求列表
-            batch_size: 批处理大小（默认8，适合RTX 4090 24GB）
-
-        Returns:
-            list: 生成的指令列表
-        """
+        """Generate instructions in batches."""
         if not self.is_model_loaded:
-            logger.warning("模型未加载,尝试加载模型...")
+            logger.warning("Model is not loaded; attempting to load it...")
             if not self.load_model():
-                logger.error("模型加载失败")
+                logger.error("Failed to load model")
                 return [""] * len(input_data_list)
 
         try:
-            logger.info(f"批量生成指令 - 共{len(input_data_list)}个样本，batch_size={batch_size}")
+            logger.info(f"Batch instruction generation - {len(input_data_list)} samples, batch_size={batch_size}")
 
-            # 构建所有prompts（跨域评估时自动检测输入类型并使用对应模板）
             prompts = []
             for _idx, _data in enumerate(input_data_list):
                 _prompt, _domain = _build_prompt_for_domain(_data)
                 if _domain != 'text' and _idx < 3:
                     logger.warning(
-                        f"样本{_idx}输入检测为{_domain}类型，使用对应模板（跨域评估场景）"
+                        f"Sample {_idx} detected as {_domain}; using the matching template for cross-domain evaluation"
                     )
                 prompts.append(_prompt)
 
-            # 输出前3个样本的详细信息
             for i in range(min(3, len(input_data_list))):
-                logger.info("=" * 80)
-                logger.info(f"[样本 {i+1}/{len(input_data_list)}] 输入需求:")
-                logger.info("-" * 80)
+                logger.info(f"[Sample {i+1}/{len(input_data_list)}] Input requirement:")
                 logger.info(input_data_list[i][:200] + ("..." if len(input_data_list[i]) > 200 else ""))
-                logger.info("=" * 80)
 
-            # 批量生成
             infer_cfg = get_inference_config()
             instructions = self._generate_batch_with_model(
                 prompts=prompts,
@@ -223,62 +157,41 @@ class TextExpert(BaseExpert):
                 verbose=True
             )
 
-            # 输出前3个样本的生成结果
             for i in range(min(3, len(instructions))):
-                logger.info("=" * 80)
-                logger.info(f"[样本 {i+1}/{len(input_data_list)}] 生成的指令:")
-                logger.info("-" * 80)
+                logger.info(f"[Sample {i+1}/{len(input_data_list)}] Generated instruction:")
                 logger.info(instructions[i])
-                logger.info("=" * 80)
 
-            # 验证每个输出（先规范化再验证，仅记录日志，不覆盖模型输出）
             validated_instructions = []
             for i, instruction in enumerate(instructions):
                 instruction = self._normalize_instruction(instruction)
                 if not self.validate_output(instruction):
                     if i < 3:
-                        logger.warning(f"样本{i+1}格式验证失败，直接使用模型输出")
+                        logger.warning(f"Sample {i+1} failed format validation; using the model output directly")
                 validated_instructions.append(instruction)
 
             return validated_instructions
 
         except Exception as e:
-            logger.error(f"批量生成失败: {e}")
+            logger.error(f"Batch generation failed: {e}")
             return [""] * len(input_data_list)
 
     def validate_output(self, instruction: str) -> bool:
-        """
-        验证输出格式是否符合三段式要求
-
-        Args:
-            instruction: 生成的指令
-
-        Returns:
-            bool: 是否符合格式
-        """
+        """Validate output."""
         if not instruction or len(instruction.strip()) < 50:
-            logger.debug("指令内容过短")
+            logger.debug("Instruction is too short")
             return False
 
         result = TextInstructionTemplate.validate_instruction(instruction)
 
         if not result['is_valid']:
-            logger.debug(f"格式验证失败: {result['errors']}")
+            logger.debug(f"Format validation failed: {result['errors']}")
             return False
 
         return True
 
     def _fallback_generation(self, input_data: str) -> str:
-        """
-        回退方案: 生成基础格式的指令
-
-        Args:
-            input_data: 输入需求
-
-        Returns:
-            str: 基础格式的指令
-        """
-        logger.info("使用回退方案生成指令")
+        """Generate fallback output."""
+        logger.info("Using fallback instruction generation")
 
         fallback_instruction = """Definition: In this task, implement and test the specified requirement.
 Emphasis & Caution: Ensure thorough testing and validation of all functionality.

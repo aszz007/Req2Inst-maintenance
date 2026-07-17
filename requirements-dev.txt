@@ -1,0 +1,8 @@
+-r requirements.txt
+
+# Development-only tools. The existing research code is not reformatted
+# automatically; introduce lint rules gradually in a dedicated maintenance PR.
+setuptools>=68
+pytest>=8.0,<9
+pytest-cov>=5.0,<7
+ruff>=0.6,<1

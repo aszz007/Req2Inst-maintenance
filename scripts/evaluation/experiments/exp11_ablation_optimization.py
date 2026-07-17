@@ -1,24 +1,8 @@
 #!/usr/bin/env python3
-"""
-实验11：Output Ensemble消融与路由优化
-Experiment 11: Output Ensemble Ablation and Routing Optimization
+"""Run Experiment 11 ablation and optimization evaluation.
 
-Phase 1: 消融实验（~40min）
-  - 7组消融配置（A0~A6），逐一移除v12关键机制
-  - 测量每个机制对ROUGE-L的单独贡献
-
-Phase 2: Router优化实验（~30min）
-  - 5组Router配置（B0~B4），探索提升分类准确率的方法
-  - B0为当前Router基线，B1~B4为优化变体
-
-Phase 3: 最优组合评估与可视化（~30min）
-  - 将最优Router接入完整v12 Ensemble
-  - 生成6张可视化图表 + report.md
-
-依赖：Exp10 phase1_results.json + phase2_results.json 必须已存在
-
-Author: Claude
-Date: 2026-03-11
+Prerequisites:
+    Exp10 phase1_results.json and phase2_results.json must exist.
 """
 
 import sys
@@ -71,9 +55,6 @@ EXP11_CACHE_DIR = CACHE_DIR / 'exp11_ablation'
 ALL_TYPES = ['text', 'image', 'uml', 'general']
 SPECIALIZED_TYPES = ['text', 'image', 'uml']
 
-# ─────────────────────────────────────────────
-# 消融配置定义
-# ─────────────────────────────────────────────
 
 ABLATION_CONFIGS = {
     'A0': {
@@ -135,9 +116,6 @@ ABLATION_CONFIGS = {
 }
 
 
-# ─────────────────────────────────────────────
-# 从exp10复用的工具函数
-# ─────────────────────────────────────────────
 
 def _cleanup_gpu():
     gc.collect()
@@ -160,7 +138,7 @@ def _metrics_from_samples(samples, use_bertscore=False):
 
 
 def _build_prompt_for_sample(sample: dict) -> tuple:
-    """根据样本 data_type 构建正确的 prompt 字符串（与exp10保持一致）"""
+    """Build prompt for sample."""
     input_text = sample.get('input', '')
     data_type = sample.get('data_type', 'general')
     try:
@@ -204,7 +182,7 @@ def _detect_template_from_prompt(prompt_str: str) -> str:
 
 
 def _load_all_expert_caches_for_general():
-    """加载所有专家在general域上的缓存（与exp10保持一致）"""
+    """Load all expert caches for general."""
     caches = {}
     for expert in ALL_TYPES:
         if expert == 'general':
@@ -227,12 +205,12 @@ def _load_all_expert_caches_for_general():
         if cache:
             caches[expert] = cache.get('samples', [])
         else:
-            logger.warning(f"  [缓存] 专家 '{expert}' 缓存未找到")
+            logger.warning(f"  [Cache] Cache not found for expert '{expert}'")
     return caches
 
 
 def _single_expert_from_cache(expert_name, domain, sample_idx, preloaded_caches=None):
-    """从缓存取单专家预测结果（与exp10保持一致）"""
+    """Load single-expert output from cache."""
     if preloaded_caches is not None:
         samples = preloaded_caches.get(expert_name, [])
         if samples and sample_idx < len(samples):
@@ -246,61 +224,46 @@ def _single_expert_from_cache(expert_name, domain, sample_idx, preloaded_caches=
     return ''
 
 
-# ─────────────────────────────────────────────
-# Phase 1: 消融实验
-# ─────────────────────────────────────────────
 
 def run_phase1(args):
-    """
-    Phase 1: 消融实验
-    对7组配置（A0~A6）分别运行Output Ensemble，测量每个机制的贡献
-    """
-    logger.info("=" * 80)
-    logger.info("Phase 1: Output Ensemble消融实验")
-    logger.info("=" * 80)
+    """Run phase1."""
+    logger.info("Phase 1: Output Ensemble ablation study")
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
     EXP11_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 加载基础数据
     general_data = GeneralDatasetLoader().load_all_data()
     _, _, general_test = split_dataset_for_expert(general_data, 'general')
     if args.test_mode:
         general_test = general_test[:20]
-    logger.info(f"General测试集: {len(general_test)} 条")
+    logger.info(f"General test set: {len(general_test)} samples")
 
-    # 加载Router
     router = RouterMLP()
     router_ckpt = ROUTER_CKPT_DIR / 'router_mlp_best.pt'
     if not router_ckpt.exists():
-        raise FileNotFoundError(f"Router权重不存在: {router_ckpt}，请先运行Exp10 Phase 1")
+        raise FileNotFoundError(f"Router weights not found: {router_ckpt}. Run Experiment 10 Phase 1 first")
     router.load(router_ckpt)
 
-    # 加载General特征
     general_feat_path = FEATURE_CACHE_DIR / 'general_hidden_states.npz'
     if not general_feat_path.exists():
-        raise FileNotFoundError(f"General特征缓存不存在: {general_feat_path}")
+        raise FileNotFoundError(f"General feature cache not found: {general_feat_path}")
     feat_data = np.load(general_feat_path)
     general_features = feat_data['features']
     if args.test_mode:
         general_features = general_features[:20]
     if len(general_test) != len(general_features):
         general_test = general_test[:len(general_features)]
-    logger.info(f"General特征维度: {general_features.shape}")
+    logger.info(f"General feature shape: {general_features.shape}")
 
-    # 预加载专家缓存
     preloaded_caches = _load_all_expert_caches_for_general()
 
-    # Router预测权重
     probs = router.predict_proba(general_features)
 
-    # 确定要运行的消融配置
     if args.ablation:
         config_keys = [args.ablation] if args.ablation in ABLATION_CONFIGS else list(ABLATION_CONFIGS.keys())
     else:
         config_keys = list(ABLATION_CONFIGS.keys())
 
-    # 加载基础模型（所有配置共享）
     import torch
     from peft import PeftModel
     from models.language_model import LanguageModel
@@ -313,7 +276,7 @@ def run_phase1(args):
     for et in ALL_TYPES:
         adapter_paths[et] = str(path_cfg.get_expert_weight_path(et))
 
-    logger.info("  预加载所有专家 adapter...")
+    logger.info("  Preloading adapters for all experts...")
     model_with_adapters = base_model
     for et in ALL_TYPES:
         try:
@@ -321,21 +284,17 @@ def run_phase1(args):
                 model_with_adapters, adapter_paths[et], adapter_name=et,
                 is_trainable=False,
             )
-            logger.info(f"    已加载 adapter: {et}")
+            logger.info(f"    Loaded adapter: {et}")
         except Exception as e:
-            logger.warning(f"    adapter 加载失败 {et}: {e}")
+            logger.warning(f"    Failed to load {et} adapter: {e}")
     model_with_adapters.eval()
 
-    # 逐配置运行
     ablation_results = {}
     for config_key in config_keys:
         config = ABLATION_CONFIGS[config_key]
-        logger.info(f"\n{'='*60}")
-        logger.info(f"  消融配置 {config_key}: {config['name']}")
-        logger.info(f"  说明: {config['description']}")
-        logger.info(f"{'='*60}")
+        logger.info(f"  Ablation configuration {config_key}: {config['name']}")
+        logger.info(f"  Description: {config['description']}")
 
-        # 检查缓存
         abl_cache_dir = EXP11_CACHE_DIR / config_key
         abl_cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = abl_cache_dir / 'general_predictions.json'
@@ -343,7 +302,7 @@ def run_phase1(args):
         if cache_file.exists() and not args.force_regenerate:
             cached = load_predictions_cache(abl_cache_dir, 'general_predictions.json')
             if cached and cached.get('total_samples', 0) > 15:
-                logger.info(f"  [缓存命中] {config_key}: {cached.get('total_samples', 0)} 条")
+                logger.info(f"  [Cache hit] {config_key}: {cached.get('total_samples', 0)} samples")
                 m = _metrics_from_samples(cached.get('samples', []),
                                           use_bertscore=(config_key == 'A0'))
                 ablation_results[config_key] = {
@@ -353,13 +312,12 @@ def run_phase1(args):
                 }
                 continue
 
-        # A0特殊处理：直接复用exp10的ensemble缓存
         if config_key == 'A0':
             exp10_cache = load_predictions_cache(
                 CACHE_DIR / 'exp10_ensemble', 'general_ensemble_predictions.json'
             )
             if exp10_cache:
-                logger.info(f"  [A0] 复用exp10缓存")
+                logger.info("  [A0] Reusing Experiment 10 cache")
                 m = _metrics_from_samples(exp10_cache.get('samples', []), use_bertscore=True)
                 ablation_results['A0'] = {
                     'config': config,
@@ -368,21 +326,18 @@ def run_phase1(args):
                 }
                 continue
 
-        # 运行ensemble（带消融开关）
         samples = _run_ablation_ensemble(
             model_with_adapters, tokenizer, router, probs,
             general_test, general_features, preloaded_caches,
             config, args,
         )
 
-        # 保存缓存
         save_predictions_cache(
             samples, 'exp11_ablation', 'general',
             {'ablation_config': config_key, **config},
             abl_cache_dir, 'general_predictions.json'
         )
 
-        # 计算指标
         m = _metrics_from_samples(samples, use_bertscore=False)
         ablation_results[config_key] = {
             'config': config,
@@ -394,10 +349,7 @@ def run_phase1(args):
     del lm, model_with_adapters, tokenizer
     _cleanup_gpu()
 
-    # 汇总
-    logger.info(f"\n{'='*60}")
-    logger.info("Phase 1 消融结果汇总")
-    logger.info(f"{'='*60}")
+    logger.info("Phase 1 ablation results summary")
     for k, v in ablation_results.items():
         logger.info(f"  {k} ({v['config']['name']}): ROUGE-L={v['rougeL']:.4f}")
 
@@ -418,11 +370,7 @@ def _run_ablation_ensemble(
     general_test, general_features, preloaded_caches,
     ablation_config, args,
 ):
-    """
-    带消融开关的Output Ensemble推理。
-    通过ablation_config字典控制各机制的启用/禁用。
-    核心推理逻辑（_process_minibatch等）直接从exp10模块导入复用。
-    """
+    """Run ablation ensemble."""
     from scripts.evaluation.experiments.exp10_advanced_routing import (
         _logit_ensemble_generate_batched,
     )
@@ -432,7 +380,6 @@ def _run_ablation_ensemble(
     disable_quality = ablation_config.get('disable_quality_gate', False)
     force_equal = ablation_config.get('force_equal_weights', False)
 
-    # OOD修正参数
     _TEMPLATE_OOD_FACTORS = {} if disable_ood else {'uml': 0.05, 'image': 0.4}
     _GENERAL_LEAD_FACTOR = 1.0 if disable_ood else 0.7
     _POST_OOD_CACHE_THRESHOLD = 0.95
@@ -440,7 +387,6 @@ def _run_ablation_ensemble(
     from rouge_score import rouge_scorer as rs_mod
     _scorer = rs_mod.RougeScorer(['rougeL'], use_stemmer=True)
 
-    # ── Stage 1: 分类样本 ──
     sample_meta = []
     cache_results = {}
     ensemble_groups = defaultdict(list)
@@ -460,7 +406,6 @@ def _run_ablation_ensemble(
 
         prompt_str, tpl_name = _build_prompt_for_sample(sample)
 
-        # OOD修正后权重预计算
         w1_post_ood = w1
         tpl_type = _detect_template_from_prompt(prompt_str)
         ood_factor = _TEMPLATE_OOD_FACTORS.get(tpl_type)
@@ -476,7 +421,6 @@ def _run_ablation_ensemble(
 
         skip = (w1_raw >= 0.85)
 
-        # 缓存重定向
         if not disable_redirect and not skip:
             dominant = expert1 if w1_post_ood >= 0.5 else expert2
             post_ood_w = max(w1_post_ood, 1.0 - w1_post_ood)
@@ -499,12 +443,11 @@ def _run_ablation_ensemble(
 
     n_cache = len(cache_results)
     n_ensemble = sum(len(v) for v in ensemble_groups.values())
-    logger.info(f"  样本分类: cache={n_cache}, ensemble={n_ensemble}, 组数={len(ensemble_groups)}")
+    logger.info(f"  Sample assignment: cache={n_cache}, ensemble={n_ensemble}, groups={len(ensemble_groups)}")
 
-    # ── Stage 2: 批量GPU推理 ──
     ensemble_results = {}
     for (expert1, expert2), group_items in ensemble_groups.items():
-        logger.info(f"  Ensemble组: {expert1}+{expert2}, {len(group_items)} 条")
+        logger.info(f"  Ensemble group: {expert1}+{expert2}, {len(group_items)} samples")
         preds = _logit_ensemble_generate_batched(
             model_with_adapters, tokenizer,
             expert1, expert2, group_items, args
@@ -512,7 +455,6 @@ def _run_ablation_ensemble(
         for (i_s, _, _, _), pred in zip(group_items, preds):
             ensemble_results[i_s] = pred
 
-    # ── Stage 3: reassemble + 质量门控 ──
     _FORMAT_KEYWORDS = {'Definition', 'Emphasis', 'Things to Avoid',
                         'definition', 'emphasis', 'things to avoid'}
 
@@ -536,7 +478,6 @@ def _run_ablation_ensemble(
                 if disable_quality:
                     pred = ensemble_pred
                 else:
-                    # 质量比较门控
                     ref = sample.get('output', '')
                     fb = _single_expert_from_cache(expert1, 'general', i, preloaded_caches)
                     if ref and fb and fb.strip():
@@ -563,33 +504,23 @@ def _run_ablation_ensemble(
     return samples
 
 
-# ─────────────────────────────────────────────
-# Phase 2: Router优化实验
-# ─────────────────────────────────────────────
 
 def run_phase2(args):
-    """
-    Phase 2: Router优化实验
-    5组Router配置（B0~B4），探索提升分类准确率的方法
-    """
-    logger.info("=" * 80)
-    logger.info("Phase 2: Router优化实验")
-    logger.info("=" * 80)
+    """Run phase2."""
+    logger.info("Phase 2: Router optimization")
 
     EXP11_ROUTER_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 加载训练/验证数据（与exp10 Phase 1相同的划分方式）
     from src.training.data_loader import (
         TextDatasetLoader, ImageDatasetLoader, UMLDatasetLoader,
     )
 
-    # 加载特征缓存
     all_features = {}
     all_labels = {}
     for domain in SPECIALIZED_TYPES:
         feat_path = FEATURE_CACHE_DIR / f'{domain}_hidden_states.npz'
         if not feat_path.exists():
-            raise FileNotFoundError(f"特征缓存不存在: {feat_path}，请先运行Exp10 Phase 1")
+            raise FileNotFoundError(f"Feature cache not found: {feat_path}. Run Experiment 10 Phase 1 first")
         data = np.load(feat_path)
         all_features[domain] = data['features']
         all_labels[domain] = data['labels']
@@ -599,7 +530,6 @@ def run_phase2(args):
     general_features = data['features']
     general_labels = data['labels']
 
-    # 构建训练/验证/测试集（与exp10保持一致）
     val_parts_X, val_parts_y = [], []
     train_parts_X, train_parts_y = [], []
     for domain in SPECIALIZED_TYPES:
@@ -625,37 +555,32 @@ def run_phase2(args):
     val_X = np.concatenate(val_parts_X, axis=0)
     val_y = np.concatenate(val_parts_y, axis=0)
 
-    logger.info(f"  训练集: {len(train_X)} 条, 验证集: {len(val_X)} 条")
+    logger.info(f"  Training set: {len(train_X)} samples, validation set: {len(val_X)} samples")
 
-    # ── B0: 当前Router基线 ──
     router_results = {}
 
     b0_router = RouterMLP()
     b0_router.load(ROUTER_CKPT_DIR / 'router_mlp_best.pt')
     b0_metrics = _eval_router(b0_router, val_X, val_y, 'B0')
     router_results['B0'] = {'name': 'Current Router', 'metrics': b0_metrics}
-    logger.info(f"  B0 当前Router: macro_f1={b0_metrics['macro_f1']:.4f}")
+    logger.info(f"  B0 current router: macro_f1={b0_metrics['macro_f1']:.4f}")
 
-    # ── B1: 多层特征拼接 ──
-    # 需要重新提取多层特征，此处检查缓存
     b1_feat_path = EXP11_FEATURE_DIR / 'multi_layer_features.npz'
     if b1_feat_path.exists() and not args.force_regenerate:
-        logger.info("  [B1] 加载多层特征缓存")
+        logger.info("  [B1] Loading multi-layer feature cache")
         b1_data = np.load(b1_feat_path)
         b1_train_X = b1_data['train_X']
         b1_val_X = b1_data['val_X']
     else:
-        logger.info("  [B1] 需要提取多层特征，跳过（可通过--extract-multilayer启用）")
+        logger.info("  [B1] Multi-layer feature extraction is required; skipping (enable with --extract-multilayer)")
         b1_train_X, b1_val_X = None, None
 
     if b1_train_X is not None:
-        # 投影到4096维
         from sklearn.decomposition import PCA
-        logger.info(f"  [B1] 多层特征维度: {b1_train_X.shape[1]}, PCA投影至4096维")
+        logger.info(f"  [B1] Multi-layer feature dimension: {b1_train_X.shape[1]}, projected to 4096 dimensions with PCA")
         pca = PCA(n_components=4096)
         b1_train_proj = pca.fit_transform(b1_train_X).astype(np.float32)
         b1_val_proj = pca.transform(b1_val_X).astype(np.float32)
-        # L2归一化
         b1_train_proj /= (np.linalg.norm(b1_train_proj, axis=1, keepdims=True) + 1e-9)
         b1_val_proj /= (np.linalg.norm(b1_val_proj, axis=1, keepdims=True) + 1e-9)
 
@@ -664,42 +589,38 @@ def run_phase2(args):
                               EXP11_ROUTER_DIR / 'B1', args)
         b1_metrics = _eval_router(b1_router, b1_val_proj, val_y, 'B1')
         router_results['B1'] = {'name': 'Multi-layer Feature Concat', 'metrics': b1_metrics}
-        logger.info(f"  B1 多层特征: macro_f1={b1_metrics['macro_f1']:.4f}")
+        logger.info(f"  B1 multi-layer features: macro_f1={b1_metrics['macro_f1']:.4f}")
     else:
         router_results['B1'] = {'name': 'Multi-layer Feature Concat', 'metrics': None, 'skipped': True}
 
-    # ── B2: 数据增强（general域2x过采样）──
-    logger.info("  [B2] 数据增强: general域过采样")
+    logger.info("  [B2] Data augmentation: oversampling the general domain")
     general_mask = (train_y == EXPERT_TO_IDX['general'])
     general_X = train_X[general_mask]
     general_y_subset = train_y[general_mask]
-    # 添加微量高斯噪声作为增强
     noise = np.random.RandomState(42).randn(*general_X.shape).astype(np.float32) * 0.01
     aug_X = general_X + noise
-    aug_X /= (np.linalg.norm(aug_X, axis=1, keepdims=True) + 1e-9)  # 重新归一化
+    aug_X /= (np.linalg.norm(aug_X, axis=1, keepdims=True) + 1e-9)
     b2_train_X = np.concatenate([train_X, aug_X], axis=0)
     b2_train_y = np.concatenate([train_y, general_y_subset], axis=0)
-    logger.info(f"  [B2] 增强后训练集: {len(b2_train_X)} 条 (原{len(train_X)}+增强{len(aug_X)})")
+    logger.info(f"  [B2] Augmented training set: {len(b2_train_X)} samples (original={len(train_X)}, added={len(aug_X)})")
 
     b2_router = RouterMLP(input_dim=train_X.shape[1])
     _train_router_variant(b2_router, b2_train_X, b2_train_y, val_X, val_y,
                           EXP11_ROUTER_DIR / 'B2', args)
     b2_metrics = _eval_router(b2_router, val_X, val_y, 'B2')
     router_results['B2'] = {'name': 'Data Augmentation', 'metrics': b2_metrics}
-    logger.info(f"  B2 数据增强: macro_f1={b2_metrics['macro_f1']:.4f}")
+    logger.info(f"  B2 data augmentation: macro_f1={b2_metrics['macro_f1']:.4f}")
 
-    # ── B3: 后处理校准 ──
-    logger.info("  [B3] 后处理校准: 坐标下降搜索logit偏置")
+    logger.info("  [B3] Post-hoc calibration: coordinate-descent search for logit offsets")
     b3_router = RouterMLP()
     b3_router.load(ROUTER_CKPT_DIR / 'router_mlp_best.pt')
     _calibrate_router(b3_router, val_X, val_y)
     b3_router.save(EXP11_ROUTER_DIR / 'B3' / 'router_mlp_best.pt')
     b3_metrics = _eval_router(b3_router, val_X, val_y, 'B3')
     router_results['B3'] = {'name': 'Post-hoc Calibration', 'metrics': b3_metrics}
-    logger.info(f"  B3 校准: macro_f1={b3_metrics['macro_f1']:.4f}")
+    logger.info(f"  B3 calibration: macro_f1={b3_metrics['macro_f1']:.4f}")
 
-    # ── B4: B2+B3组合 ──
-    logger.info("  [B4] 数据增强 + 后处理校准")
+    logger.info("  [B4] Data augmentation plus post-hoc calibration")
     b4_router = RouterMLP(input_dim=train_X.shape[1])
     _train_router_variant(b4_router, b2_train_X, b2_train_y, val_X, val_y,
                           EXP11_ROUTER_DIR / 'B4', args)
@@ -707,15 +628,12 @@ def run_phase2(args):
     b4_router.save(EXP11_ROUTER_DIR / 'B4' / 'router_mlp_best.pt')
     b4_metrics = _eval_router(b4_router, val_X, val_y, 'B4')
     router_results['B4'] = {'name': 'B2+B3 Combined', 'metrics': b4_metrics}
-    logger.info(f"  B4 组合: macro_f1={b4_metrics['macro_f1']:.4f}")
+    logger.info(f"  B4 combined method: macro_f1={b4_metrics['macro_f1']:.4f}")
 
-    # 汇总
-    logger.info(f"\n{'='*60}")
-    logger.info("Phase 2 Router优化结果汇总")
-    logger.info(f"{'='*60}")
+    logger.info("Phase 2 router optimization results summary")
     for k, v in router_results.items():
         if v.get('skipped'):
-            logger.info(f"  {k} ({v['name']}): 跳过")
+            logger.info(f"  {k} ({v['name']}): skipped")
         else:
             logger.info(f"  {k} ({v['name']}): macro_f1={v['metrics']['macro_f1']:.4f}")
 
@@ -733,7 +651,7 @@ def run_phase2(args):
 
 
 def _eval_router(router, val_X, val_y, label=''):
-    """评估Router的分类指标"""
+    """Evaluate the learned router."""
     from sklearn.metrics import f1_score, accuracy_score, classification_report
     y_pred = router.predict(val_X)
     macro_f1 = float(f1_score(val_y, y_pred, average='macro', zero_division=0))
@@ -748,7 +666,7 @@ def _eval_router(router, val_X, val_y, label=''):
 
 
 def _train_router_variant(router, train_X, train_y, val_X, val_y, save_dir, args):
-    """训练Router变体（与exp10 _train_router逻辑一致，简化版）"""
+    """Train router variant."""
     import torch
     import torch.nn as nn
     from torch.utils.data import DataLoader, TensorDataset
@@ -809,11 +727,11 @@ def _train_router_variant(router, train_X, train_y, val_X, val_y, save_dir, args
                 break
 
     router.load(save_dir / 'router_mlp_best.pt')
-    logger.info(f"  训练完成, best macro_f1={best_f1:.4f}")
+    logger.info(f"  Training completed, best macro_f1={best_f1:.4f}")
 
 
 def _calibrate_router(router, val_X, val_y):
-    """后处理校准：坐标下降搜索每个类别的logit偏置，最大化macro-F1"""
+    """Calibrate learned-router probabilities."""
     from sklearn.metrics import f1_score
     import torch
 
@@ -827,7 +745,6 @@ def _calibrate_router(router, val_X, val_y):
     best_offsets = np.zeros(4, dtype=np.float32)
     best_f1 = 0.0
 
-    # 坐标下降：每个类别独立搜索偏置
     for iteration in range(5):
         for cls_idx in range(4):
             best_local = best_offsets[cls_idx]
@@ -842,23 +759,17 @@ def _calibrate_router(router, val_X, val_y):
             best_offsets[cls_idx] = best_local
 
     router.calibration_offsets = best_offsets
-    logger.info(f"  校准偏置: {dict(zip(['text','image','uml','general'], best_offsets.round(2)))}")
-    logger.info(f"  校准后macro_f1: {best_f1:.4f}")
+    logger.info(f"  Calibration offsets: {dict(zip(['text','image','uml','general'], best_offsets.round(2)))}")
+    logger.info(f"  Calibrated macro_f1: {best_f1:.4f}")
 
 
-# ─────────────────────────────────────────────
-# Phase 3: 最优组合评估 + 可视化
-# ─────────────────────────────────────────────
 
 def run_phase3(args, ablation_results=None, router_results=None):
-    """Phase 3: 最优组合 + 6张可视化图表 + report.md"""
-    logger.info("=" * 80)
-    logger.info("Phase 3: 最优组合评估与可视化")
-    logger.info("=" * 80)
+    """Run phase3."""
+    logger.info("Phase 3: Best-combination evaluation and visualization")
 
     PLOT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 加载Phase 1/2结果
     if ablation_results is None:
         p = EXP_DIR / 'ablation_results.json'
         if p.exists():
@@ -870,7 +781,6 @@ def run_phase3(args, ablation_results=None, router_results=None):
             with open(p, 'r') as f:
                 router_results = json.load(f)
 
-    # 加载exp10基线
     exp10_p2 = {}
     p = EXP10_DIR / 'phase2_results.json'
     if p.exists():
@@ -881,28 +791,20 @@ def run_phase3(args, ablation_results=None, router_results=None):
     oracle_rougeL = exp10_p2.get('oracle_rougeL', 0.6339)
     gap = oracle_rougeL - hard_rougeL
 
-    # ── 图1: 消融瀑布图 ──
     _plot_ablation_waterfall(ablation_results, hard_rougeL, oracle_rougeL)
 
-    # ── 图2: 消融横向对比 ──
     _plot_ablation_comparison(ablation_results, hard_rougeL, oracle_rougeL)
 
-    # ── 图3: 消融分域对比（简化版，仅A0/A1/A5） ──
     _plot_ablation_per_domain(ablation_results)
 
-    # ── 图4: Router优化对比 ──
     _plot_router_optimization(router_results)
 
-    # ── 图5: 混淆矩阵对比 ──
     _plot_confusion_compare(router_results)
 
-    # ── 图6: 最终汇总表 ──
     _plot_final_summary(ablation_results, router_results, exp10_p2)
 
-    # 生成报告
     _generate_report(ablation_results, router_results, exp10_p2)
 
-    # 合并结果
     final = {
         'experiment': 'exp11_ablation_optimization',
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -914,7 +816,7 @@ def run_phase3(args, ablation_results=None, router_results=None):
 
 
 def _plot_ablation_waterfall(ablation_results, hard_rougeL, oracle_rougeL):
-    """图1: 消融瀑布图"""
+    """Plot ablation waterfall."""
     if not ablation_results:
         return
     abl = ablation_results.get('ablation_results', ablation_results)
@@ -956,7 +858,6 @@ def _plot_ablation_waterfall(ablation_results, hard_rougeL, oracle_rougeL):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.002,
                 f'{v:.4f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
 
-    # 标注A1==A2和A4==A5相同结果
     _annotated_pairs = []
     for i in range(len(keys)):
         for j in range(i+1, len(keys)):
@@ -983,7 +884,7 @@ def _plot_ablation_waterfall(ablation_results, hard_rougeL, oracle_rougeL):
 
 
 def _plot_ablation_comparison(ablation_results, hard_rougeL, oracle_rougeL):
-    """图2: 消融横向柱状图"""
+    """Plot ablation comparison."""
     if not ablation_results:
         return
     abl = ablation_results.get('ablation_results', ablation_results)
@@ -1004,7 +905,6 @@ def _plot_ablation_comparison(ablation_results, hard_rougeL, oracle_rougeL):
         else:
             colors.append('#F39C12')
     y_pos = range(len(configs))
-    # 使用截断x轴以突出差异
     x_min = min(rougeL_vals) - 0.02
     bars = ax.barh(y_pos, [v - x_min for v in rougeL_vals], left=x_min,
                    color=colors, height=0.5, edgecolor='white', linewidth=0.5)
@@ -1028,17 +928,15 @@ def _plot_ablation_comparison(ablation_results, hard_rougeL, oracle_rougeL):
 
 
 def _plot_ablation_per_domain(ablation_results):
-    """图3: 消融各配置ROUGE-L增量分析（相对于A5 Pure Ensemble基线的提升）"""
+    """Plot ablation per domain."""
     if not ablation_results:
         return
     abl = ablation_results.get('ablation_results', ablation_results)
 
-    # 以A5(Pure Ensemble)为基线，计算各机制的增量贡献
     a5_val = abl.get('A5', {}).get('rougeL', 0)
     if a5_val == 0:
         return
 
-    # 展示关键对比：各配置相对A5的ROUGE-L增量
     configs = ['A5', 'A4', 'A3', 'A6', 'A1', 'A2', 'A0']
     labels = []
     deltas = []
@@ -1079,7 +977,6 @@ def _plot_ablation_per_domain(ablation_results):
     ax.set_title('Ablation: Contribution of Each Mechanism\n(Baseline = A5 Pure Ensemble)',
                  fontsize=12, fontweight='bold')
 
-    # 添加注解
     ax.text(0.98, 0.02,
             'Quality Gate: +6.3pp\nRouter Weights: +6.4pp\nOOD+Redirect: ~0pp',
             transform=ax.transAxes, fontsize=8, va='bottom', ha='right',
@@ -1092,7 +989,7 @@ def _plot_ablation_per_domain(ablation_results):
 
 
 def _plot_router_optimization(router_results):
-    """图4: Router优化对比"""
+    """Plot router optimization."""
     if not router_results:
         return
     rr = router_results.get('router_results', router_results)
@@ -1116,7 +1013,7 @@ def _plot_router_optimization(router_results):
     bars = ax.bar(range(len(configs)), f1_vals, color=colors, width=0.5,
                   edgecolor='white', linewidth=0.5)
     for bar, v, i in zip(bars, f1_vals, range(len(configs))):
-        label = f'{v:.4f}' + (' ★' if i == best_idx else '')
+        label = f'{v:.4f}' + (' ' if i == best_idx else '')
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.003,
                 label, ha='center', fontsize=10, fontweight='bold')
 
@@ -1132,12 +1029,11 @@ def _plot_router_optimization(router_results):
 
 
 def _plot_confusion_compare(router_results):
-    """图5: Router各变体Per-Class F1对比热图"""
+    """Plot confusion compare."""
     if not router_results:
         return
     rr = router_results.get('router_results', router_results)
 
-    # 收集有per_class数据的配置
     configs = []
     config_names = []
     class_names = ['text', 'image', 'uml', 'general']
@@ -1153,7 +1049,6 @@ def _plot_confusion_compare(router_results):
                 data_matrix.append(row)
 
     if len(data_matrix) < 2:
-        # 不够数据，输出简单占位
         fig, ax = plt.subplots(figsize=(8, 5))
         ax.text(0.5, 0.5, 'Insufficient per-class data',
                 ha='center', va='center', fontsize=14, color='gray')
@@ -1168,7 +1063,6 @@ def _plot_confusion_compare(router_results):
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-    # 左图：Per-class F1 热图
     ax1 = axes[0]
     im = ax1.imshow(data_arr, cmap='YlOrRd', aspect='auto', vmin=0.0, vmax=1.0)
     ax1.set_xticks(range(len(class_names)))
@@ -1184,7 +1078,6 @@ def _plot_confusion_compare(router_results):
     ax1.set_title('Per-Class F1 Score', fontsize=12, fontweight='bold')
     fig.colorbar(im, ax=ax1, fraction=0.046, pad=0.04)
 
-    # 右图：分组柱状图
     ax2 = axes[1]
     x = np.arange(len(class_names))
     width = 0.18
@@ -1207,7 +1100,7 @@ def _plot_confusion_compare(router_results):
 
 
 def _plot_final_summary(ablation_results, router_results, exp10_p2):
-    """图6: 最终汇总表"""
+    """Plot final summary."""
     fig, ax = plt.subplots(figsize=(12, 4))
     ax.axis('off')
 
@@ -1225,7 +1118,6 @@ def _plot_final_summary(ablation_results, router_results, exp10_p2):
         ['Oracle Routing (Upper Bound)', f'{oracle_r:.4f}', '100%'],
     ]
 
-    # 添加消融结果
     if ablation_results:
         abl = ablation_results.get('ablation_results', ablation_results)
         for k in ['A1', 'A5']:
@@ -1250,7 +1142,7 @@ def _plot_final_summary(ablation_results, router_results, exp10_p2):
 
 
 def _generate_report(ablation_results, router_results, exp10_p2):
-    """生成Markdown报告"""
+    """Generate report."""
     hard_r = exp10_p2.get('hard_baseline_rougeL', 0.5515)
     oracle_r = exp10_p2.get('oracle_rougeL', 0.6339)
     gap = oracle_r - hard_r
@@ -1271,10 +1163,8 @@ def _generate_report(ablation_results, router_results, exp10_p2):
                 gr = f"{(v-hard_r)/gap*100:.1f}%" if gap > 0 else '-'
                 lines.append(f"| {k} | {abl[k].get('name', k)} | {v:.4f} | {gr} |")
 
-        # 分析关键发现
         lines.append("\n### Key Findings")
 
-        # 检测相同结果对
         vals = {k: abl[k].get('rougeL', 0) for k in abl}
         identical_pairs = []
         keys_list = list(vals.keys())
@@ -1293,7 +1183,6 @@ def _generate_report(ablation_results, router_results, exp10_p2):
                          "redirect threshold unreachable, producing the same effect as explicitly disabling "
                          "redirect (A2).")
 
-        # 贡献度排名
         a5_v = vals.get('A5', 0)
         a0_v = vals.get('A0', 0)
         if a5_v > 0:
@@ -1314,7 +1203,6 @@ def _generate_report(ablation_results, router_results, exp10_p2):
                 name = rr[k].get('name', k)
                 lines.append(f"| {k} | {name} | {f1_str} |")
 
-        # 找最优
         best_k, best_f1 = None, 0
         for k in ['B0','B2','B3','B4']:
             if k in rr and rr[k].get('macro_f1') is not None:
@@ -1324,7 +1212,6 @@ def _generate_report(ablation_results, router_results, exp10_p2):
         if best_k:
             lines.append(f"\n**Best Router: {best_k} ({rr[best_k].get('name','')}) "
                          f"with macro F1 = {best_f1:.4f}**")
-            # general域分析
             b0_gen = rr.get('B0', {}).get('per_class', {}).get('general', 0)
             best_gen = rr.get(best_k, {}).get('per_class', {}).get('general', 0)
             if b0_gen and best_gen:
@@ -1334,35 +1221,31 @@ def _generate_report(ablation_results, router_results, exp10_p2):
     report_path = EXP_DIR / 'report.md'
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
-    logger.info(f"报告已保存: {report_path}")
+    logger.info(f"Report saved to: {report_path}")
 
 
-# ─────────────────────────────────────────────
-# 主函数
-# ─────────────────────────────────────────────
 
 def main():
+    """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp11: Ablation & Router Optimization')
     parser.add_argument('--phase', type=int, choices=[1, 2, 3],
-                        help='只运行指定阶段')
-    parser.add_argument('--all', action='store_true', help='运行全部阶段')
+                        help='Run only the specified phase')
+    parser.add_argument('--all', action='store_true', help='Run all phases')
     parser.add_argument('--ablation', type=str, default=None,
-                        help='只运行指定消融配置 (A0~A6)')
+                        help='Run only the specified ablation configuration (A0-A6)')
     parser.add_argument('--force-regenerate', action='store_true',
-                        help='强制重新推理，忽略缓存')
+                        help='Force inference rerun and ignore the cache')
     parser.add_argument('--no-bertscore', action='store_true',
-                        help='跳过BERTScore计算')
+                        help='Skip BERTScore computation')
     parser.add_argument('--test-mode', action='store_true',
-                        help='测试模式（少量样本）')
+                        help='Test mode (small sample)')
     parser.add_argument('--extract-multilayer', action='store_true',
-                        help='启用B1多层特征提取（需要GPU约10分钟）')
+                        help='Enable B1 multi-layer feature extraction (requires about 10 minutes on a GPU)')
     args = parser.parse_args()
 
-    logger.info("=" * 80)
-    logger.info("实验11: Output Ensemble消融与路由优化")
-    logger.info(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"参数: phase={args.phase}, all={args.all}, ablation={args.ablation}")
-    logger.info("=" * 80)
+    logger.info("Experiment 11: Output Ensemble ablation and router optimization")
+    logger.info(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Arguments: phase={args.phase}, all={args.all}, ablation={args.ablation}")
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1378,10 +1261,8 @@ def main():
     if args.phase == 3 or args.all:
         run_phase3(args, ablation_results, router_results)
 
-    logger.info("\n" + "=" * 80)
-    logger.info(f"实验11完成 | 时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"结果目录: {EXP_DIR}")
-    logger.info("=" * 80)
+    logger.info(f"Experiment 11 completed | time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Results directory: {EXP_DIR}")
 
 
 if __name__ == '__main__':

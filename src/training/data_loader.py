@@ -1,19 +1,4 @@
-"""
-数据加载器 - 修复版
-负责加载和处理三类数据集(文本、图像、UML)
-支持合理的数据集划分
-
-修复内容：
-1. 优化编码检测顺序（UTF-8系列优先）
-2. 强化列名规范化（大小写不敏感、去除BOM）
-3. 完全静默异常处理（避免乱码输出）
-4. 智能列名映射机制
-5. Windows换行符兼容
-6. 智能截断：防止长序列prompt截断output导致labels全-100引发NaN loss
-
-作者：Data Loader System
-日期：2025-01-29（修复版）
-"""
+"""Load, normalize, split, tokenize, and batch the project datasets."""
 
 import os
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "true")
@@ -26,7 +11,6 @@ from typing import List, Dict, Tuple, Optional
 from torch.utils.data import Dataset, DataLoader
 import torch
 
-# 禁用所有警告，避免乱码输出
 warnings.filterwarnings('ignore')
 pd.options.mode.chained_assignment = None
 
@@ -34,7 +18,6 @@ from config.settings import get_path_config, get_training_config
 from src.utils.logger import get_logger
 from src.utils.file_utils import load_json
 
-# 导入Prompt模板
 from models.prompt_templates.text_template import TextInstructionTemplate
 from models.prompt_templates.image_template import ImageInstructionTemplate
 from models.prompt_templates.uml_template import UMLInstructionTemplate
@@ -44,28 +27,10 @@ logger = get_logger('training.data_loader')
 
 
 def normalize_column_name(col_name: str) -> str:
-    """
-    强力规范化列名
-
-    处理：
-    - 去除BOM标记（UTF-8/UTF-16）
-    - 去除所有空白字符
-    - 转换为小写
-    - 去除不可见字符
-
-    Args:
-        col_name: 原始列名
-
-    Returns:
-        规范化后的列名
-    """
-    # 去除BOM标记
+    """Normalize column name."""
     col_name = col_name.replace('\ufeff', '').replace('\ufffe', '')
-    # 去除空白字符
     col_name = col_name.strip()
-    # 转换为小写（大小写不敏感）
     col_name = col_name.lower()
-    # 去除其他不可见字符
     col_name = ''.join(c for c in col_name if c.isprintable() or c.isspace())
     col_name = col_name.strip()
 
@@ -73,60 +38,35 @@ def normalize_column_name(col_name: str) -> str:
 
 
 def detect_csv_encoding(filepath: Path) -> str:
-    """
-    智能检测CSV文件编码 - 优化版
-
-    优先级调整：
-    1. UTF-8系列（因为生成脚本使用utf-8-sig）
-    2. GBK系列（Windows中文）
-    3. UTF-16系列（Excel导出）
-    4. Latin-1（兜底）
-
-    Args:
-        filepath: CSV文件路径
-
-    Returns:
-        str: 检测到的编码名称
-    """
-    # 调整编码优先级
+    """Detect CSV encoding."""
     encodings = [
-        'utf-8-sig',       # 带BOM的UTF-8（你的生成脚本用的）
-        'utf-8',           # 标准UTF-8
-        'cp1252',  # <--- 【新增】关键！修复 CM1/WARC 等西欧字符集乱码
-        'gbk',             # Windows简体中文
-        'gb2312',          # 简体中文
-        'gb18030',         # 扩展GBK
-        'utf-16',          # UTF-16（自动检测LE/BE）
+        'utf-8-sig',
+        'utf-8',
+        'cp1252',
+        'gbk',
+        'gb2312',
+        'gb18030',
+        'utf-16',
         'utf-16-le',       # UTF-16 Little Endian
         'utf-16-be',       # UTF-16 Big Endian
-        'latin-1'          # 兜底编码
+        'latin-1'
     ]
 
     for encoding in encodings:
         try:
-            # 尝试读取前100行
             pd.read_csv(filepath, encoding=encoding, nrows=100)
             return encoding
         except:
-            # 静默跳过，不打印任何信息（避免乱码）
             continue
 
-    # 如果所有编码都失败，返回兜底编码
     return 'latin-1'
 
 
 class InstructionDataset(Dataset):
-    """指令生成数据集基类"""
+    """Expose tokenized instruction-training examples."""
 
     def __init__(self, data: List[Dict], tokenizer, max_length: int = 2048):
-        """
-        初始化数据集
-
-        Args:
-            data: 数据列表,每项包含input和output
-            tokenizer: 分词器
-            max_length: 最大序列长度
-        """
+        """Initialize the instance."""
         self.data = data
         self.tokenizer = tokenizer
         self.max_length = max_length
@@ -137,20 +77,13 @@ class InstructionDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
-        # 使用带prompt的完整输入
-        # input_with_prompt包含完整的Qwen对话格式prompt
         input_text = item.get('input_with_prompt', item['input'])
         output_text = item['output']
 
-        # 最少有效output token数阈值
-        # 当valid_labels低于此值时触发智能截断，防止全-100标签导致NaN loss
         MIN_VALID_LABELS = 10
 
-        # 组合输入输出
-        # 注意:input_text已经包含了完整的prompt格式,直接拼接output即可
         full_text = f"{input_text}{output_text}"
 
-        # Tokenize完整序列，不padding - padding由InstructionDataCollator在batch级别完成
         encodings = self.tokenizer(
             full_text,
             truncation=True,
@@ -159,7 +92,6 @@ class InstructionDataset(Dataset):
             return_tensors='pt'
         )
 
-        # 单独tokenize prompt以获取其token长度，用于label masking
         prompt_encodings = self.tokenizer(
             input_text,
             truncation=True,
@@ -171,16 +103,12 @@ class InstructionDataset(Dataset):
         input_ids = encodings['input_ids'].squeeze()
         attention_mask = encodings['attention_mask'].squeeze()
 
-        # Labels = input_ids，但将prompt部分设为-100，仅对output（指令生成部分）计算loss
         labels = input_ids.clone()
         prompt_len = min(prompt_encodings['input_ids'].shape[1], labels.shape[0])
         labels[:prompt_len] = -100
 
         valid_labels = (labels != -100).sum().item()
 
-        # 当prompt占满整个序列导致output被完全截断时（valid_labels < MIN_VALID_LABELS），
-        # 应用智能截断：截短prompt，保留足够的output token，防止全-100标签导致NaN loss。
-        # 这种情况主要发生在UML/General专家的长JSON输入 + 短max_seq_length场景下。
         if valid_labels < MIN_VALID_LABELS:
             output_ids = self.tokenizer(
                 output_text,
@@ -215,25 +143,15 @@ class InstructionDataset(Dataset):
 
 
 class InstructionDataCollator:
-    """
-    自定义数据收集器，将batch中的序列动态padding到该batch最长长度。
-
-    相较于DataCollatorForLanguageModeling的优势：
-    1. 保留已设置的-100 label masking（不覆盖prompt部分的掩码）
-    2. 每个batch仅padding到当前batch最长序列，减少无效计算
-    3. padding tokens的label设为-100，不参与loss计算
-    """
+    """Pad and collate instruction-training batches."""
 
     def __init__(self, tokenizer, pad_to_multiple_of: int = None):
-        """
-        Args:
-            tokenizer: 分词器（用于获取pad_token_id）
-            pad_to_multiple_of: 若指定，则将序列长度padding到该值的倍数（可提升GPU计算效率）
-        """
+        """Initialize the instance."""
         self.tokenizer = tokenizer
         self.pad_to_multiple_of = pad_to_multiple_of
 
     def __call__(self, features):
+        """Pad and collate a batch of tokenized features."""
         max_length = max(len(f['input_ids']) for f in features)
 
         if self.pad_to_multiple_of:
@@ -256,7 +174,6 @@ class InstructionDataCollator:
 
             pad_len = max_length - len(input_ids)
 
-            # padding：input_ids用pad_token_id，attention_mask用0，labels用-100
             input_ids = torch.cat([
                 input_ids,
                 torch.full((pad_len,), pad_token_id, dtype=input_ids.dtype)
@@ -282,44 +199,19 @@ class InstructionDataCollator:
 
 
 def clean_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    强力清理DataFrame列名
-
-    功能：
-    - 去除BOM标记
-    - 去除空白字符
-    - 规范化列名
-    - 创建列名映射
-
-    Args:
-        df: 原始DataFrame
-
-    Returns:
-        清理后的DataFrame
-    """
-    # 创建列名映射（原始 -> 规范化）
+    """Clean dataframe columns."""
     column_mapping = {}
     for col in df.columns:
         normalized = normalize_column_name(col)
         column_mapping[col] = normalized
 
-    # 重命名列
     df = df.rename(columns=column_mapping)
 
     return df
 
 
 def find_column(df: pd.DataFrame, possible_names: List[str]) -> Optional[str]:
-    """
-    智能查找列名（大小写不敏感）
-
-    Args:
-        df: DataFrame
-        possible_names: 可能的列名列表（小写）
-
-    Returns:
-        找到的列名，如果没找到返回None
-    """
+    """Find column."""
     df_columns_lower = {col.lower(): col for col in df.columns}
 
     for name in possible_names:
@@ -330,57 +222,29 @@ def find_column(df: pd.DataFrame, possible_names: List[str]) -> Optional[str]:
 
 
 def normalize_json_string(json_str: str) -> str:
-    """
-    统一JSON字符串格式为压缩格式（无空格、无换行）
-
-    优势：
-    1. Token数量少，节省显存和计算
-    2. 不受缩进风格影响，训练稳定
-    3. 与API返回格式一致
-
-    Args:
-        json_str: JSON字符串（可能格式化或未格式化）
-
-    Returns:
-        压缩后的JSON字符串
-    """
+    """Normalize JSON string."""
     try:
-        # 解析JSON对象
         obj = json.loads(json_str)
-        # 重新序列化为压缩格式：separators=(',', ':')移除所有空格
         return json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
     except (json.JSONDecodeError, TypeError):
-        # 如果不是有效JSON，直接返回原字符串
         return json_str
 
 
 def filter_uml_json_positions(uml_data: dict) -> dict:
-    """
-    过滤UML JSON中actor的position字段
-
-    Args:
-        uml_data: UML JSON数据
-
-    Returns:
-        过滤后的UML JSON（移除了actor中的position字段）
-    """
+    """Filter token positions that belong to UML JSON content."""
     if not isinstance(uml_data, dict):
         return uml_data
 
-    # 深拷贝以避免修改原数据
     import copy
     filtered_data = copy.deepcopy(uml_data)
 
-    # 过滤actors中的position字段
     if 'actors' in filtered_data and isinstance(filtered_data['actors'], list):
         filtered_actors = []
         for actor in filtered_data['actors']:
             if isinstance(actor, dict):
-                # 创建新的actor字典，只保留name等字段，移除position
                 filtered_actor = {k: v for k, v in actor.items() if k != 'position'}
                 filtered_actors.append(filtered_actor)
             else:
-                # 如果不是字典，直接保留
                 filtered_actors.append(actor)
         filtered_data['actors'] = filtered_actors
 
@@ -388,92 +252,74 @@ def filter_uml_json_positions(uml_data: dict) -> dict:
 
 
 class TextDatasetLoader:
-    """文本数据集加载器 - 优化版"""
+    """Load text dataset data."""
 
     def __init__(self):
-        """初始化加载器"""
+        """Initialize the instance."""
         path_cfg = get_path_config()
         self.dataset_dir = path_cfg.TEXT_DATASET_DIR
-        logger.info(f"初始化TextDatasetLoader, 路径: {self.dataset_dir}")
+        logger.info(f"Initializing TextDatasetLoader; path: {self.dataset_dir}")
 
     def load_csv_files(self) -> List[Dict]:
-        """
-        加载所有CSV文件
-
-        Returns:
-            数据列表,每项包含input(Low_Requirements)和output(Instruction)
-        """
+        """Load CSV files."""
         all_data = []
         dataset_path = Path(self.dataset_dir)
 
-        # ── 修复1: 目录不存在时给出清晰报错，而非静默返回空列表 ──
         if not dataset_path.exists():
-            logger.error(f"数据集目录不存在: {dataset_path}")
-            logger.error(f"请确认 text_dataset.csv 已放置到该目录下")
-            logger.info(f"文本数据集总计: 0条")
+            logger.error(f"Dataset directory does not exist: {dataset_path}")
+            logger.error("Confirm that text_dataset.csv has been placed in this directory")
+            logger.info("Total text records: 0")
             return all_data
 
         if not dataset_path.is_dir():
-            logger.error(f"路径不是目录: {dataset_path}")
-            logger.info(f"文本数据集总计: 0条")
+            logger.error(f"Path is not a directory: {dataset_path}")
+            logger.info("Total text records: 0")
             return all_data
 
-        # ── 修复2: 大小写不敏感 + 递归搜索 ──
-        # Linux 文件系统大小写敏感，glob("*.csv") 不匹配 *.CSV / *.Csv
-        # rglob 同时搜索当前目录及所有子目录
         csv_files = []
         for pattern in ("*.csv", "*.CSV", "*.Csv"):
             csv_files.extend(dataset_path.rglob(pattern))
-        # 去重（某些 FS 可能大小写重叠）
         csv_files = list({f.resolve(): f for f in csv_files}.values())
 
-        # ── 修复3: 诊断日志，打印目录实际内容，便于排查 ──
         if len(csv_files) == 0:
             all_files = list(dataset_path.rglob("*"))
-            logger.warning(f"在 {dataset_path} 中未找到任何 CSV 文件")
+            logger.warning(f"No CSV files found in {dataset_path}")
             if all_files:
-                logger.warning(f"目录中实际存在的文件({len(all_files)}个):")
-                for f in all_files[:20]:  # 最多打印20条
+                logger.warning(f"Files currently present in the directory ({len(all_files)}):")
+                for f in all_files[:20]:
                     logger.warning(f"  {f.relative_to(dataset_path)}")
             else:
-                logger.warning(f"目录为空，请将 text_dataset.csv 放入: {dataset_path}")
+                logger.warning(f"Directory is empty; place text_dataset.csv in: {dataset_path}")
 
-        logger.info(f"找到{len(csv_files)}个CSV文件")
+        logger.info(f"Found {len(csv_files)} CSV files")
 
         for csv_file in csv_files:
             try:
-                # 智能检测编码
                 encoding = detect_csv_encoding(csv_file)
                 df = pd.read_csv(csv_file, encoding=encoding)
 
-                # 强力清理列名
                 df = clean_dataframe_columns(df)
 
-                logger.info(f"使用编码 '{encoding}' 读取: {csv_file.name}")
+                logger.info(f"Reading {csv_file.name} with encoding '{encoding}'")
 
             except Exception:
-                # 完全静默失败，不打印任何信息（避免乱码）
-                logger.error(f"加载失败: {csv_file.name}")
+                logger.error(f"Failed to load: {csv_file.name}")
                 continue
 
-            # 智能查找必要列（支持多种变体）
             low_req_col = find_column(df, ['low_requirements', 'lowrequirements', 'low requirements'])
             instruction_col = find_column(df, ['instruction', 'instructions'])
 
             if not low_req_col or not instruction_col:
-                logger.warning(f"跳过文件(缺少必要列): {csv_file.name}")
-                logger.warning(f"  实际列名: {list(df.columns)}")
+                logger.warning(f"Skipping file because required columns are missing: {csv_file.name}")
+                logger.warning(f"  Actual columns: {list(df.columns)}")
                 continue
 
-            # 提取数据
             for _, row in df.iterrows():
                 try:
                     low_req = str(row[low_req_col]).strip()
                     instruction = str(row[instruction_col]).strip()
 
-                    # 跳过空值或nan
                     if low_req and low_req != 'nan' and instruction and instruction != 'nan':
-                        # 构建带prompt的输入
                         prompt = TextInstructionTemplate.build_prompt(low_req)
 
                         all_data.append({
@@ -483,93 +329,72 @@ class TextDatasetLoader:
                             'source': csv_file.stem
                         })
                 except:
-                    # 静默跳过问题行
                     continue
 
-            logger.info(f"加载完成: {csv_file.name}, 数据量: {len(df)}")
+            logger.info(f"Loaded {csv_file.name}: {len(df)} records")
 
-        logger.info(f"文本数据集总计: {len(all_data)}条")
+        logger.info(f"Total text records: {len(all_data)}")
         return all_data
 
 
 class ImageDatasetLoader:
-    """图像数据集加载器 - 优化版"""
+    """Load image dataset data."""
 
     def __init__(self):
-        """初始化加载器"""
+        """Initialize the instance."""
         path_cfg = get_path_config()
         self.dataset_csv = path_cfg.IMAGE_DATASET_CSV
-        logger.info(f"初始化ImageDatasetLoader, 路径: {self.dataset_csv}")
+        logger.info(f"Initializing ImageDatasetLoader; path: {self.dataset_csv}")
 
     def load_csv_file(self) -> List[Dict]:
-        """
-        加载图像数据集CSV
-
-        Returns:
-            数据列表,每项包含input(description字段)和output(Instruction)
-        """
+        """Load CSV file."""
         all_data = []
 
         if not self.dataset_csv.exists():
-            logger.warning(f"图像数据集文件不存在: {self.dataset_csv}")
+            logger.warning(f"Image dataset file does not exist: {self.dataset_csv}")
             return all_data
 
         try:
-            # 智能检测编码
             encoding = detect_csv_encoding(self.dataset_csv)
             df = pd.read_csv(self.dataset_csv, encoding=encoding)
 
-            # 强力清理列名
             df = clean_dataframe_columns(df)
 
-            logger.info(f"使用编码 '{encoding}' 读取图像数据集")
+            logger.info(f"Reading image dataset with encoding '{encoding}'")
 
         except Exception:
-            # 完全静默失败
-            logger.error("加载图像数据集失败")
+            logger.error("Failed to load image dataset")
             return all_data
 
-        # 智能查找必要列
         desc_col = find_column(df, ['description', 'desc', 'descriptions'])
         instruction_col = find_column(df, ['instruction', 'instructions'])
 
         if not desc_col or not instruction_col:
-            logger.error("CSV缺少必要列: Description或Instruction")
-            logger.error(f"实际列名: {list(df.columns)}")
+            logger.error("CSV is missing a required column: Description or Instruction")
+            logger.error(f"Actual columns: {list(df.columns)}")
             return all_data
 
-        # 提取数据
         for idx, row in df.iterrows():
             try:
-                # 解析Description（可能是JSON字符串）
                 desc_str = str(row[desc_col])
 
-                # 尝试解析JSON验证格式
                 try:
                     desc_json = json.loads(desc_str)
-                    # 验证是否包含description字段
                     if 'description' in desc_json:
-                        # 过滤掉无用的元数据字段
-                        # 只保留description和details，移除confidence, recognition_status, processing_time
                         filtered_json = {
                             'description': desc_json.get('description', ''),
                             'details': desc_json.get('details', {})
                         }
-                        # 统一为压缩JSON格式（无空格、无换行）
                         description = normalize_json_string(json.dumps(filtered_json, ensure_ascii=False))
                     else:
-                        # 如果JSON不包含description字段，可能格式错误，跳过
-                        logger.warning(f"行{idx}: JSON不包含description字段，跳过")
+                        logger.warning(f"Row {idx}: JSON does not contain a description field; skipping")
                         continue
                 except (json.JSONDecodeError, TypeError, ValueError):
-                    # 如果不是JSON，当作纯文本description处理
                     description = desc_str.strip()
 
                 instruction = str(row[instruction_col]).strip()
 
-                # 跳过空值或nan
                 if description and description != 'nan' and instruction and instruction != 'nan':
-                    # 构建带prompt的输入
                     prompt = ImageInstructionTemplate.build_prompt(description)
 
                     all_data.append({
@@ -580,64 +405,47 @@ class ImageDatasetLoader:
                     })
 
             except:
-                # 完全静默跳过问题行
                 continue
 
-        logger.info(f"图像数据集加载完成, 数据量: {len(all_data)}")
+        logger.info(f"Image dataset loaded: {len(all_data)} records")
 
         return all_data
 
 
 class UMLDatasetLoader:
-    """
-    UML数据集加载器
-
-    使用单一数据集：uml_dataset.csv（1500条数据）
-    """
+    """Load umldataset data."""
 
     def __init__(self):
-        """
-        初始化UML数据加载器
-        """
+        """Initialize the instance."""
         self.path_cfg = get_path_config()
         self.dataset_csv = self.path_cfg.UML_DATASET_CSV
 
-        logger.info(f"初始化UML数据加载器 - 数据集: {self.dataset_csv}")
+        logger.info(f"Initializing UML dataset loader - dataset: {self.dataset_csv}")
 
     def load_csv_file(self) -> List[Dict]:
-        """
-        加载UML CSV文件
-
-        Returns:
-            数据列表，每项包含input和output
-        """
+        """Load CSV file."""
         csv_path = self.dataset_csv
 
-        logger.info(f"加载UML数据集: {csv_path}")
+        logger.info(f"Loading UML dataset: {csv_path}")
 
         if not csv_path.exists():
-            logger.error(f"UML数据集文件不存在: {csv_path}")
+            logger.error(f"UML dataset file does not exist: {csv_path}")
             return []
 
         try:
-            # 检测编码
             encoding = detect_csv_encoding(csv_path)
-            logger.info(f"检测到编码: {encoding}")
+            logger.info(f"Detected encoding: {encoding}")
 
-            # 读取CSV
             df = pd.read_csv(csv_path, encoding=encoding)
 
-            # 规范化列名
             df.columns = [normalize_column_name(col) for col in df.columns]
-            logger.info(f"规范化后的列名: {list(df.columns)}")
+            logger.info(f"Normalized columns: {list(df.columns)}")
 
-            # 列名映射（灵活处理不同的命名）
             column_map = {
                 'description': ['description', 'desc', 'uml_description', 'Description'],
                 'instruction': ['instruction', 'Instruction', 'output', 'Output']
             }
 
-            # 查找实际的列名
             desc_col = None
             inst_col = None
 
@@ -651,48 +459,37 @@ class UMLDatasetLoader:
                             inst_col = col
                         break
 
-            # 验证必需列
             if desc_col is None or inst_col is None:
-                logger.error(f"未找到必需的列。实际列名: {list(df.columns)}")
-                logger.error(f"需要包含: description 和 instruction 列")
+                logger.error(f"Required columns were not found. Actual columns: {list(df.columns)}")
+                logger.error("Required columns: description and instruction")
                 return []
 
-            logger.info(f"使用列: description='{desc_col}', instruction='{inst_col}'")
+            logger.info(f"Using columns: description='{desc_col}', instruction='{inst_col}'")
 
-            # 处理数据
             data_list = []
             for idx, row in df.iterrows():
                 try:
                     description = row[desc_col]
                     instruction = row[inst_col]
 
-                    # 跳过空值
                     if pd.isna(description) or pd.isna(instruction):
                         continue
 
-                    # 如果description是JSON字符串，验证、过滤position并统一格式
                     if isinstance(description, str) and description.strip().startswith('{'):
                         try:
                             desc_json = json.loads(description)
-                            # 验证是否包含必要字段（actors或use_cases）
                             if 'actors' in desc_json or 'use_cases' in desc_json:
-                                # 过滤actor中的position字段
                                 filtered_json = filter_uml_json_positions(desc_json)
-                                # 统一为压缩JSON格式（无空格、无换行）
                                 description = normalize_json_string(json.dumps(filtered_json, ensure_ascii=False))
                             elif 'description' in desc_json:
-                                # 如果只有description字段，也过滤并统一格式
                                 filtered_json = filter_uml_json_positions(desc_json)
                                 description = normalize_json_string(json.dumps(filtered_json, ensure_ascii=False))
                             else:
-                                # JSON格式不符合预期，记录警告
-                                logger.warning(f"行{idx}: UML JSON格式不符合预期，跳过")
+                                logger.warning(f"Row {idx}: UML JSON has an unexpected structure; skipping")
                                 continue
                         except json.JSONDecodeError:
-                            # 不是有效JSON，当作纯文本处理
                             pass
 
-                    # 构建带prompt的输入
                     prompt = UMLInstructionTemplate.build_prompt(str(description))
 
                     data_list.append({
@@ -703,52 +500,36 @@ class UMLDatasetLoader:
                     })
 
                 except Exception as e:
-                    logger.warning(f"处理第{idx}行时出错: {e}")
+                    logger.warning(f"Error while processing row {idx}: {e}")
                     continue
 
-            logger.info(f"成功加载UML数据: {len(data_list)}条")
+            logger.info(f"Loaded {len(data_list)} UML records")
             return data_list
 
         except Exception as e:
-            logger.error(f"加载UML数据失败: {e}")
+            logger.error(f"Failed to load UML dataset: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return []
 
 
 class GeneralDatasetLoader:
-    """
-    通用专家数据集加载器
-
-    功能：
-    - 加载text + image + uml三种数据
-    - 统一使用GeneralInstructionTemplate处理所有输入
-    - 确保训练推理一致性
-    """
+    """Load general dataset data."""
 
     def __init__(self, use_domain_templates: bool = False):
-        """
-        初始化通用数据加载器
-        """
+        """Initialize the instance."""
         self.use_domain_templates = use_domain_templates
-        logger.info(f"初始化GeneralDatasetLoader - 将加载text + image + uml数据")
-        logger.info(f"模板模式: {'各领域专用模板 (lora_single)' if use_domain_templates else '通用模板 (general_expert)'}")
+        logger.info("Initializing GeneralDatasetLoader - loading text, image, and UML data")
+        logger.info(f"Template mode: {'domain-specific templates (lora_single)' if use_domain_templates else 'general template (general_expert)'}")
 
     def load_all_data(self) -> List[Dict]:
-        """
-        加载所有类型的数据并统一使用GeneralInstructionTemplate
-
-        Returns:
-            数据列表，每项包含input、input_with_prompt和output
-        """
+        """Load all data."""
         all_data = []
 
-        # 1. 加载文本数据
-        logger.info("加载文本数据...")
+        logger.info("Loading text data...")
         text_loader = TextDatasetLoader()
         text_raw = text_loader.load_csv_files()
 
-        # 重新构建prompt - 使用GeneralInstructionTemplate
         for item in text_raw:
             if self.use_domain_templates:
                 prompt = TextInstructionTemplate.build_prompt(item['input'])
@@ -765,14 +546,12 @@ class GeneralDatasetLoader:
                 'data_type': 'text'
             })
 
-        logger.info(f"文本数据: {len(text_raw)}条")
+        logger.info(f"Text records: {len(text_raw)}")
 
-        # 2. 加载图像数据
-        logger.info("加载图像数据...")
+        logger.info("Loading image data...")
         image_loader = ImageDatasetLoader()
         image_raw = image_loader.load_csv_file()
 
-        # 重新构建prompt - 使用GeneralInstructionTemplate
         for item in image_raw:
             if self.use_domain_templates:
                 prompt = ImageInstructionTemplate.build_prompt(item['input'])
@@ -789,14 +568,12 @@ class GeneralDatasetLoader:
                 'data_type': 'image'
             })
 
-        logger.info(f"图像数据: {len(image_raw)}条")
+        logger.info(f"Image records: {len(image_raw)}")
 
-        # 3. 加载UML数据
-        logger.info(f"加载UML数据...")
+        logger.info("Loading UML data...")
         uml_loader = UMLDatasetLoader()
         uml_raw = uml_loader.load_csv_file()
 
-        # 重新构建prompt - 使用GeneralInstructionTemplate
         for item in uml_raw:
             if self.use_domain_templates:
                 prompt = UMLInstructionTemplate.build_prompt(str(item['input']))
@@ -815,13 +592,12 @@ class GeneralDatasetLoader:
                 'data_type': 'uml'
             })
 
-        logger.info(f"UML数据: {len(uml_raw)}条")
+        logger.info(f"UML records: {len(uml_raw)}")
 
-        # 统计
-        logger.info(f"通用数据集总计: {len(all_data)}条")
-        logger.info(f"  - 文本: {len(text_raw)}条")
-        logger.info(f"  - 图像: {len(image_raw)}条")
-        logger.info(f"  - UML: {len(uml_raw)}条")
+        logger.info(f"Total general-dataset records: {len(all_data)}")
+        logger.info(f"  - Text: {len(text_raw)}")
+        logger.info(f"  - Image: {len(image_raw)}")
+        logger.info(f"  - UML: {len(uml_raw)}")
 
         return all_data
 
@@ -833,26 +609,13 @@ def split_dataset(
     test_ratio: float = 0.1,
     seed: int = 42
 ) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    """
-    划分训练集、验证集、测试集
-
-    Args:
-        data: 原始数据
-        train_ratio: 训练集比例
-        val_ratio: 验证集比例
-        test_ratio: 测试集比例
-        seed: 随机种子
-
-    Returns:
-        (train_data, val_data, test_data)
-    """
+    """Split dataset."""
     random.seed(seed)
 
     total = len(data)
     train_size = int(total * train_ratio)
     val_size = int(total * val_ratio)
 
-    # 打乱数据
     shuffled_data = data.copy()
     random.shuffle(shuffled_data)
 
@@ -860,7 +623,7 @@ def split_dataset(
     val_data = shuffled_data[train_size:train_size + val_size]
     test_data = shuffled_data[train_size + val_size:]
 
-    logger.info(f"数据集划分 - 训练: {len(train_data)}, 验证: {len(val_data)}, 测试: {len(test_data)}")
+    logger.info(f"Dataset split - train: {len(train_data)}, validation: {len(val_data)}, test: {len(test_data)}")
 
     return train_data, val_data, test_data
 
@@ -870,28 +633,15 @@ def split_dataset_for_expert(
     expert_type: str,
     seed: int = 42
 ) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    """
-    根据专家类型智能划分数据集
-
-    Args:
-        data: 原始数据
-        expert_type: 'text', 'image', 'uml', 'general'
-        seed: 随机种子
-
-    Returns:
-        (train_data, val_data, test_data)
-    """
+    """Split dataset for expert."""
     data_size = len(data)
 
-    # 根据数据量选择划分策略
     if data_size < 500:
-        # 小数据量，使用80:15:5划分
         train_ratio, val_ratio, test_ratio = 0.80, 0.15, 0.05
-        logger.info(f"小数据集({data_size}条)，使用80:15:5划分策略")
+        logger.info(f"Small dataset ({data_size} records); using an 80:15:5 split")
     else:
-        # 大数据量（包括1500条UML数据），使用标准80:10:10划分
         train_ratio, val_ratio, test_ratio = 0.80, 0.10, 0.10
-        logger.info(f"大数据集({data_size}条)，使用80:10:10划分策略")
+        logger.info(f"Large dataset ({data_size} records); using an 80:10:10 split")
 
     return split_dataset(data, train_ratio, val_ratio, test_ratio, seed)
 
@@ -902,18 +652,7 @@ def create_dataloader(
     shuffle: bool = True,
     num_workers: int = 8
 ) -> DataLoader:
-    """
-    创建DataLoader
-
-    Args:
-        dataset: 数据集
-        batch_size: 批次大小（如果为None则使用配置）
-        shuffle: 是否打乱
-        num_workers: 工作进程数
-
-    Returns:
-        DataLoader对象
-    """
+    """Create dataloader."""
     if batch_size is None:
         train_cfg = get_training_config()
         batch_size = train_cfg.batch_size

@@ -1,28 +1,9 @@
-"""
-通用专家训练脚本
-功能：训练General Expert，作为兜底专家处理各类需求（text + image + uml）
-环境：instruction_generator（transformers==4.57.0）
-基础模型：Qwen3-8B（默认）
-数据集：text_dataset + image_dataset + uml_dataset
-输出：checkpoints/lora_moe/general_expert/
-
-使用方法：
-  # 方法1: 通过环境管理脚本运行（推荐）
-  python scripts/run_with_env.py --env text --script scripts/training/train_general_expert.py
-
-  # 方法2: 直接在instruction_generator环境中运行
-  conda activate instruction_generator
-  python scripts/training/train_general_expert.py
-
-作者：Training System
-日期：2025-02-15
-"""
+"""Train the general expert."""
 
 import sys
 import argparse
 from pathlib import Path
 
-# 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -34,14 +15,14 @@ logger = get_logger('training.train_general_expert')
 
 
 def print_header():
-    """打印训练开始的标题"""
+    """Print header."""
     print("=" * 80)
-    print(" " * 20 + "通用专家训练 (General Expert Training)")
+    print(" " * 20 + "General Expert Training")
     print("=" * 80)
     print()
 
 def detect_rtx4090() -> bool:
-    """检测是否为RTX 4090显卡"""
+    """Detect rtx4090."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -52,21 +33,21 @@ def detect_rtx4090() -> bool:
     return False
 
 def print_config(use_4bit: bool, use_rtx4090_opt: bool):
-    """打印训练配置"""
+    """Print config."""
     path_cfg = get_path_config()
     train_cfg = get_training_config()
     lora_cfg = get_lora_config('conservative')
 
-    print("训练配置信息:")
+    print("Training configuration:")
     print("-" * 80)
-    print(f"专家类型: General Expert（兜底专家）")
-    print(f"数据集: text + image + uml_dataset")
-    print(f"基础模型: {path_cfg.QWEN_7B_CHAT_PATH}")
-    print(f"输出目录: checkpoints/lora_moe/general_expert/")
+    print(f"Expert type: General Expert (fallback expert)")
+    print(f"Dataset: text + image + uml_dataset")
+    print(f"Base model: {path_cfg.QWEN_7B_CHAT_PATH}")
+    print(f"Output directory: checkpoints/lora_moe/general_expert/")
     print()
-    print(f"数据来源: 文本（全部）+ 图像（全部）+ UML（1500条）")
+    print(f"Data sources: all text + all images + 1,500 UML samples")
     print()
-    print(f"LoRA配置:")
+    print(f"LoRA configuration:")
     print(f"  - Rank: {lora_cfg.rank}")
     print(f"  - Alpha: {lora_cfg.alpha}")
     print(f"  - Dropout: {lora_cfg.dropout}")
@@ -74,77 +55,73 @@ def print_config(use_4bit: bool, use_rtx4090_opt: bool):
     print()
 
     if use_rtx4090_opt:
-        print(f"训练参数 (RTX 4090优化):")
-        print(f"  - Batch Size: 8 (优化后)")
-        print(f"  - Gradient Accumulation: 2 (优化后)")
-        print(f"  - 有效Batch Size: 16")
+        print(f"Training parameters (RTX 4090 optimized):")
+        print(f"  - Batch Size: 8 (optimized)")
+        print(f"  - Gradient Accumulation: 2 (optimized)")
+        print(f"  - Effective Batch Size: 16")
         print(f"  - Epochs: {train_cfg.num_epochs}")
         print(f"  - Learning Rate: {train_cfg.learning_rate}")
         print(f"  - Max Seq Length: {train_cfg.max_seq_length}")
-        print(f"  - 4bit量化: {use_4bit}")
-        print(f"  - BF16混合精度: True")
-        print(f"  - TF32加速: True")
-        print(f"  - Fused优化器: True")
-        print(f"  - 数据加载器工作进程: 8")
+        print(f"  - 4-bit quantization: {use_4bit}")
+        print(f"  - BF16 mixed precision: True")
+        print(f"  - TF32 acceleration: True")
+        print(f"  - Fused optimizer: True")
+        print(f"  - Data loader workers: 8")
     else:
-        print(f"训练参数:")
+        print(f"Training parameters:")
         print(f"  - Batch Size: {train_cfg.batch_size}")
         print(f"  - Gradient Accumulation: {train_cfg.gradient_accumulation_steps}")
-        print(f"  - 有效Batch Size: {train_cfg.batch_size * train_cfg.gradient_accumulation_steps}")
+        print(f"  - Effective Batch Size: {train_cfg.batch_size * train_cfg.gradient_accumulation_steps}")
         print(f"  - Epochs: {train_cfg.num_epochs}")
         print(f"  - Learning Rate: {train_cfg.learning_rate}")
         print(f"  - Max Seq Length: {train_cfg.max_seq_length}")
-        print(f"  - 4bit量化: {use_4bit}")
+        print(f"  - 4-bit quantization: {use_4bit}")
 
     print("-" * 80)
     print()
 
 
 def validate_environment():
-    """验证运行环境"""
+    """Validate environment."""
     import os
 
-    print("验证运行环境...")
+    print("Checking runtime environment...")
     print("-" * 80)
 
-    # 检查transformers版本
     try:
         import transformers
         version = transformers.__version__
-        print(f"Transformers版本: {version}")
+        print(f"Transformers version: {version}")
 
-        # General Expert应该使用transformers 4.57.0（统一环境）
         try:
             v_parts = version.split('.')
             major, minor = int(v_parts[0]), int(v_parts[1])
             if not (major > 4 or (major == 4 and minor >= 51)):
-                logger.warning(f"警告：当前transformers版本为{version}，推荐使用>=4.51.0")
-                logger.warning("请确认是否在instruction_generator环境中运行")
+                logger.warning(f"Current transformers version is {version}; version >=4.51.0 is recommended")
+                logger.warning("Verify that the script is running in the instruction_generator environment")
         except (ValueError, IndexError):
-            logger.warning(f"无法解析transformers版本: {version}")
+            logger.warning(f"Unable to parse transformers version: {version}")
     except ImportError:
-        logger.error("未安装transformers库")
+        logger.error("transformers is not installed")
         return False
 
-    # 检查PEFT
     try:
         import peft
-        print(f"PEFT版本: {peft.__version__}")
+        print(f"PEFT version: {peft.__version__}")
     except ImportError:
-        logger.error("未安装PEFT库，请运行: pip install peft --break-system-packages")
+        logger.error("PEFT is not installed. Run: pip install peft --break-system-packages")
         return False
 
-    # 检查PyTorch
     try:
         import torch
-        print(f"PyTorch版本: {torch.__version__}")
+        print(f"PyTorch version: {torch.__version__}")
         if torch.cuda.is_available():
-            print(f"CUDA可用: {torch.cuda.get_device_name(0)}")
-            print(f"显存: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
+            print(f"CUDA available: {torch.cuda.get_device_name(0)}")
+            print(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
         else:
-            logger.warning("CUDA不可用，将使用CPU训练（速度极慢）")
+            logger.warning("CUDA is unavailable; training will run on CPU and be extremely slow")
     except ImportError:
-        logger.error("未安装PyTorch库")
+        logger.error("PyTorch is not installed")
         return False
 
     print("-" * 80)
@@ -153,32 +130,27 @@ def validate_environment():
 
 
 def main():
-    """主训练流程"""
-    # 解析命令行参数
-    parser = argparse.ArgumentParser(description='训练通用专家')
+    """Run the command-line entry point."""
+    parser = argparse.ArgumentParser(description='Train the general expert')
     parser.add_argument('--use_4bit', action='store_true', default=True,
-                        help='使用4bit量化训练（默认：True）')
+                        help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
-                        help='不使用4bit量化')
+                        help='Disable 4-bit quantization')
     args = parser.parse_args()
 
-    # 打印标题
     print_header()
 
-    # 验证环境
     if not validate_environment():
-        logger.error("环境验证失败，请检查依赖库")
+        logger.error("Environment validation failed; check the required dependencies")
         return 1
 
-    # 检测是否为RTX 4090
     is_rtx4090 = detect_rtx4090()
-    use_rtx4090_opt = is_rtx4090  # 自动启用优化
+    use_rtx4090_opt = is_rtx4090
 
     if is_rtx4090:
-        logger.info("检测到RTX 4090，启用优化配置")
+        logger.info("Detected RTX 4090; enabling optimized settings")
 
-    # 创建训练器（会自动打印实际配置）
-    logger.info(f"创建通用专家训练器...")
+    logger.info(f"Creating general expert trainer...")
     try:
         trainer = LoRATrainer(
             expert_type='general',
@@ -186,35 +158,31 @@ def main():
             use_rtx4090_optimization=use_rtx4090_opt
         )
     except Exception as e:
-        logger.error(f"创建训练器失败: {e}")
+        logger.error(f"Failed to create trainer: {e}")
         return 1
 
-    # 设置模型
-    logger.info("设置模型和LoRA配置...")
+    logger.info("Setting up model and LoRA configuration...")
     if not trainer.setup_model():
-        logger.error("模型设置失败")
+        logger.error("Model setup failed")
         return 1
 
-    # 准备数据
-    logger.info("准备训练数据...")
+    logger.info("Preparing training data...")
     if not trainer.prepare_data():
-        logger.error("数据准备失败")
+        logger.error("Training data preparation failed")
         return 1
 
-    # 打印数据统计
     status = trainer.get_training_status()
-    print(f"数据统计:")
-    print(f"  - 训练样本: {status['train_samples']}")
-    print(f"  - 验证样本: {status['val_samples']}")
-    print(f"  - 数据来源: text + image + uml")
+    print(f"Dataset statistics:")
+    print(f"  - Training samples: {status['train_samples']}")
+    print(f"  - Validation samples: {status['val_samples']}")
+    print(f"  - Data sources: text + image + uml")
     print()
-    print(f"注意：通用专家使用文本（全部）+ 图像（全部）+ UML（1500条）")
+    print(f"Note: The General Expert uses all text + all images + 1,500 UML samples")
     print()
 
-    # 开始训练
-    logger.info("开始训练...")
+    logger.info("Starting training...")
     print("=" * 80)
-    print("训练开始 - 这可能需要较长时间，请耐心等待...")
+    print("Training started - this may take a while, please wait...")
     print("=" * 80)
     print()
 
@@ -223,28 +191,28 @@ def main():
     if success:
         print()
         print("=" * 80)
-        print(" " * 25 + "训练成功完成！")
+        print(" " * 25 + "Training completed successfully!")
         print("=" * 80)
         print()
 
         path_cfg = get_path_config()
         output_path = path_cfg.PROJECT_ROOT / 'checkpoints' / 'lora_moe' / 'general_expert'
-        print(f"LoRA权重已保存至: {output_path}")
-        print(f"检查点目录: {output_path / 'training_checkpoints'}")
+        print(f"LoRA weights saved to: {output_path}")
+        print(f"Checkpoint directory: {output_path / 'training_checkpoints'}")
         print()
-        print("下一步:")
-        print("  1. 可以使用该权重进行推理测试")
-        print("  2. 所有专家训练完成，可以开始使用Expert系统")
+        print("Next steps:")
+        print("  1. Use these weights for inference testing")
+        print("  2. All experts are trained; you can start using the Expert system")
         print()
 
         return 0
     else:
         print()
         print("=" * 80)
-        print(" " * 28 + "训练失败")
+        print(" " * 28 + "Training failed")
         print("=" * 80)
         print()
-        logger.error("训练过程中出现错误，请查看日志")
+        logger.error("An error occurred during training; check the logs")
         return 1
 
 

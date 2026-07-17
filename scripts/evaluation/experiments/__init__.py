@@ -1,4 +1,1 @@
-"""
-实验脚本模块 (exp1–exp11)
-功能：论文对比实验的编排与执行
-"""
+"""Initialize the experiments package."""
