@@ -17,7 +17,7 @@ logger = get_logger('training.train_general_expert')
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 20 + "通用专家训练 (General Expert Training)")
+    print(" " * 20 + "General Expert Training")
     print("=" * 80)
     print()
 
@@ -38,16 +38,16 @@ def print_config(use_4bit: bool, use_rtx4090_opt: bool):
     train_cfg = get_training_config()
     lora_cfg = get_lora_config('conservative')
 
-    print("训练配置信息:")
+    print("Training configuration:")
     print("-" * 80)
-    print(f"专家类型: General Expert（兜底专家）")
-    print(f"数据集: text + image + uml_dataset")
-    print(f"基础模型: {path_cfg.QWEN_7B_CHAT_PATH}")
-    print(f"输出目录: checkpoints/lora_moe/general_expert/")
+    print(f"Expert type: General Expert (fallback expert)")
+    print(f"Dataset: text + image + uml_dataset")
+    print(f"Base model: {path_cfg.QWEN_7B_CHAT_PATH}")
+    print(f"Output directory: checkpoints/lora_moe/general_expert/")
     print()
-    print(f"数据来源: 文本（全部）+ 图像（全部）+ UML（1500条）")
+    print(f"Data sources: all text + all images + 1,500 UML samples")
     print()
-    print(f"LoRA配置:")
+    print(f"LoRA configuration:")
     print(f"  - Rank: {lora_cfg.rank}")
     print(f"  - Alpha: {lora_cfg.alpha}")
     print(f"  - Dropout: {lora_cfg.dropout}")
@@ -55,27 +55,27 @@ def print_config(use_4bit: bool, use_rtx4090_opt: bool):
     print()
 
     if use_rtx4090_opt:
-        print(f"训练参数 (RTX 4090优化):")
-        print(f"  - Batch Size: 8 (优化后)")
-        print(f"  - Gradient Accumulation: 2 (优化后)")
-        print(f"  - 有效Batch Size: 16")
+        print(f"Training parameters (RTX 4090 optimized):")
+        print(f"  - Batch Size: 8 (optimized)")
+        print(f"  - Gradient Accumulation: 2 (optimized)")
+        print(f"  - Effective Batch Size: 16")
         print(f"  - Epochs: {train_cfg.num_epochs}")
         print(f"  - Learning Rate: {train_cfg.learning_rate}")
         print(f"  - Max Seq Length: {train_cfg.max_seq_length}")
-        print(f"  - 4bit量化: {use_4bit}")
-        print(f"  - BF16混合精度: True")
-        print(f"  - TF32加速: True")
-        print(f"  - Fused优化器: True")
-        print(f"  - 数据加载器工作进程: 8")
+        print(f"  - 4-bit quantization: {use_4bit}")
+        print(f"  - BF16 mixed precision: True")
+        print(f"  - TF32 acceleration: True")
+        print(f"  - Fused optimizer: True")
+        print(f"  - Data loader workers: 8")
     else:
-        print(f"训练参数:")
+        print(f"Training parameters:")
         print(f"  - Batch Size: {train_cfg.batch_size}")
         print(f"  - Gradient Accumulation: {train_cfg.gradient_accumulation_steps}")
-        print(f"  - 有效Batch Size: {train_cfg.batch_size * train_cfg.gradient_accumulation_steps}")
+        print(f"  - Effective Batch Size: {train_cfg.batch_size * train_cfg.gradient_accumulation_steps}")
         print(f"  - Epochs: {train_cfg.num_epochs}")
         print(f"  - Learning Rate: {train_cfg.learning_rate}")
         print(f"  - Max Seq Length: {train_cfg.max_seq_length}")
-        print(f"  - 4bit量化: {use_4bit}")
+        print(f"  - 4-bit quantization: {use_4bit}")
 
     print("-" * 80)
     print()
@@ -85,13 +85,13 @@ def validate_environment():
     """Validate environment."""
     import os
 
-    print("验证运行环境...")
+    print("Checking runtime environment...")
     print("-" * 80)
 
     try:
         import transformers
         version = transformers.__version__
-        print(f"Transformers版本: {version}")
+        print(f"Transformers version: {version}")
 
         try:
             v_parts = version.split('.')
@@ -107,17 +107,17 @@ def validate_environment():
 
     try:
         import peft
-        print(f"PEFT版本: {peft.__version__}")
+        print(f"PEFT version: {peft.__version__}")
     except ImportError:
         logger.error("PEFT is not installed. Run: pip install peft --break-system-packages")
         return False
 
     try:
         import torch
-        print(f"PyTorch版本: {torch.__version__}")
+        print(f"PyTorch version: {torch.__version__}")
         if torch.cuda.is_available():
-            print(f"CUDA可用: {torch.cuda.get_device_name(0)}")
-            print(f"显存: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
+            print(f"CUDA available: {torch.cuda.get_device_name(0)}")
+            print(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
         else:
             logger.warning("CUDA is unavailable; training will run on CPU and be extremely slow")
     except ImportError:
@@ -172,17 +172,17 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"数据统计:")
-    print(f"  - 训练样本: {status['train_samples']}")
-    print(f"  - 验证样本: {status['val_samples']}")
-    print(f"  - 数据来源: text + image + uml")
+    print(f"Dataset statistics:")
+    print(f"  - Training samples: {status['train_samples']}")
+    print(f"  - Validation samples: {status['val_samples']}")
+    print(f"  - Data sources: text + image + uml")
     print()
-    print(f"注意：通用专家使用文本（全部）+ 图像（全部）+ UML（1500条）")
+    print(f"Note: The General Expert uses all text + all images + 1,500 UML samples")
     print()
 
     logger.info("Starting training...")
     print("=" * 80)
-    print("训练开始 - 这可能需要较长时间，请耐心等待...")
+    print("Training started - this may take a while, please wait...")
     print("=" * 80)
     print()
 
@@ -191,25 +191,25 @@ def main():
     if success:
         print()
         print("=" * 80)
-        print(" " * 25 + "训练成功完成！")
+        print(" " * 25 + "Training completed successfully!")
         print("=" * 80)
         print()
 
         path_cfg = get_path_config()
         output_path = path_cfg.PROJECT_ROOT / 'checkpoints' / 'lora_moe' / 'general_expert'
-        print(f"LoRA权重已保存至: {output_path}")
-        print(f"检查点目录: {output_path / 'training_checkpoints'}")
+        print(f"LoRA weights saved to: {output_path}")
+        print(f"Checkpoint directory: {output_path / 'training_checkpoints'}")
         print()
-        print("下一步:")
-        print("  1. 可以使用该权重进行推理测试")
-        print("  2. 所有专家训练完成，可以开始使用Expert系统")
+        print("Next steps:")
+        print("  1. Use these weights for inference testing")
+        print("  2. All experts are trained; you can start using the Expert system")
         print()
 
         return 0
     else:
         print()
         print("=" * 80)
-        print(" " * 28 + "训练失败")
+        print(" " * 28 + "Training failed")
         print("=" * 80)
         print()
         logger.error("An error occurred during training; check the logs")

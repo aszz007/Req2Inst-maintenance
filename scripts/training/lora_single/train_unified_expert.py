@@ -35,20 +35,20 @@ def detect_rtx4090() -> bool:
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 18 + "LoRA-Single统一模型训练 (Unified Expert Training)")
+    print(" " * 18 + "LoRA-Single Unified Expert Training")
     print("=" * 80)
     print()
 
 
 def validate_environment():
     """Validate environment."""
-    print("验证运行环境...")
+    print("Checking runtime environment...")
     print("-" * 80)
 
     try:
         import transformers
         version = transformers.__version__
-        print(f"Transformers版本: {version}")
+        print(f"Transformers version: {version}")
 
         try:
             v_parts = version.split('.')
@@ -64,17 +64,17 @@ def validate_environment():
 
     try:
         import peft
-        print(f"PEFT版本: {peft.__version__}")
+        print(f"PEFT version: {peft.__version__}")
     except ImportError:
         logger.error("PEFT is not installed. Run: pip install peft --break-system-packages")
         return False
 
     try:
         import torch
-        print(f"PyTorch版本: {torch.__version__}")
+        print(f"PyTorch version: {torch.__version__}")
         if torch.cuda.is_available():
-            print(f"CUDA可用: {torch.cuda.get_device_name(0)}")
-            print(f"显存: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
+            print(f"CUDA available: {torch.cuda.get_device_name(0)}")
+            print(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
         else:
             logger.warning("CUDA is unavailable; training will run on CPU and be extremely slow")
     except ImportError:
@@ -108,14 +108,14 @@ def main():
         logger.info("Detected RTX 4090; enabling optimized settings")
 
     print("=" * 80)
-    print("对比实验：LoRA-Single vs LoRA-MoE")
+    print("Comparison experiment: LoRA-Single vs LoRA-MoE")
     print("=" * 80)
-    print("目标：验证MoE架构相比单一模型的优势")
-    print("配置：")
-    print("  - 使用exp4最优LoRA超参数（rank=64, alpha=128, dropout=0.05）")
-    print("  - 使用相同的训练数据集（text + image + uml）")
-    print("  - 唯一区别：无MoE路由机制")
-    print("预期：LoRA-MoE通过专家专业化达到更好的性能")
+    print("Goal: verify the advantages of the MoE architecture over a single model")
+    print("Configuration:")
+    print("  - Uses the best LoRA hyperparameters from exp4 (rank=64, alpha=128, dropout=0.05)")
+    print("  - Uses the same training datasets (text + image + uml)")
+    print("  - Only difference: no MoE routing")
+    print("Expected: LoRA-MoE achieves better performance through expert specialization")
     print("=" * 80)
     print()
 
@@ -145,10 +145,10 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"数据统计:")
-    print(f"  - 训练样本: {status['train_samples']}")
-    print(f"  - 验证样本: {status['val_samples']}")
-    print(f"  - 数据来源: text + image + uml（混合数据集）")
+    print(f"Dataset statistics:")
+    print(f"  - Training samples: {status['train_samples']}")
+    print(f"  - Validation samples: {status['val_samples']}")
+    print(f"  - Data sources: text + image + uml (mixed dataset)")
     print()
 
     logger.info("Setting up model and LoRA configuration...")
@@ -158,7 +158,7 @@ def main():
 
     logger.info("Starting training...")
     print("=" * 80)
-    print("训练开始 - 这可能需要较长时间，请耐心等待...")
+    print("Training started - this may take a while, please wait...")
     print("=" * 80)
     print()
 
@@ -167,24 +167,24 @@ def main():
     if success:
         print()
         print("=" * 80)
-        print(" " * 25 + "训练成功完成！")
+        print(" " * 25 + "Training completed successfully!")
         print("=" * 80)
         print()
 
         path_cfg = get_path_config()
-        print(f"LoRA权重已保存至: {path_cfg.LORA_SINGLE_CKPT}")
+        print(f"LoRA weights saved to: {path_cfg.LORA_SINGLE_CKPT}")
         print()
-        print("下一步:")
-        print("  1. 使用该权重进行推理测试")
-        print("  2. 与LoRA-MoE进行性能对比实验")
-        print("  3. 分析单一模型 vs MoE架构的差异")
+        print("Next steps:")
+        print("  1. Use these weights for inference testing")
+        print("  2. Compare performance with LoRA-MoE")
+        print("  3. Analyze the differences between the single model and the MoE architecture")
         print()
 
         return 0
     else:
         print()
         print("=" * 80)
-        print(" " * 28 + "训练失败")
+        print(" " * 28 + "Training failed")
         print("=" * 80)
         print()
         logger.error("An error occurred during training; check the logs")

@@ -29,7 +29,7 @@ def detect_rtx4090() -> bool:
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 12 + "P-Tuning v2 General Expert训练 (Prefix Tuning)")
+    print(" " * 12 + "P-Tuning v2 General Expert Training (Prefix Tuning)")
     print("=" * 80)
     print()
 
@@ -53,14 +53,14 @@ def main():
 
     ptuning_cfg = get_ptuning_config()
     print("=" * 80)
-    print("对比实验：P-Tuning v2 vs LoRA")
+    print("Comparison experiment: P-Tuning v2 vs LoRA")
     print("=" * 80)
-    print("方法：P-Tuning v2（Prefix Tuning）")
-    print("配置：")
+    print("Method: P-Tuning v2 (Prefix Tuning)")
+    print("Configuration:")
     print(f"  - Virtual Tokens: {ptuning_cfg.num_virtual_tokens}")
     print(f"  - Encoder Hidden Size: {ptuning_cfg.encoder_hidden_size}")
     print(f"  - Prefix Projection: {ptuning_cfg.prefix_projection}")
-    print("数据来源: text + image + uml（混合数据集）")
+    print("Data sources: text + image + uml (mixed dataset)")
     print("=" * 80)
     print()
 
@@ -86,15 +86,15 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"数据统计:")
-    print(f"  - 训练样本: {status['train_samples']}")
-    print(f"  - 验证样本: {status['val_samples']}")
-    print(f"  - 数据来源: text + image + uml")
+    print(f"Dataset statistics:")
+    print(f"  - Training samples: {status['train_samples']}")
+    print(f"  - Validation samples: {status['val_samples']}")
+    print(f"  - Data sources: text + image + uml")
     print()
 
     logger.info("Starting training...")
     print("=" * 80)
-    print("训练开始 - 这可能需要较长时间，请耐心等待...")
+    print("Training started - this may take a while, please wait...")
     print("=" * 80)
     print()
 
@@ -103,25 +103,25 @@ def main():
     if success:
         print()
         print("=" * 80)
-        print(" " * 25 + "训练成功完成！")
+        print(" " * 25 + "Training completed successfully!")
         print("=" * 80)
         print()
 
         path_cfg = get_path_config()
         output_path = path_cfg.PTUNING_CKPTS['general']
-        print(f"P-Tuning v2权重已保存至: {output_path}")
-        print(f"检查点目录: {output_path / 'training_checkpoints'}")
+        print(f"P-Tuning v2 weights saved to: {output_path}")
+        print(f"Checkpoint directory: {output_path / 'training_checkpoints'}")
         print()
-        print("下一步:")
-        print("  1. 可以使用该权重进行推理测试")
-        print("  2. 所有专家训练完成，可以开始评估实验")
+        print("Next steps:")
+        print("  1. Use these weights for inference testing")
+        print("  2. All experts are trained; you can start the evaluation experiments")
         print()
 
         return 0
     else:
         print()
         print("=" * 80)
-        print(" " * 28 + "训练失败")
+        print(" " * 28 + "Training failed")
         print("=" * 80)
         print()
         logger.error("An error occurred during training; check the logs")

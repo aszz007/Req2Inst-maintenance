@@ -192,16 +192,16 @@ def print_summary(results: List[Dict]):
     successful = sum(1 for r in results if r['success'])
     failed = total - successful
 
-    print(f"总任务数: {total}")
-    print(f"{Colors.GREEN}成功: {successful}{Colors.END}")
-    print(f"{Colors.RED}失败: {failed}{Colors.END}")
+    print(f"Total tasks: {total}")
+    print(f"{Colors.GREEN}Succeeded: {successful}{Colors.END}")
+    print(f"{Colors.RED}Failed: {failed}{Colors.END}")
     print()
 
     if failed > 0:
-        print(f"{Colors.RED}失败任务:{Colors.END}")
+        print(f"{Colors.RED}Failed tasks:{Colors.END}")
         for r in results:
             if not r['success']:
-                print(f"  - 任务{r['task_id']}: {r['description']}")
+                print(f"  - Task {r['task_id']}: {r['description']}")
     print()
 
 
@@ -241,9 +241,9 @@ def main():
 
     print_header("批量训练计划")
     mode_text = "测试模式(1 epoch)" if args.test else "完整训练模式"
-    print(f"模式: {mode_text}")
-    print(f"总任务数: {len(tasks)}")
-    print("\n任务列表:")
+    print(f"Mode: {mode_text}")
+    print(f"Total tasks: {len(tasks)}")
+    print("\nTask list:")
     for task in tasks:
         print(f"  {task}")
     print()
@@ -277,7 +277,7 @@ def main():
     save_report(results, output_dir, args.test)
 
     print_summary(results)
-    print(f"总耗时: {total_time/3600:.2f}小时")
+    print(f"Total elapsed: {total_time/3600:.2f} hours")
 
     failed_count = sum(1 for r in results if not r['success'])
     return 0 if failed_count == 0 else 1

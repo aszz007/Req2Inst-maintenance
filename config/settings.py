@@ -278,7 +278,7 @@ class PathConfig:
         for directory in dirs:
             directory.mkdir(parents=True, exist_ok=True)
 
-        print(f"✓ 已创建 {len(dirs)} 个必要目录")
+        print(f"✓ Created {len(dirs)} required directories")
 
 
 @dataclass
@@ -556,12 +556,12 @@ class DeviceConfig:
 
                 self.is_high_end_gpu = self._detect_high_end_gpu()
 
-                print(f"[设备] 使用GPU: {self.gpu_name}")
-                print(f"[设备] 显存: {self.gpu_memory_gb:.2f}GB")
-                print(f"[设备] 高端GPU模式: {'是' if self.is_high_end_gpu else '否'}")
+                print(f"[Device] Using GPU: {self.gpu_name}")
+                print(f"[Device] GPU memory: {self.gpu_memory_gb:.2f}GB")
+                print(f"[Device] High-end GPU mode: {'enabled' if self.is_high_end_gpu else 'disabled'}")
             else:
                 self.device = "cpu"
-                print("[设备] 使用CPU")
+                print("[Device] Using CPU")
 
     def _detect_high_end_gpu(self) -> bool:
         """Detect high end GPU."""
@@ -768,7 +768,7 @@ def set_streaming_mode(enable: bool):
     if _device_config is None:
         _device_config = DeviceConfig()
     _device_config.enable_streaming = enable
-    print(f"流式输出模式: {'启用' if enable else '禁用'}")
+    print(f"Streaming output mode: {'enabled' if enable else 'disabled'}")
 
 
 def get_model_config(version: str = None) -> ModelConfig:
@@ -794,8 +794,8 @@ def set_vision_model_version(version: str):
     """Set the vision-model version."""
     global _vision_model_config
     _vision_model_config = VisionModelConfig(version=version)
-    print(f"✓ 已切换视觉模型版本: {version}")
-    print(f"  模型: {_vision_model_config.get_model_name()}")
+    print(f"✓ Switched vision model version: {version}")
+    print(f"  Model: {_vision_model_config.get_model_name()}")
 
 
 def validate_config() -> tuple:
@@ -804,48 +804,48 @@ def validate_config() -> tuple:
     is_valid = True
 
     print("\n" + "=" * 60)
-    print("配置验证中...")
+    print("Validating configuration...")
     print("=" * 60)
 
     path_cfg = get_path_config()
 
-    print("\n[1/5] 检查基础模型路径...")
+    print("\n[1/5] Checking base model paths...")
 
     qwen3_8b_path = path_cfg.QWEN3_8B_PATH
     if not qwen3_8b_path.exists():
         messages.append(f"❌ Qwen3-8B模型未找到: {qwen3_8b_path}")
         is_valid = False
     else:
-        print(f"✓ Qwen3-8B模型路径正确")
+        print(f"✓ Qwen3-8B model path is valid")
 
     vision_path = path_cfg.get_vision_model_path('qwen3')
     if not vision_path.exists():
         messages.append(f"⚠ Qwen3-VL-8B 模型未找到: {vision_path}")
-        print(f"⚠ Qwen3-VL-8B 模型未找到（如暂未下载可忽略）")
+        print(f"⚠ Qwen3-VL-8B model not found (ignore if not downloaded yet)")
     else:
-        print(f"✓ Qwen3-VL-8B 视觉模型路径正确")
+        print(f"✓ Qwen3-VL-8B vision model path is valid")
 
-    print("\n[2/5] 检查数据集...")
+    print("\n[2/5] Checking datasets...")
     if path_cfg.IMAGE_DATASET_CSV.exists():
-        print(f"✓ 图像数据集存在")
+        print(f"✓ Image dataset found")
     else:
         messages.append(f"⚠ 图像数据集未找到: {path_cfg.IMAGE_DATASET_CSV}")
 
     text_dataset_count = sum(1 for f in path_cfg.TEXT_DATASET_FILES.values() if f.exists())
-    print(f"✓ 找到 {text_dataset_count}/{len(path_cfg.TEXT_DATASET_FILES)} 个文本数据集文件")
+    print(f"✓ Found {text_dataset_count}/{len(path_cfg.TEXT_DATASET_FILES)} text dataset files")
 
     if not path_cfg.UML_DATASET_CSV.exists():
         messages.append(f"⚠ UML数据集未找到（可能尚未创建）: {path_cfg.UML_DATASET_CSV}")
 
-    print("\n[3/5] 检查CUDA环境...")
+    print("\n[3/5] Checking CUDA environment...")
     device_cfg = get_device_config()
 
     if device_cfg.device != "cuda":
         messages.append("⚠ CUDA不可用，将使用CPU模式（速度极慢）")
     else:
-        print(f"✓ CUDA可用")
+        print(f"✓ CUDA is available")
 
-    print("\n[4/5] 检查依赖库...")
+    print("\n[4/5] Checking dependencies...")
     required_packages = {
         'transformers': '模型加载',
         'torch': 'PyTorch框架',
@@ -861,7 +861,7 @@ def validate_config() -> tuple:
             messages.append(f"❌ 缺少依赖: {package} - {description}")
             is_valid = False
 
-    print("\n[5/5] 创建必要目录...")
+    print("\n[5/5] Creating required directories...")
     try:
         path_cfg.create_directories()
     except Exception as e:
@@ -869,13 +869,13 @@ def validate_config() -> tuple:
         is_valid = False
 
     print("\n" + "=" * 60)
-    print("验证结果")
+    print("Validation results")
     print("=" * 60)
 
     if is_valid:
-        print("✓ 配置验证通过")
+        print("✓ Configuration validation passed")
     else:
-        print("✗ 配置验证失败，请修复以下问题：")
+        print("✗ Configuration validation failed; please fix the following issues:")
 
     for msg in messages:
         print(f"  {msg}")

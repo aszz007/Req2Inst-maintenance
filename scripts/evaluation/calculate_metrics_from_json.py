@@ -123,10 +123,10 @@ def calculate_metrics(
 def print_metrics_summary(results: Dict, expert_name: str):
     """Print metrics summary."""
     print("\n" + "=" * 80)
-    print(f"评估结果摘要 - {expert_name}")
+    print(f"Evaluation Summary - {expert_name}")
     print("=" * 80)
 
-    print("\n[生成质量指标]")
+    print("\n[Generation Quality Metrics]")
     quality = results['generation_quality']
     print(f"  BLEU:        {quality['bleu']:.4f}")
     print(f"  ROUGE-L:     {quality['rougeL']:.4f}")
@@ -134,23 +134,23 @@ def print_metrics_summary(results: Dict, expert_name: str):
     if 'bertscore_f1' in quality:
         print(f"  BERTScore F1: {quality['bertscore_f1']:.4f}")
 
-    print("\n[格式指标]")
+    print("\n[Format Metrics]")
     format_m = results['format_metrics']
-    print(f"  格式分数:    {format_m['avg_format_score']:.4f}")
-    print(f"  通过率:      {format_m['valid_rate']:.2%}")
+    print(f"  Format score:    {format_m['avg_format_score']:.4f}")
+    print(f"  Pass rate:      {format_m['valid_rate']:.2%}")
 
-    print("\n[二分类指标]")
+    print("\n[Binary Classification Metrics]")
     binary = results['binary_classification']
     print(f"  Precision:   {binary['precision']:.4f}")
     print(f"  Recall:      {binary['recall']:.4f}")
     print(f"  F1 Score:    {binary['f1_score']:.4f}")
     print(f"  TP: {binary['TP']:<6d}  FP: {binary['FP']:<6d}  FN: {binary['FN']:<6d}")
 
-    print("\n[阈值配置]")
-    print(f"  ROUGE-L阈值:      {binary['rouge_threshold']:.2f}")
-    print(f"  BERTScore阈值:    {binary['bertscore_threshold']:.2f}")
-    print(f"  组合逻辑:         {'AND (两者都需满足)' if binary['use_and_logic'] else 'OR (满足一个即可)'}")
-    print(f"  格式分数阈值:     {binary['format_threshold']:.2f}")
+    print("\n[Threshold Configuration]")
+    print(f"  ROUGE-L threshold:      {binary['rouge_threshold']:.2f}")
+    print(f"  BERTScore threshold:    {binary['bertscore_threshold']:.2f}")
+    print(f"  Combination logic:         {'AND (both must pass)' if binary['use_and_logic'] else 'OR (either may pass)'}")
+    print(f"  Format score threshold:     {binary['format_threshold']:.2f}")
 
     print("=" * 80 + "\n")
 
@@ -289,7 +289,7 @@ def main_batch(args):
     if args.list_caches:
         files = scan_cache_files(cache_dir)
         if not files:
-            print(f"未找到缓存文件，目录: {cache_dir}")
+            print(f"No cache file found in directory: {cache_dir}")
         for f in files:
             try:
                 print(f.relative_to(cache_dir))

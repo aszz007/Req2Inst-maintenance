@@ -28,19 +28,19 @@ def detect_rtx4090() -> bool:
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 17 + "Prompt Tuning UML专家训练 (UML Expert Training)")
+    print(" " * 17 + "Prompt Tuning UML Expert Training")
     print("=" * 80)
     print()
 
 
 def validate_environment() -> bool:
     """Validate environment."""
-    print("验证运行环境...")
+    print("Checking runtime environment...")
     print("-" * 80)
 
     try:
         import transformers
-        print(f"Transformers版本: {transformers.__version__}")
+        print(f"Transformers version: {transformers.__version__}")
         v = transformers.__version__.split('.')
         major, minor = int(v[0]), int(v[1])
         if not (major > 4 or (major == 4 and minor >= 51)):
@@ -51,17 +51,17 @@ def validate_environment() -> bool:
 
     try:
         import peft
-        print(f"PEFT版本: {peft.__version__}")
+        print(f"PEFT version: {peft.__version__}")
     except ImportError:
         logger.error("PEFT is not installed. Run: pip install peft")
         return False
 
     try:
         import torch
-        print(f"PyTorch版本: {torch.__version__}")
+        print(f"PyTorch version: {torch.__version__}")
         if torch.cuda.is_available():
-            print(f"CUDA可用: {torch.cuda.get_device_name(0)}")
-            print(f"显存: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
+            print(f"CUDA available: {torch.cuda.get_device_name(0)}")
+            print(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3:.2f}GB")
         else:
             logger.warning("CUDA is unavailable; training will run on CPU and be extremely slow")
     except ImportError:
@@ -123,17 +123,17 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"数据统计:")
-    print(f"  - 训练样本: {status['train_samples']}")
-    print(f"  - 验证样本: {status['val_samples']}")
-    print(f"  - 数据集: uml_dataset.csv（1500条）")
+    print(f"Dataset statistics:")
+    print(f"  - Training samples: {status['train_samples']}")
+    print(f"  - Validation samples: {status['val_samples']}")
+    print(f"  - Dataset: uml_dataset.csv (1,500 rows)")
     print()
-    print("注意：1500条数据使用标准80:10:10划分策略")
+    print("Note: 1,500 samples use the standard 80:10:10 split")
     print()
 
     logger.info("Starting training...")
     print("=" * 80)
-    print("训练开始 - 这可能需要较长时间，请耐心等待...")
+    print("Training started - this may take a while, please wait...")
     print("=" * 80)
     print()
 
@@ -142,21 +142,21 @@ def main():
     if success:
         print()
         print("=" * 80)
-        print(" " * 25 + "训练成功完成！")
+        print(" " * 25 + "Training completed successfully!")
         print("=" * 80)
         print()
-        print(f"Prompt Tuning权重已保存至: {trainer.output_dir}")
-        print(f"检查点目录: {trainer.output_dir / 'training_checkpoints'}")
+        print(f"Prompt Tuning weights saved to: {trainer.output_dir}")
+        print(f"Checkpoint directory: {trainer.output_dir / 'training_checkpoints'}")
         print()
-        print("下一步:")
-        print("  1. 可以使用该权重进行推理测试")
-        print("  2. 继续训练其他专家（Text, Image, General）")
+        print("Next steps:")
+        print("  1. Use these weights for inference testing")
+        print("  2. Continue training the other experts (Text, Image, General)")
         print()
         return 0
     else:
         print()
         print("=" * 80)
-        print(" " * 28 + "训练失败")
+        print(" " * 28 + "Training failed")
         print("=" * 80)
         print()
         logger.error("An error occurred during training; check the logs")

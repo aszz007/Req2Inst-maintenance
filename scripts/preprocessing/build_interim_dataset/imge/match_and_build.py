@@ -159,34 +159,34 @@ class ImageDatasetBuilder:
     ) -> str:
         """Build CSV dataset."""
         print("="*80)
-        print(" "*25 + "Image数据集构建器")
+        print(" "*25 + "Image Dataset Builder")
         print("="*80)
 
         image_folder = Path(image_folder)
         json_file = Path(json_file)
 
-        print("\n[步骤 1/5] 扫描图片目录...")
-        print(f"图片文件夹: {image_folder}")
+        print("\n[Step 1/5] Scanning the image directory...")
+        print(f"Image folder: {image_folder}")
         image_names = self.get_all_images(image_folder)
-        print(f"找到 {len(image_names)} 张不重复的图片")
+        print(f"Found {len(image_names)} unique images")
 
-        print("\n[步骤 2/5] 加载JSON识别结果...")
-        print(f"JSON文件: {json_file}")
+        print("\n[Step 2/5] Loading JSON recognition results...")
+        print(f"JSON file: {json_file}")
         json_mapping = self.load_json_results(json_file)
-        print(f"加载了 {len(json_mapping)} 条JSON记录")
+        print(f"Loaded {len(json_mapping)} JSON records")
         if self.stats['failed_recognitions'] > 0:
-            print(f"  ⚠ 其中 {self.stats['failed_recognitions']} 条识别失败")
+            print(f"     {self.stats['failed_recognitions']} recognition(s) failed")
 
-        print("\n[步骤 3/5] 验证图片-JSON映射...")
+        print("\n[Step 3/5] Validating image-to-JSON mappings...")
         images_without_json, json_without_images = self.validate_mapping(image_names, json_mapping)
 
-        print(f"匹配的配对: {self.stats['matched']}")
+        print(f"Matched pairs: {self.stats['matched']}")
         if self.stats['images_without_json'] > 0:
-            print(f"⚠ 图片缺少JSON: {self.stats['images_without_json']}")
+            print(f"  Images missing JSON: {self.stats['images_without_json']}")
         if self.stats['json_without_images'] > 0:
-            print(f"⚠ JSON缺少图片: {self.stats['json_without_images']}")
+            print(f"  JSON records missing images: {self.stats['json_without_images']}")
 
-        print("\n[步骤 4/5] 构建CSV数据集...")
+        print("\n[Step 4/5] Building the CSV dataset...")
 
         if output_csv is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -232,10 +232,10 @@ class ImageDatasetBuilder:
             writer.writeheader()
             writer.writerows(rows)
 
-        print(f"CSV数据集已创建: {output_csv}")
-        print(f"总行数: {len(rows)}")
+        print(f"CSV dataset created: {output_csv}")
+        print(f"Total rows: {len(rows)}")
 
-        print("\n[步骤 5/5] 保存错误日志...")
+        print("\n[Step 5/5] Saving the error log...")
 
         if error_log is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -250,21 +250,21 @@ class ImageDatasetBuilder:
                 'errors': self.errors
             }, f, ensure_ascii=False, indent=2)
 
-        print(f"错误日志已保存: {error_log}")
-        print(f"总错误数: {len(self.errors)}")
+        print(f"Error log saved to: {error_log}")
+        print(f"Total errors: {len(self.errors)}")
 
         print("\n" + "="*80)
-        print(" "*30 + "汇总")
+        print(" "*30 + "Summary")
         print("="*80)
-        print(f"总图片数: {self.stats['total_images']}")
-        print(f"总JSON条目: {self.stats['total_json_entries']}")
-        print(f"匹配的配对: {self.stats['matched']}")
-        print(f"创建的CSV行数: {len(rows)}")
+        print(f"Total images: {self.stats['total_images']}")
+        print(f"Total JSON entries: {self.stats['total_json_entries']}")
+        print(f"Matched pairs: {self.stats['matched']}")
+        print(f"CSV rows created: {len(rows)}")
         print("-"*80)
-        print(f"图片缺少JSON: {self.stats['images_without_json']}")
-        print(f"JSON缺少图片: {self.stats['json_without_images']}")
-        print(f"识别失败: {self.stats['failed_recognitions']}")
-        print(f"记录的错误数: {len(self.errors)}")
+        print(f"Images missing JSON: {self.stats['images_without_json']}")
+        print(f"JSON records missing images: {self.stats['json_without_images']}")
+        print(f"Recognition failures: {self.stats['failed_recognitions']}")
+        print(f"Logged errors: {len(self.errors)}")
         print("="*80 + "\n")
 
         return str(output_csv)
@@ -286,12 +286,12 @@ def main():
 
 
     print("="*80)
-    print(" "*20 + "Image数据集构建工具")
+    print(" "*20 + "Image Dataset Builder")
     print("="*80)
-    print(f"用途: 将图片 + JSON结果转换为CSV数据集")
-    print(f"输出格式: Header | Description | Instruction")
-    print(f"Description内容: 包含所有图像识别信息（description, details等）")
-    print(f"已过滤字段: confidence, recognition_status, image_path, image_name, model_version")
+    print(f"Purpose: Convert images and JSON results into a CSV dataset")
+    print(f"Output format: Header | Description | Instruction")
+    print(f"Description contents: All image recognition information (description, details, etc.)")
+    print(f"Filtered fields: confidence, recognition_status, image_path, image_name, model_version")
     print("="*80 + "\n")
 
     try:
@@ -305,15 +305,15 @@ def main():
             include_failed=INCLUDE_FAILED
         )
 
-        print(f"✓ 数据集构建完成！")
-        print(f"✓ 输出文件: {output_path}")
-        print(f"\n后续步骤:")
-        print(f"1. 查看错误日志以检查任何问题")
-        print(f"2. 根据需要填充 'Instruction' 列")
-        print(f"3. 使用数据集进行模型训练或其他应用")
+        print(f"✓ Dataset build completed!")
+        print(f"✓ Output file: {output_path}")
+        print(f"\nNext steps:")
+        print(f"1. Review the error log for any issues")
+        print(f"2. Populate the 'Instruction' column as needed")
+        print(f"3. Use the dataset for model training or other applications")
 
     except Exception as e:
-        print(f"\n✗ 数据集构建失败: {str(e)}")
+        print(f"\n✗ Dataset build failed: {str(e)}")
         import traceback
         traceback.print_exc()
 

@@ -26,6 +26,9 @@ policy will be adopted before the first public release.
 - Source comments, docstrings, and 1,492 safe diagnostic messages are
   standardized in English without changing prompts, result labels, generated
   outputs, log levels, or control flow.
+- Direct console-only progress and status text is translated to English in
+  safe non-browser paths; prompts, CLI help, validation fields, and result
+  schemas remain unchanged.
 - Legacy generated artifacts and superseded dependency notes are removed from
   the current source snapshot while remaining recoverable from Git history.
 

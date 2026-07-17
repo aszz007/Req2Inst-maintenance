@@ -230,17 +230,17 @@ def log_recognition_failure(
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("日志系统测试")
+    print("Logging system test")
     print("=" * 60)
 
-    print("\n【测试1】创建多个logger")
+    print("\n[Test 1] Creating multiple loggers")
     print("-" * 60)
 
     logger_train = setup_logger('training.text_expert', level=logging.DEBUG)
     logger_inference = setup_logger('inference.generation', level=logging.INFO)
     logger_data = setup_logger('preprocessing.data_loader', level=logging.INFO)
 
-    print("\n【测试2】不同级别的日志输出")
+    print("\n[Test 2] Logging at different levels")
     print("-" * 60)
 
     logger_train.debug("DEBUG-level message with detailed diagnostic information")
@@ -248,7 +248,7 @@ if __name__ == "__main__":
     logger_train.warning("WARNING-level message")
     logger_train.error("ERROR-level message")
 
-    print("\n【测试3】记录模型信息")
+    print("\n[Test 3] Recording model information")
     print("-" * 60)
 
 
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     mock_model = MockModel()
     log_model_info(logger_train, mock_model, "Test model")
 
-    print("\n【测试4】记录训练指标")
+    print("\n[Test 4] Recording training metrics")
     print("-" * 60)
 
     metrics = {
@@ -277,12 +277,12 @@ if __name__ == "__main__":
     }
     log_training_metrics(logger_train, epoch=1, step=100, metrics=metrics, prefix="train")
 
-    print("\n【测试5】记录数据集信息")
+    print("\n[Test 5] Recording dataset information")
     print("-" * 60)
 
     log_data_info(logger_data, "CCHIT dataset", train_size=800, val_size=100, test_size=100)
 
-    print("\n【测试6】记录配置信息")
+    print("\n[Test 6] Recording configuration information")
     print("-" * 60)
 
     config = {
@@ -293,14 +293,14 @@ if __name__ == "__main__":
     }
     log_config(logger_train, config, "Training configuration")
 
-    print("\n【测试7】GPU显存记录")
+    print("\n[Test 7] Recording GPU memory")
     print("-" * 60)
 
     log_gpu_memory(logger_train)
 
-    print("\n【测试8】记录识别失败")
+    print("\n[Test 8] Recording recognition failure")
     print("-" * 60)
     log_recognition_failure(logger_data, "/path/to/image.jpg", "JSON parsing error", retry_count=2)
 
-    print("\n日志系统测试完成！")
-    print("请检查 logs/ 目录下的日志文件")
+    print("\nLogging system test completed!")
+    print("Check the log files in the logs/ directory")

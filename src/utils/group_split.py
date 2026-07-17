@@ -26,7 +26,7 @@ def group_split_by_input(
                 cleaned.append(item)
         n_removed = len(data) - len(cleaned)
         if n_removed:
-            print(f"[group_split] 已删除 {n_removed} 条完全重复行 "
+            print(f"[group_split] Removed {n_removed} duplicate rows "
                   f"({len(data)} → {len(cleaned)})")
         data = cleaned
 

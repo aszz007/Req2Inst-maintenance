@@ -463,7 +463,7 @@ class VisionModel:
             time.sleep(0.5)
 
             print("\n" + "="*80)
-            print("实时生成内容：")
+            print("Streaming generated content:")
             print("="*80)
             print("", flush=True)
 

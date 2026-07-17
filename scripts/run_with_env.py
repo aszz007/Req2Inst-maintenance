@@ -47,11 +47,11 @@ def run_in_env(env_name: str, script_path: str, args: list = None):
     if args:
         cmd.extend(args)
 
-    print(f"运行环境: {env_name}")
+    print(f"Environment: {env_name}")
     if qwen_version:
-        print(f"Qwen版本: {qwen_version}")
-    print(f"脚本: {script_path}")
-    print(f"参数: {' '.join(args) if args else '无'}")
+        print(f"Qwen version: {qwen_version}")
+    print(f"Script: {script_path}")
+    print(f"Arguments: {' '.join(args) if args else 'none'}")
     print("-" * 60)
 
     env = os.environ.copy()
@@ -76,8 +76,8 @@ def main():
         if args[i] == '--env' and i + 1 < len(args):
             env_key = args[i + 1]
             if env_key not in ENV_MAP:
-                print(f"错误: 无效的环境类型 '{env_key}'")
-                print(f"可用选项: {', '.join(ENV_MAP.keys())}")
+                print(f"Error: Invalid environment type '{env_key}'")
+                print(f"Available options: {', '.join(ENV_MAP.keys())}")
                 sys.exit(1)
             env_name = ENV_MAP[env_key]
             i += 2

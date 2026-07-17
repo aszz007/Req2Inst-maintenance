@@ -695,10 +695,10 @@ class EnhancedMetrics:
     def print_report_summary(self, report: Dict):
         """Print report summary."""
         print("\n" + "=" * 80)
-        print("评估报告摘要")
+        print("Evaluation Report Summary")
         print("=" * 80)
 
-        print("\n[生成质量指标]")
+        print("\n[Generation Quality Metrics]")
         quality = report['generation_quality']
         print(f"  BLEU:      {quality['bleu']:.4f}")
         print(f"  ROUGE-1:   {quality['rouge1']:.4f}")
@@ -710,35 +710,35 @@ class EnhancedMetrics:
             print(f"  BERTScore R: {quality['bertscore_recall']:.4f}")
             print(f"  BERTScore F1: {quality['bertscore_f1']:.4f}")
 
-        print("\n[格式指标]")
+        print("\n[Format Metrics]")
         format_m = report['format_metrics']
-        print(f"  格式验证通过率: {format_m['valid_rate']:.2%}")
-        print(f"  平均格式分数:   {format_m['avg_format_score']:.4f}")
-        print(f"  Definition有效: {format_m['definition_has_content']:.2%}")
-        print(f"  Emphasis有效:   {format_m['emphasis_valid']:.2%}")
-        print(f"  Avoid有效:      {format_m['avoid_valid']:.2%}")
+        print(f"  Format validation pass rate: {format_m['valid_rate']:.2%}")
+        print(f"  Average format score:        {format_m['avg_format_score']:.4f}")
+        print(f"  Definition valid:            {format_m['definition_has_content']:.2%}")
+        print(f"  Emphasis valid:              {format_m['emphasis_valid']:.2%}")
+        print(f"  Avoid valid:                 {format_m['avoid_valid']:.2%}")
 
         if 'binary_classification' in report:
-            print("\n[二分类指标 (TP/TN/FP/FN)]")
+            print("\n[Binary Classification Metrics (TP/TN/FP/FN)]")
             binary = report['binary_classification']
-            print(f"  TP (True Positive):  {binary['TP']:4d}  - 格式正确且语义达标")
-            print(f"  FP (False Positive): {binary['FP']:4d}  - 格式正确但语义不达标")
-            print(f"  FN (False Negative): {binary['FN']:4d}  - 格式错误或语义不达标")
-            print(f"  TN (True Negative):  {binary['TN']:4d}  - 不适用")
+            print(f"  TP (True Positive):  {binary['TP']:4d}  - format correct and semantically adequate")
+            print(f"  FP (False Positive): {binary['FP']:4d}  - format correct but semantically inadequate")
+            print(f"  FN (False Negative): {binary['FN']:4d}  - format incorrect or semantically inadequate")
+            print(f"  TN (True Negative):  {binary['TN']:4d}  - not applicable")
             print(f"  ---")
-            print(f"  Precision (精确率): {binary['precision']:.4f}")
-            print(f"  Recall (召回率):    {binary['recall']:.4f}")
+            print(f"  Precision:           {binary['precision']:.4f}")
+            print(f"  Recall:              {binary['recall']:.4f}")
             print(f"  F1 Score:           {binary['f1_score']:.4f}")
-            print(f"  Accuracy (准确率):  {binary['accuracy']:.4f}")
+            print(f"  Accuracy:            {binary['accuracy']:.4f}")
 
-        print("\n[统计指标]")
+        print("\n[Statistical Metrics]")
         stats = report['statistical_metrics']
-        print(f"  平均字符长度: {stats['char_length']['mean']:.1f}")
-        print(f"  平均单词数:   {stats['word_count']['mean']:.1f}")
-        print(f"  平均行数:     {stats['line_count']['mean']:.1f}")
+        print(f"  Average character length: {stats['char_length']['mean']:.1f}")
+        print(f"  Average word count:       {stats['word_count']['mean']:.1f}")
+        print(f"  Average line count:       {stats['line_count']['mean']:.1f}")
 
         if 'expert_usage' in stats:
-            print("\n[专家使用统计]")
+            print("\n[Expert Usage Statistics]")
             for expert, pct in stats['expert_usage']['usage_percentage'].items():
                 print(f"  {expert}: {pct:.1f}%")
 

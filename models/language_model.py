@@ -400,7 +400,7 @@ class LanguageModel:
                 max_length=4096
             )
 
-        pbar = tqdm(total=len(prompts), desc="批量生成", unit="样本", ncols=100)
+        pbar = tqdm(total=len(prompts), desc="Batch generation", unit="samples", ncols=100)
 
         tok_executor = ThreadPoolExecutor(max_workers=2)
         next_tok_future = tok_executor.submit(_tokenize, all_batches[0]) if all_batches else None

@@ -27,22 +27,22 @@ def load_text_dataset(dataset_dir: Path) -> pd.DataFrame:
     if not csv_files:
         raise FileNotFoundError(f"No CSV files found in the dataset directory: {dataset_dir}")
 
-    print(f"发现 {len(csv_files)} 个CSV文件:")
+    print(f"Found {len(csv_files)} CSV file(s):")
     dfs = []
     for csv_file in csv_files:
         df = pd.read_csv(csv_file, encoding="utf-8")
-        print(f"  - {csv_file.name}: {len(df)} 条")
+        print(f"  - {csv_file.name}: {len(df)} rows")
         dfs.append(df)
 
     combined = pd.concat(dfs, ignore_index=True)
-    print(f"合并后总计: {len(combined)} 条\n")
+    print(f"Combined total: {len(combined)} rows\n")
     return combined
 
 
 def sample_dataset(df: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
     """Sample a dataset."""
     if n > len(df):
-        print(f"[警告] 请求采样 {n} 条，但数据集只有 {len(df)} 条，将返回全部数据。")
+        print(f"[Warning] Requested sample size {n} rows; the dataset contains only {len(df)} rows; returning the full dataset.")
         return df.copy()
 
     return df.sample(n=n, random_state=seed).reset_index(drop=True)
@@ -51,11 +51,11 @@ def sample_dataset(df: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
 def display_samples(samples: pd.DataFrame) -> None:
     """Display representative samples."""
     print("=" * 70)
-    print(f"随机采样结果（共 {len(samples)} 条）")
+    print(f"Random sample ({len(samples)} rows)")
     print("=" * 70)
 
     for idx, row in samples.iterrows():
-        print(f"\n【样本 {idx + 1}】")
+        print(f"\n[Sample {idx + 1}]")
         print("-" * 50)
         if TRAIN_FIELD in row:
             req = str(row[TRAIN_FIELD]).strip()
@@ -63,7 +63,7 @@ def display_samples(samples: pd.DataFrame) -> None:
         elif "High_Requirements" in row:
             high = str(row.get("High_Requirements", "")).strip()
             if high:
-                print(f"[High_Requirements（仅展示，不用于训练）]\n{high}")
+                print(f"[High_Requirements（display only; not used for training）]\n{high}")
         if OUTPUT_FIELD in row:
             instr = str(row[OUTPUT_FIELD]).strip()
             print(f"\n[{OUTPUT_FIELD}]\n{instr}")
@@ -84,7 +84,7 @@ def save_samples(samples: pd.DataFrame, output_path: str) -> None:
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     samples.to_csv(out, index=False, encoding="utf-8")
-    print(f"\n采样结果已保存至: {out.resolve()}")
+    print(f"\nSample saved to: {out.resolve()}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -125,17 +125,17 @@ def run_sampling(n: int = 3, seed: int = None, output: str = None,
     dir_path = Path(dataset_dir) if dataset_dir else TEXT_DATASET_DIR
 
     actual_seed = seed if seed is not None else random.randint(0, 99999)
-    print(f"随机种子: {actual_seed}")
+    print(f"Random seed: {actual_seed}")
 
-    print(f"加载文本数据集: {dir_path}")
+    print(f"Loading text dataset: {dir_path}")
     df = load_text_dataset(dir_path)
 
     samples = sample_dataset(df, n=n, seed=actual_seed)
 
     display_samples(samples)
 
-    print(f"\n数据集列: {list(df.columns)}")
-    print(f"数据集规模: {len(df)} 条（框架参考: {DATASET_TOTAL} 条）")
+    print(f"\nDataset columns: {list(df.columns)}")
+    print(f"Dataset size: {len(df)} rows (framework reference: {DATASET_TOTAL} rows)")
 
     if output:
         save_samples(samples, output)

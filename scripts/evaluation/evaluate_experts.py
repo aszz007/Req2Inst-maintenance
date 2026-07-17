@@ -499,10 +499,10 @@ class ExpertEvaluator:
     def _print_comparison_summary(self, results: Dict):
         """Print comparison summary."""
         print("\n" + "=" * 80)
-        print("专家评估对比摘要")
+        print("Expert Evaluation Comparison Summary")
         print("=" * 80)
 
-        print(f"\n{'专家':<20} {'BLEU':<10} {'ROUGE-L':<10} {'METEOR':<10} {'BERTScore':<10}")
+        print(f"\n{'Expert':<20} {'BLEU':<10} {'ROUGE-L':<10} {'METEOR':<10} {'BERTScore':<10}")
         print("-" * 80)
 
         for expert_name, result in results.items():
@@ -516,7 +516,7 @@ class ExpertEvaluator:
 
             print(f"{expert_name:<20} {bleu:<10.4f} {rouge_l:<10.4f} {meteor:<10.4f} {bertscore:<10.4f}")
 
-        print(f"\n{'专家':<20} {'格式分数':<12} {'通过率':<12}")
+        print(f"\n{'Expert':<20} {'Format Score':<12} {'Pass Rate':<12}")
         print("-" * 80)
 
         for expert_name, result in results.items():
@@ -528,7 +528,7 @@ class ExpertEvaluator:
 
             print(f"{expert_name:<20} {format_score:<12.4f} {valid_rate:<12.2%}")
 
-        print(f"\n{'专家':<20} {'Precision':<12} {'Recall':<12} {'F1 Score':<12} {'TP':<6} {'FP':<6} {'FN':<6}")
+        print(f"\n{'Expert':<20} {'Precision':<12} {'Recall':<12} {'F1 Score':<12} {'TP':<6} {'FP':<6} {'FN':<6}")
         print("-" * 80)
 
         for expert_name, result in results.items():

@@ -27,8 +27,8 @@ def load_uml_dataset(dataset_path: Path) -> pd.DataFrame:
         raise FileNotFoundError(f"UML dataset file not found: {dataset_path}")
 
     df = pd.read_csv(dataset_path, encoding="utf-8")
-    print(f"加载UML数据集: {dataset_path.name}")
-    print(f"总计: {len(df)} 条，列: {list(df.columns)}\n")
+    print(f"Loading UML dataset: {dataset_path.name}")
+    print(f"Total: {len(df)} rows, columns: {list(df.columns)}\n")
     return df
 
 
@@ -53,7 +53,7 @@ def extract_description(raw_value: str) -> str:
 def sample_dataset(df: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
     """Sample a dataset."""
     if n > len(df):
-        print(f"[警告] 请求采样 {n} 条，但数据集只有 {len(df)} 条，将返回全部数据。")
+        print(f"[Warning] Requested sample size {n} rows, but the dataset contains only {len(df)} rows; returning the full dataset.")
         return df.copy()
 
     return df.sample(n=n, random_state=seed).reset_index(drop=True)
@@ -62,22 +62,22 @@ def sample_dataset(df: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
 def display_samples(samples: pd.DataFrame) -> None:
     """Display representative samples."""
     print("=" * 70)
-    print(f"随机采样结果（共 {len(samples)} 条）")
-    print("注意: UML Expert 输入是 JSON 文本描述，不是UML图")
-    print("注意: UML Expert 和 General Expert 都使用此数据集")
+    print(f"Random sample ({len(samples)} rows)")
+    print("Note: UML Expert input is a JSON text description, not a UML diagram")
+    print("Note: Both UML Expert and General Expert use this dataset")
     print("=" * 70)
 
     for idx, row in samples.iterrows():
-        print(f"\n【样本 {idx + 1}】")
+        print(f"\n[Sample {idx + 1}]")
         print("-" * 50)
 
         if DESCRIPTION_FIELD in row:
             raw = str(row[DESCRIPTION_FIELD]).strip()
             description = extract_description(raw)
             if description:
-                print(f"[Description（训练输入，提取自JSON）]\n{description}")
+                print(f"[Description (training input, extracted from JSON)]\n{description}")
             else:
-                print(f"[{DESCRIPTION_FIELD}（原始）]\n{raw}")
+                print(f"[{DESCRIPTION_FIELD} (raw)]\n{raw}")
         elif TRAIN_INPUT_FIELD in row:
             val = str(row[TRAIN_INPUT_FIELD]).strip()
             if val and val != "nan":
@@ -95,7 +95,7 @@ def display_samples(samples: pd.DataFrame) -> None:
 
         high = str(row.get("High_Requirements", "")).strip()
         if high and high != "nan":
-            print(f"\n[High_Requirements（仅展示，不用于训练）]\n{high}")
+            print(f"\n[High_Requirements (display only; not used for training)]\n{high}")
 
         skip_cols = {DESCRIPTION_FIELD, TRAIN_INPUT_FIELD, OUTPUT_FIELD, "High_Requirements"}
         for col in row.index:
@@ -112,7 +112,7 @@ def save_samples(samples: pd.DataFrame, output_path: str) -> None:
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     samples.to_csv(out, index=False, encoding="utf-8")
-    print(f"\n采样结果已保存至: {out.resolve()}")
+    print(f"\nSample saved to: {out.resolve()}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -153,7 +153,7 @@ def run_sampling(n: int = 3, seed: int = None, output: str = None,
     csv_path = Path(dataset) if dataset else UML_DATASET_PATH
 
     actual_seed = seed if seed is not None else random.randint(0, 99999)
-    print(f"随机种子: {actual_seed}")
+    print(f"Random seed: {actual_seed}")
 
     df = load_uml_dataset(csv_path)
 
@@ -161,9 +161,9 @@ def run_sampling(n: int = 3, seed: int = None, output: str = None,
 
     display_samples(samples)
 
-    print(f"\n数据集规模: {len(df)} 条（框架参考: {DATASET_TOTAL} 条）")
-    print(f"训练集/验证集/测试集参考: 1200 / 150 / 150")
-    print(f"使用方: UML Expert + General Expert（共用同一数据集）")
+    print(f"\nDataset size: {len(df)} rows (framework reference: {DATASET_TOTAL} rows)")
+    print(f"Train/validation/test reference: 1200 / 150 / 150")
+    print(f"Used by: UML Expert + General Expert (shared dataset)")
 
     if output:
         save_samples(samples, output)
