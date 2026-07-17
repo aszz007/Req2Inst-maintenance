@@ -2584,23 +2584,23 @@ def main():
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp10: Advanced Routing Strategy')
     parser.add_argument('--phase', type=int, choices=[1, 2, 3],
-                        help='只运行指定阶段')
-    parser.add_argument('--all', action='store_true', help='运行全部阶段')
+                        help='Run only the specified phase')
+    parser.add_argument('--all', action='store_true', help='Run all phases')
     parser.add_argument('--force-regenerate', action='store_true',
-                        help='强制重新推理，忽略缓存')
+                        help='Force inference rerun and ignore the cache')
     parser.add_argument('--no-bertscore', action='store_true',
-                        help='跳过BERTScore计算（加速）')
+                        help='Skip BERTScore computation (faster)')
     parser.add_argument('--test-mode', action='store_true',
-                        help='测试模式（每域仅10条）')
+                        help='Test mode (10 samples per domain)')
     parser.add_argument('--quick-ensemble', type=int, default=0, metavar='N',
-                        help='快速测试：每个ensemble组仅采样N条（推荐5-8），'
-                             '~3分钟完成，用于调参。设0或不设则全量运行。'
-                             '用法: --phase 2 --force-regenerate --quick-ensemble 5')
+                        help='Quick test: sample only N items per ensemble group (5-8 recommended);'
+                             '~3 minutes; for tuning. Set to 0 or omit for a full run.'
+                             'Usage: --phase 2 --force-regenerate --quick-ensemble 5')
     parser.add_argument('--debug-ensemble', action='store_true',
-                        help='v13诊断模式：收集D1-D5诊断指标（分布熵、Jaccard重叠率、'
-                             'token吻合率等），结果保存到debug_ensemble_diagnostics.json。'
-                             '会略微降低推理速度（每步额外2次softmax+topk），'
-                             '建议配合 --quick-ensemble 8 使用。')
+                        help='v13 diagnostic mode: collect D1-D5 metrics (distribution entropy, Jaccard overlap,'
+                             'token agreement rate, etc.) and save them to debug_ensemble_diagnostics.json.'
+                             'This slightly reduces inference speed (two additional softmax and top-k operations per step);'
+                             'use with --quick-ensemble 8.')
     args = parser.parse_args()
 
     logger.info("Experiment 10: Advanced routing strategies - Learned Router versus Output Ensemble")

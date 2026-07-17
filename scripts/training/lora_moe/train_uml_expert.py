@@ -140,13 +140,13 @@ def detect_rtx4090() -> bool:
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='训练UML专家')
+    parser = argparse.ArgumentParser(description='Train the UML expert')
     parser.add_argument('--use_4bit', action='store_true', default=True,
-                        help='使用4bit量化训练（默认：True）')
+                        help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
-                        help='不使用4bit量化')
+                        help='Disable 4-bit quantization')
     parser.add_argument('--no_rtx4090_opt', action='store_true',
-                        help='禁用RTX 4090优化（默认：自动检测）')
+                        help='Disable RTX 4090 optimizations (default: auto-detect)')
     args = parser.parse_args()
 
     is_rtx4090 = detect_rtx4090()

@@ -653,21 +653,21 @@ def main():
         description='Exp7: UML Expert LoRA hyperparameter optimization'
     )
     parser.add_argument('--force-regenerate', action='store_true',
-                        help='即使缓存存在也重新推理')
+                        help='Rerun inference even if a cache exists')
     parser.add_argument('--force-retrain', action='store_true',
-                        help='即使检查点存在也重新训练')
+                        help='Retrain even if a checkpoint exists')
     parser.add_argument('--from-cache', action='store_true',
-                        help='仅从缓存加载，不训练不推理')
+                        help='Load from cache only; do not train or run inference')
     parser.add_argument('--no-bertscore', action='store_true',
-                        help='跳过BERTScore计算（加速调试）')
+                        help='Skip BERTScore computation (faster debugging)')
     parser.add_argument('--test-mode', action='store_true',
-                        help='每个配置仅用10个样本（快速验证流程正确性）')
+                        help='Use only 10 samples per configuration (quick pipeline validation)')
     parser.add_argument('--only-missing', action='store_true',
-                        help='跳过已有完整缓存的配置（test-mode缓存视为缺失，自动重跑）')
+                        help='Skip configurations with complete caches (test-mode caches count as missing and are rerun automatically)')
     parser.add_argument('--rerun-configs', type=str, default='',
-                        help='强制重跑指定配置（逗号分隔），如 '
+                        help='Force reruns for the specified comma-separated configurations, such as '
                              '"uml_r32_a64_d0.05,uml_r16_a32_d0.0"；'
-                             '配合 --force-retrain 可同时从头重新训练')
+                             'use with --force-retrain to retrain from scratch')
     args = parser.parse_args()
 
     if args.from_cache:

@@ -127,11 +127,11 @@ def validate_environment():
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='训练图像专家')
+    parser = argparse.ArgumentParser(description='Train the image expert')
     parser.add_argument('--use_4bit', action='store_true', default=True,
-                        help='使用4bit量化训练（默认：True）')
+                        help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
-                        help='不使用4bit量化')
+                        help='Disable 4-bit quantization')
     args = parser.parse_args()
 
     print_header()

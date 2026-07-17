@@ -128,11 +128,11 @@ def validate_environment():
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='训练文本专家')
+    parser = argparse.ArgumentParser(description='Train the text expert')
     parser.add_argument('--use_4bit', action='store_true', dest='use_4bit',
-                        help='使用4bit量化训练')
+                        help='Train with 4-bit quantization')
     parser.add_argument('--no_4bit', action='store_false', dest='use_4bit',
-                        help='不使用4bit量化')
+                        help='Disable 4-bit quantization')
     parser.set_defaults(use_4bit=True)
 
     args = parser.parse_args()

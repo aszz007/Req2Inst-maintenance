@@ -42,36 +42,36 @@ def extract_metadata_from_path(image_path: Path) -> dict:
 
 def parse_args():
     """Parse args."""
-    parser = argparse.ArgumentParser(description='批量识别UML用例图')
+    parser = argparse.ArgumentParser(description='Batch-recognize UML use case diagrams')
     parser.add_argument(
         '--version',
         type=str,
         default='qwen3',
         choices=['qwen2.5', 'qwen3'],
-        help='选择视觉模型版本（默认: qwen3）'
+        help='Select the vision model version (default: qwen3)'
     )
     parser.add_argument(
         '--input',
         type=str,
         default=None,
-        help='输入图片文件夹路径（默认使用配置中的测试目录）'
+        help='Input image directory (uses the configured test directory by default)'
     )
     parser.add_argument(
         '--output',
         type=str,
         default=None,
-        help='输出JSON文件路径（默认输出到outputs/recognition_results/uml/）'
+        help='Output JSON path (defaults to outputs/recognition_results/uml/)'
     )
     parser.add_argument(
         '--single',
         type=str,
         default=None,
-        help='单张图片路径（用于快速测试）'
+        help='Path to a single image (for quick testing)'
     )
     parser.add_argument(
         '--streaming',
         action='store_true',
-        help='启用流式输出模式（实时显示生成内容）'
+        help='Enable streaming output (show generated content in real time)'
     )
     return parser.parse_args()
 

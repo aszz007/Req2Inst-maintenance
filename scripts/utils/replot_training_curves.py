@@ -279,17 +279,17 @@ def replot_all_histories():
 def main():
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
-        description='从已保存的training_history.json重新绘制训练曲线'
+        description='Replot training curves from a saved training_history.json'
     )
     parser.add_argument(
         'history_file',
         nargs='?',
-        help='training_history.json文件路径'
+        help='Path to training_history.json'
     )
     parser.add_argument(
         '--all',
         action='store_true',
-        help='批量处理checkpoints目录下的所有训练历史'
+        help='Process all training histories in the checkpoints directory'
     )
 
     args = parser.parse_args()

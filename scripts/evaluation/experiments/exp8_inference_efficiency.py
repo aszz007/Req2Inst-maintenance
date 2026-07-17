@@ -950,19 +950,19 @@ def main():
     """Run the command-line entry point."""
     global N_LATENCY, N_THROUGHPUT
 
-    parser = argparse.ArgumentParser(description='实验8: 推理效率基准测试')
+    parser = argparse.ArgumentParser(description='Experiment 8: inference efficiency benchmark')
     parser.add_argument('--test-mode', action='store_true',
-                        help='使用最少样本快速验证流程')
+                        help='Use the minimum sample count for quick pipeline validation')
     parser.add_argument('--methods', type=str, default=None,
-                        help='逗号分隔的待测方法列表 (默认: 全部). '
-                             '例如 "lora_moe,zeroshot,p_tuning"')
+                        help='Comma-separated list of methods to test (default: all), '
+                             'for example "lora_moe,zeroshot,p_tuning"')
     parser.add_argument('--skip', type=str, default=None,
-                        help='逗号分隔的跳过方法列表. '
-                             '例如 "bm25,lsa,template" 跳过CPU基线')
+                        help='Comma-separated list of methods to skip, '
+                             'for example "bm25,lsa,template" to skip CPU baselines')
     parser.add_argument('--n-latency', type=int, default=None,
-                        help=f'覆盖延迟测量样本数 (默认: {N_LATENCY})')
+                        help=f'Override the sample count for latency measurement (default: {N_LATENCY})')
     parser.add_argument('--n-throughput', type=int, default=None,
-                        help=f'覆盖吞吐测量样本数 (默认: {N_THROUGHPUT})')
+                        help=f'Override the sample count for throughput measurement (default: {N_THROUGHPUT})')
     args = parser.parse_args()
     if args.n_latency is not None:
         N_LATENCY = args.n_latency

@@ -1229,18 +1229,18 @@ def main():
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp11: Ablation & Router Optimization')
     parser.add_argument('--phase', type=int, choices=[1, 2, 3],
-                        help='只运行指定阶段')
-    parser.add_argument('--all', action='store_true', help='运行全部阶段')
+                        help='Run only the specified phase')
+    parser.add_argument('--all', action='store_true', help='Run all phases')
     parser.add_argument('--ablation', type=str, default=None,
-                        help='只运行指定消融配置 (A0~A6)')
+                        help='Run only the specified ablation configuration (A0-A6)')
     parser.add_argument('--force-regenerate', action='store_true',
-                        help='强制重新推理，忽略缓存')
+                        help='Force inference rerun and ignore the cache')
     parser.add_argument('--no-bertscore', action='store_true',
-                        help='跳过BERTScore计算')
+                        help='Skip BERTScore computation')
     parser.add_argument('--test-mode', action='store_true',
-                        help='测试模式（少量样本）')
+                        help='Test mode (small sample)')
     parser.add_argument('--extract-multilayer', action='store_true',
-                        help='启用B1多层特征提取（需要GPU约10分钟）')
+                        help='Enable B1 multi-layer feature extraction (requires about 10 minutes on a GPU)')
     args = parser.parse_args()
 
     logger.info("Experiment 11: Output Ensemble ablation and router optimization")

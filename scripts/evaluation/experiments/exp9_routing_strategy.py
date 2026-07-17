@@ -1022,17 +1022,17 @@ def main():
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(description='Exp9: Routing Strategy Comparison')
     parser.add_argument('--phase', type=int, choices=[1, 2, 3],
-                        help='只运行指定阶段（1/2/3）')
+                        help='Run only the specified phase (1/2/3)')
     parser.add_argument('--all', action='store_true',
-                        help='运行全部阶段（Phase 1 + Phase 2(条件) + Phase 3）')
+                        help='Run all phases (Phase 1 + conditional Phase 2 + Phase 3)')
     parser.add_argument('--force-regenerate', action='store_true',
-                        help='强制重新推理，忽略缓存')
+                        help='Force inference rerun and ignore the cache')
     parser.add_argument('--no-bertscore', action='store_true',
-                        help='跳过BERTScore计算（加速）')
+                        help='Skip BERTScore computation (faster)')
     parser.add_argument('--test-mode', action='store_true',
-                        help='测试模式（每域仅10条）')
+                        help='Test mode (10 samples per domain)')
     parser.add_argument('--skip-phase2-check', action='store_true',
-                        help='跳过Phase 2的Gap检查，强制执行')
+                        help='Skip the Phase 2 gap check and force execution')
     args = parser.parse_args()
 
     logger.info("Experiment 9: Routing strategy comparison and router contribution analysis")

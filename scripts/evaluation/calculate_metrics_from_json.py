@@ -216,43 +216,43 @@ def main():
     """
     import argparse as _argparse
     parser = _argparse.ArgumentParser(
-        description='从预测JSON快速重新计算评估指标',
+        description='Quickly recompute evaluation metrics from prediction JSON',
         formatter_class=_argparse.RawDescriptionHelpFormatter,
         epilog="""
-示例:
-  # 使用默认阈值
+Examples:
+  # Use default thresholds
   python calculate_metrics_from_json.py --input predictions.json
 
-  # 调整ROUGE阈值
+  # Adjust the ROUGE threshold
   python calculate_metrics_from_json.py --input predictions.json --rouge-threshold 0.6
 
-  # 使用OR逻辑
+  # Use OR logic
   python calculate_metrics_from_json.py --input predictions.json --use-or
 
-  # 禁用BERTScore加快速度
+  # Disable BERTScore for faster computation
   python calculate_metrics_from_json.py --input predictions.json --no-bertscore
         """
     )
     parser.add_argument('--input', '-i', type=str, required=True,
-                        help='预测数据JSON文件路径')
+                        help='Path to the prediction data JSON file')
     parser.add_argument('--save-dir', '-o', type=str, default='outputs/evaluations/metrics',
-                        help='结果保存目录')
+                        help='Output directory')
     parser.add_argument('--rouge-threshold', type=float, default=None,
-                        help=f'ROUGE-L阈值（默认: {EvaluationThresholds.ROUGE_L_THRESHOLD}）')
+                        help=f'ROUGE-L threshold (default: {EvaluationThresholds.ROUGE_L_THRESHOLD})')
     parser.add_argument('--bertscore-threshold', type=float, default=None,
-                        help=f'BERTScore F1阈值（默认: {EvaluationThresholds.BERTSCORE_F1_THRESHOLD}）')
+                        help=f'BERTScore F1 threshold (default: {EvaluationThresholds.BERTSCORE_F1_THRESHOLD})')
     parser.add_argument('--format-threshold', type=float, default=None,
-                        help=f'格式分数阈值（默认: {EvaluationThresholds.FORMAT_SCORE_THRESHOLD}）')
+                        help=f'Format score threshold (default: {EvaluationThresholds.FORMAT_SCORE_THRESHOLD})')
     logic_group = parser.add_mutually_exclusive_group()
     logic_group.add_argument('--use-and', dest='use_and_logic', action='store_true',
-                             help='使用AND逻辑组合ROUGE和BERTScore（默认）')
+                             help='Combine ROUGE and BERTScore with AND logic (default)')
     logic_group.add_argument('--use-or', dest='use_and_logic', action='store_false',
-                             help='使用OR逻辑组合ROUGE和BERTScore')
+                             help='Combine ROUGE and BERTScore with OR logic')
     parser.set_defaults(use_and_logic=None)
     parser.add_argument('--use-bertscore', action='store_true', default=True,
-                        help='使用BERTScore（默认启用）')
+                        help='Enable BERTScore (enabled by default)')
     parser.add_argument('--no-bertscore', dest='use_bertscore', action='store_false',
-                        help='禁用BERTScore（加快计算速度）')
+                        help='Disable BERTScore (faster computation)')
     args = parser.parse_args()
     main_single(args)
 
@@ -353,10 +353,10 @@ if __name__ == "__main__":
     import argparse as _argparse
 
     parser = _argparse.ArgumentParser(
-        description='从预测JSON快速重新计算评估指标 (支持批量模式)',
+        description='Quickly recompute evaluation metrics from prediction JSON (supports batch mode)',
         formatter_class=_argparse.RawDescriptionHelpFormatter,
         epilog="""
-示例:
+Examples:
   # Single file mode (original behavior):
   python calculate_metrics_from_json.py --input predictions.json
 
@@ -376,29 +376,29 @@ if __name__ == "__main__":
 
     # Single-file flags (--input now optional when batch flags are used)
     parser.add_argument('--input', '-i', type=str, required=False,
-                        help='预测数据JSON文件路径 (single-file mode)')
+                        help='Path to the prediction data JSON file (single-file mode)')
     parser.add_argument('--save-dir', '-o', type=str, default='outputs/evaluations/metrics',
-                        help='结果保存目录')
+                        help='Output directory')
 
     # Threshold flags (used by single-file mode)
     parser.add_argument('--rouge-threshold', type=float, default=None,
-                        help=f'ROUGE-L阈值（默认: {EvaluationThresholds.ROUGE_L_THRESHOLD}）')
+                        help=f'ROUGE-L threshold (default: {EvaluationThresholds.ROUGE_L_THRESHOLD})')
     parser.add_argument('--bertscore-threshold', type=float, default=None,
-                        help=f'BERTScore F1阈值（默认: {EvaluationThresholds.BERTSCORE_F1_THRESHOLD}）')
+                        help=f'BERTScore F1 threshold (default: {EvaluationThresholds.BERTSCORE_F1_THRESHOLD})')
     parser.add_argument('--format-threshold', type=float, default=None,
-                        help=f'格式分数阈值（默认: {EvaluationThresholds.FORMAT_SCORE_THRESHOLD}）')
+                        help=f'Format score threshold (default: {EvaluationThresholds.FORMAT_SCORE_THRESHOLD})')
 
     logic_group = parser.add_mutually_exclusive_group()
     logic_group.add_argument('--use-and', dest='use_and_logic', action='store_true',
-                             help='使用AND逻辑组合ROUGE和BERTScore（默认）')
+                             help='Combine ROUGE and BERTScore with AND logic (default)')
     logic_group.add_argument('--use-or', dest='use_and_logic', action='store_false',
-                             help='使用OR逻辑组合ROUGE和BERTScore')
+                             help='Combine ROUGE and BERTScore with OR logic')
     parser.set_defaults(use_and_logic=None)
 
     parser.add_argument('--use-bertscore', action='store_true', default=True,
-                        help='使用BERTScore（默认启用）')
+                        help='Enable BERTScore (enabled by default)')
     parser.add_argument('--no-bertscore', dest='use_bertscore', action='store_false',
-                        help='禁用BERTScore（加快计算速度）')
+                        help='Disable BERTScore (faster computation)')
 
     # Batch mode flags
     parser.add_argument('--list', dest='list_caches', action='store_true',

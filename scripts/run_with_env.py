@@ -90,9 +90,9 @@ def main():
             i += 1
 
     if not env_name or not script_path:
-        print("使用方法: python scripts/run_with_env.py --env <环境类型> --script <脚本路径> [脚本参数...]")
-        print(f"\n可用环境类型: {', '.join(ENV_MAP.keys())}")
-        print("\n示例:")
+        print("Usage: python scripts/run_with_env.py --env <environment_type> --script <script_path> [script_args...]")
+        print(f"\nAvailable environment types: {', '.join(ENV_MAP.keys())}")
+        print("\nExample:")
         print(
             "  python scripts/run_with_env.py --env uml_qwen3 --script scripts/preprocessing/uml/recognize_uml.py --single data/test.png --streaming")
         sys.exit(1)

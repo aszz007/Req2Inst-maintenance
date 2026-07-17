@@ -90,31 +90,31 @@ def save_samples(samples: pd.DataFrame, output_path: str) -> None:
 def parse_args() -> argparse.Namespace:
     """Parse args."""
     parser = argparse.ArgumentParser(
-        description="从文本数据集（data/dataset/text/）随机采样并展示样本"
+        description="Randomly sample and display examples from the text dataset (data/dataset/text/)"
     )
     parser.add_argument(
         "--n",
         type=int,
         default=3,
-        help="采样数量（默认: 3）"
+        help="Number of samples (default: 3)"
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=None,
-        help="随机种子，不指定时每次结果不同（默认: None）"
+        help="Random seed; if omitted, results differ between runs (default: None)"
     )
     parser.add_argument(
         "--output",
         type=str,
         default=None,
-        help="将采样结果保存到指定路径（可选，例如 outputs/samples/text_samples.csv）"
+        help="Save sampled results to the specified path (optional, e.g. outputs/samples/text_samples.csv)"
     )
     parser.add_argument(
         "--dataset-dir",
         type=str,
         default=None,
-        help=f"数据集目录路径（默认: {TEXT_DATASET_DIR}）"
+        help=f"Dataset directory path (default: {TEXT_DATASET_DIR})"
     )
     return parser.parse_args()
 

@@ -141,23 +141,23 @@ def run_training_task(method, expert, script_path):
 def main():
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
-        description='一键训练所有专家',
+        description='Train all experts in one command',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-示例：
-  # 训练所有方法和专家
+Examples:
+  # Train all methods and experts
   python scripts/training/train_all_experts.py
   
-  # 仅训练Prompt Tuning
+  # Train Prompt Tuning only
   python scripts/training/train_all_experts.py --method prompt_tuning
   
-  # 训练P-Tuning v2和准全参数微调（跳过Prompt Tuning）
+  # Train P-Tuning v2 and full fine-tuning (skip Prompt Tuning)
   python scripts/training/train_all_experts.py --method p_tuning full_finetuning --skip-failed
   
-  # 仅训练文本专家（所有方法）
+  # Train the text expert only (all methods)
   python scripts/training/train_all_experts.py --expert text
   
-  # 自动跳过失败的任务继续训练
+  # Continue automatically after failed tasks
   python scripts/training/train_all_experts.py --skip-failed
         """
     )
@@ -167,21 +167,21 @@ def main():
         nargs='+',
         choices=['lora_moe', 'prompt_tuning', 'p_tuning', 'full_finetuning', 'all'],
         default=['all'],
-        help='训练指定方法，可指定多个（默认：all）'
+        help='Training methods; may specify multiple (default: all)'
     )
 
     parser.add_argument(
         '--expert',
         choices=['text', 'image', 'uml', 'general', 'all'],
         default='all',
-        help='仅训练指定专家（默认：all）'
+        help='Train only the specified expert (default: all)'
     )
 
     parser.add_argument(
         '--skip-failed',
         action='store_true',
         default=False,
-        help='自动跳过失败的任务继续训练（默认：失败后停止）'
+        help='Continue automatically after failed tasks (default: stop on failure)'
     )
 
     args = parser.parse_args()

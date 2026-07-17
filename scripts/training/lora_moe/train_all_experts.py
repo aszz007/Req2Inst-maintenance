@@ -207,18 +207,18 @@ def print_summary(results: List[Dict]):
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='批量训练所有Expert')
+    parser = argparse.ArgumentParser(description='Train all experts in batch')
 
     mode_group = parser.add_mutually_exclusive_group(required=True)
     mode_group.add_argument('--test', action='store_true',
-                            help='测试模式:每个Expert仅训练1个epoch,快速验证流程')
+                            help='Test mode: train each expert for one epoch to validate the pipeline quickly')
     mode_group.add_argument('--all', action='store_true',
-                            help='完整训练模式:训练所有4个Expert')
+                            help='Full training mode: train all four experts')
     mode_group.add_argument('--expert', type=str, choices=['text', 'image', 'uml', 'general'],
-                            help='仅训练指定类型的Expert')
+                            help='Train only the specified expert type')
 
     parser.add_argument('--resume-from', type=int, metavar='N',
-                        help='从第N个任务继续训练(1-4)')
+                        help='Resume training from task N (1-4)')
 
     args = parser.parse_args()
 

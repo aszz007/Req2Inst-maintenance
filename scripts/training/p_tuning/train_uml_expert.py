@@ -36,11 +36,11 @@ def print_header():
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='使用P-Tuning v2训练UML Expert')
+    parser = argparse.ArgumentParser(description='Train the UML Expert with P-Tuning v2')
     parser.add_argument('--use_4bit', action='store_true', default=True,
-                        help='使用4bit量化训练（默认：True）')
+                        help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
-                        help='不使用4bit量化')
+                        help='Disable 4-bit quantization')
     args = parser.parse_args()
 
     print_header()

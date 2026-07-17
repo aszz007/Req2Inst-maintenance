@@ -550,23 +550,23 @@ class ExpertEvaluator:
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='评估专家性能')
+    parser = argparse.ArgumentParser(description='Evaluate expert performance')
     parser.add_argument('--expert', type=str, choices=['text', 'image', 'uml', 'general', 'all'],
-                        default='all', help='要评估的专家')
+                        default='all', help='Expert to evaluate')
     parser.add_argument('--num-samples', type=int, default=None,
-                        help='使用的样本数(None表示全部)')
+                        help='Number of samples to use (None means all)')
     parser.add_argument('--test-mode', action='store_true',
-                        help='测试模式:每个数据集只使用10条数据快速验证流程')
+                        help='Test mode: use only 10 samples per dataset for a quick pipeline check')
     parser.add_argument('--show-samples', action='store_true',
-                        help='显示测试数据样本(前5条)')
+                        help='Show test data samples (first 5)')
     parser.add_argument('--use-bertscore', action='store_true', default=True,
-                        help='使用BERTScore评估语义相似度（默认启用）')
+                        help='Use BERTScore to evaluate semantic similarity (enabled by default)')
     parser.add_argument('--no-bertscore', dest='use_bertscore', action='store_false',
-                        help='禁用BERTScore（加快评估速度）')
+                        help='Disable BERTScore (faster evaluation)')
     parser.add_argument('--strict-validation', action='store_true',
-                        help='使用严格的格式验证')
+                        help='Use strict format validation')
     parser.add_argument('--save-dir', type=str, default=None,
-                        help='保存目录')
+                        help='Output directory')
 
     args = parser.parse_args()
 

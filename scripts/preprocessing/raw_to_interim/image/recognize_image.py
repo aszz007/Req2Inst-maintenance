@@ -18,31 +18,31 @@ from config.settings import get_path_config
 
 def parse_args():
     """Parse args."""
-    parser = argparse.ArgumentParser(description='批量识别一般图像')
+    parser = argparse.ArgumentParser(description='Batch-recognize general images')
     parser.add_argument(
         '--version',
         type=str,
         default='qwen3',
         choices=['qwen2.5', 'qwen3'],
-        help='选择视觉模型版本（默认: qwen3）'
+        help='Select the vision model version (default: qwen3)'
     )
     parser.add_argument(
         '--input',
         type=str,
         default=None,
-        help='输入图片文件夹路径（默认使用配置中的测试目录）'
+        help='Input image directory (uses the configured test directory by default)'
     )
     parser.add_argument(
         '--output',
         type=str,
         default=None,
-        help='输出JSON文件路径（默认输出到outputs/recognition_results/image/）'
+        help='Output JSON path (defaults to outputs/recognition_results/image/)'
     )
     parser.add_argument(
         '--single',
         type=str,
         default=None,
-        help='单张图片路径（用于快速测试）'
+        help='Path to a single image (for quick testing)'
     )
     return parser.parse_args()
 
