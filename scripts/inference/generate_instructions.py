@@ -60,7 +60,7 @@ Examples:
         '--vision-version',
         type=str,
         default='qwen3',
-        choices=['qwen2.5', 'qwen3'],
+        choices=['qwen3'],
         help='Vision model version for image/UML recognition (default: qwen3, uses Qwen3-VL-8B)'
     )
 

@@ -15,9 +15,7 @@ if sys.platform == 'win32':
 
 ENV_MAP = {
     'text': 'qwen_text',
-    'image_qwen2.5': 'qwen_vision25',
     'image_qwen3': 'qwen_vision3',
-    'uml_qwen2.5': 'qwen_vision25',
     'uml_qwen3': 'qwen_vision3',
 }
 
@@ -28,8 +26,6 @@ def run_in_env(env_name: str, script_path: str, args: list = None):
     qwen_version = None
     if 'qwen3' in env_name or env_name == 'qwen_vision3':
         qwen_version = 'qwen3'
-    elif 'qwen2.5' in env_name or 'qwen25' in env_name or env_name == 'qwen_vision25':
-        qwen_version = 'qwen2.5'
 
     if args is None:
         args = []
