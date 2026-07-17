@@ -29,27 +29,27 @@ class UMLDatasetValidator:
                 result = chardet.detect(raw_data)
                 return result['encoding']
         except Exception as e:
-            print(f"检测编码错误: {e}")
+            print(f"Encoding detection error: {e}")
             return 'utf-8'
 
     def load_dataset(self) -> pd.DataFrame:
         """Load dataset."""
-        print(f"\n加载数据集: {os.path.basename(self.dataset_path)}")
+        print(f"\nLoading dataset: {os.path.basename(self.dataset_path)}")
 
         encoding = self.detect_encoding(self.dataset_path)
-        print(f"检测到编码: {encoding}")
+        print(f"Detected encoding: {encoding}")
 
         try:
             df = pd.read_csv(self.dataset_path, encoding=encoding)
-            print(f"成功加载 {len(df)} 行数据\n")
+            print(f"Successfully loaded {len(df)} rows\n")
             return df
         except Exception as e:
-            print(f"使用 {encoding} 加载失败，尝试其他编码...")
+            print(f"Failed to load with {encoding}; trying other encodings...")
             for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                 try:
                     df = pd.read_csv(self.dataset_path, encoding=enc)
-                    print(f"成功使用 {enc} 编码加载")
-                    print(f"加载了 {len(df)} 行数据\n")
+                    print(f"Successfully loaded with {enc} encoding")
+                    print(f"Loaded {len(df)} rows\n")
                     return df
                 except:
                     continue
@@ -503,22 +503,22 @@ class UMLDatasetValidator:
     def validate_dataset(self) -> List[Dict[str, Any]]:
         """Validate dataset."""
         print("=" * 80)
-        print("UML数据集质量验证".center(80))
+        print("UML Dataset Quality Validation".center(80))
         print("=" * 80)
-        print(f"数据集: {os.path.basename(self.dataset_path)}")
-        print(f"句号检查: {'启用' if self.enable_period_check else '禁用'}")
+        print(f"Dataset: {os.path.basename(self.dataset_path)}")
+        print(f"Period check: {'enabled' if self.enable_period_check else 'disabled'}")
         print("=" * 80)
         print()
 
         df = self.load_dataset()
 
-        print("开始验证...\n")
+        print("Starting validation...\n")
 
         results = []
         for idx, row in df.iterrows():
             row_num = idx + 1
             if row_num % 100 == 0:
-                print(f"进度: {row_num}/{len(df)} 行已验证")
+                print(f"Progress: {row_num}/{len(df)} rows validated")
 
             result = self.validate_row(row, row_num)
             results.append(result)
@@ -537,7 +537,7 @@ class UMLDatasetValidator:
             return "无验证结果。请先运行validate_dataset()。"
 
         print("\n" + "=" * 80)
-        print("验证报告".center(80))
+        print("Validation Report".center(80))
         print("=" * 80)
 
         total_rows = len(self.validation_results)
@@ -556,20 +556,20 @@ class UMLDatasetValidator:
 
         if invalid_rows > 0:
             print("\n" + "-" * 80)
-            print("详细错误:")
+            print("Detailed errors:")
             print("-" * 80)
 
             for result in self.validation_results:
                 if not result['is_valid']:
-                    print(f"\n第 {result['row_num']} 行 [{result['header'][:40]}...]:")
+                    print(f"\nRow {result['row_num']} [{result['header'][:40]}...]:")
                     for error in result['errors']:
-                        print(f"  错误: {error}")
+                        print(f"  Error: {error}")
                     for warning in result['warnings']:
-                        print(f"  警告: {warning}")
+                        print(f"  Warning: {warning}")
 
         if rows_with_warnings > 0:
             print("\n" + "-" * 80)
-            print("详细警告:")
+            print("Detailed warnings:")
             print("-" * 80)
 
             warning_count = 0
@@ -577,16 +577,16 @@ class UMLDatasetValidator:
                 if result['warnings'] and result['is_valid']:
                     warning_count += 1
                     if warning_count <= 20:
-                        print(f"\n第 {result['row_num']} 行 [{result['header'][:40]}...]:")
+                        print(f"\nRow {result['row_num']} [{result['header'][:40]}...]:")
                         for warning in result['warnings']:
-                            print(f"  警告: {warning}")
+                            print(f"  Warning: {warning}")
 
             if warning_count > 20:
-                print(f"\n... 还有 {warning_count - 20} 行有警告")
+                print(f"\n... {warning_count - 20} more rows have warnings")
 
         if save_path:
             self.save_report_csv(save_path)
-            print(f"\n详细报告已保存至: {save_path}")
+            print(f"\nDetailed report saved to: {save_path}")
 
         print("=" * 80)
 
@@ -633,18 +633,18 @@ class UMLDatasetValidator:
             output_path = os.path.join(output_dir, 'problematic_instructions_for_llm_review.csv')
             df_problematic.to_csv(output_path, index=False, encoding='utf-8-sig')
 
-            print(f"\n有问题的指令已保存至: {output_path}")
-            print(f"共 {len(problematic_rows)} 条需要人工或LLM审查")
+            print(f"\nProblematic instructions saved to: {output_path}")
+            print(f"{len(problematic_rows)} entries require manual or LLM review")
 
             error_only = sum(1 for r in problematic_rows if r['错误'] and not r['警告'])
             warning_only = sum(1 for r in problematic_rows if r['警告'] and not r['错误'])
             both = sum(1 for r in problematic_rows if r['错误'] and r['警告'])
 
-            print(f"  - 仅有错误: {error_only} 条")
-            print(f"  - 仅有警告: {warning_only} 条")
-            print(f"  - 同时有错误和警告: {both} 条")
+            print(f"  - Errors only: {error_only}")
+            print(f"  - Warnings only: {warning_only}")
+            print(f"  - Both errors and warnings: {both}")
         else:
-            print("\n没有发现问题指令")
+            print("\nNo problematic instructions found")
 
     def get_error_rows(self) -> List[int]:
         """Return error rows."""
@@ -694,36 +694,36 @@ def main():
     validator.save_problematic_instructions(problematic_output_dir, df)
 
     duration = end_time - start_time
-    print(f"\n验证完成，耗时: {duration}")
+    print(f"\nValidation completed in: {duration}")
 
     error_count = validator.error_count
     warning_count = validator.warning_count
 
     print(f"\n{'=' * 80}")
-    print(f"验证汇总".center(80))
+    print(f"Validation Summary".center(80))
     print(f"{'=' * 80}")
-    print(f"错误总数: {error_count}")
-    print(f"警告总数: {warning_count}")
-    print(f"验证报告: {args.report_output}")
+    print(f"Total errors: {error_count}")
+    print(f"Total warnings: {warning_count}")
+    print(f"Validation report: {args.report_output}")
     if error_count > 0 or warning_count > 0:
-        print(f"问题指令: {problematic_output_dir}/problematic_instructions_for_llm_review.csv")
+        print(f"Problematic instructions: {problematic_output_dir}/problematic_instructions_for_llm_review.csv")
     print(f"{'=' * 80}")
 
     if error_count > 0:
-        print(f"\n错误行号: {validator.get_error_rows()[:20]}")
+        print(f"\nError row numbers: {validator.get_error_rows()[:20]}")
         if len(validator.get_error_rows()) > 20:
-            print(f"... 还有 {len(validator.get_error_rows()) - 20} 行有错误")
-        print(f"\n修复错误请运行:")
+            print(f"... {len(validator.get_error_rows()) - 20} more rows have errors")
+        print(f"\nTo repair errors, run:")
         print(f"python scripts/data_preparation/uml_dataset_regenerate.py")
 
     if warning_count > 0:
-        print(f"\n警告行号: {validator.get_warning_rows()[:20]}")
+        print(f"\nWarning row numbers: {validator.get_warning_rows()[:20]}")
         if len(validator.get_warning_rows()) > 20:
-            print(f"... 还有 {len(validator.get_warning_rows()) - 20} 行有警告")
-        print(f"\n警告可能是误报，建议人工或LLM审查问题指令文件")
+            print(f"... {len(validator.get_warning_rows()) - 20} more rows have warnings")
+        print(f"\nWarnings may be false positives; review the problematic-instructions file manually or with an LLM")
 
     if error_count == 0 and warning_count == 0:
-        print("\n数据集质量优秀！未发现问题。")
+        print("\nDataset quality is excellent; no issues found.")
 
     return 0 if error_count == 0 else 1
 

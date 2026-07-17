@@ -249,7 +249,7 @@ def main():
     print()
 
     if not args.test:
-        confirm = input(f"{Colors.YELLOW}确认开始训练? (yes/no): {Colors.END}")
+        confirm = input(f"{Colors.YELLOW}Start training? (yes/no): {Colors.END}")
         if confirm.lower() != 'yes':
             print_info("取消训练")
             return 0

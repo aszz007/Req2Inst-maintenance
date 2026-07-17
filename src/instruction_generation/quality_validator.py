@@ -240,50 +240,50 @@ class QualityValidator:
     ):
         """Print validation report."""
         print("\n" + "=" * 80)
-        print("指令质量验证报告")
+        print("Instruction Quality Validation Report")
         print("=" * 80)
 
-        print(f"\n[总体统计]")
-        print(f"  总计:     {summary['total']} 条")
-        print(f"  通过:     {summary['passed']} 条")
-        print(f"  失败:     {summary['failed']} 条")
-        print(f"  通过率:   {summary['pass_rate']:.2%}")
+        print(f"\n[Overall Statistics]")
+        print(f"  Total:     {summary['total']}")
+        print(f"  Passed:    {summary['passed']}")
+        print(f"  Failed:    {summary['failed']}")
+        print(f"  Pass rate: {summary['pass_rate']:.2%}")
 
-        print(f"\n[格式分数]")
-        print(f"  平均分数: {summary['avg_format_score']:.4f}")
-        print(f"  最高分数: {summary['max_format_score']:.4f}")
-        print(f"  最低分数: {summary['min_format_score']:.4f}")
+        print(f"\n[Format Scores]")
+        print(f"  Average score: {summary['avg_format_score']:.4f}")
+        print(f"  Maximum score: {summary['max_format_score']:.4f}")
+        print(f"  Minimum score: {summary['min_format_score']:.4f}")
 
-        print(f"\n[分项统计]")
-        print(f"  Definition存在率:   {summary['definition_present_rate']:.2%}")
-        print(f"  Definition有效率:   {summary['definition_has_content_rate']:.2%}")
-        print(f"  Emphasis存在率:     {summary['emphasis_present_rate']:.2%}")
-        print(f"  Emphasis有效率:     {summary['emphasis_valid_rate']:.2%}")
-        print(f"  Avoid存在率:        {summary['avoid_present_rate']:.2%}")
-        print(f"  Avoid有效率:        {summary['avoid_valid_rate']:.2%}")
+        print(f"\n[Component Statistics]")
+        print(f"  Definition presence rate:   {summary['definition_present_rate']:.2%}")
+        print(f"  Definition valid-content rate:   {summary['definition_has_content_rate']:.2%}")
+        print(f"  Emphasis presence rate:     {summary['emphasis_present_rate']:.2%}")
+        print(f"  Emphasis validity rate:     {summary['emphasis_valid_rate']:.2%}")
+        print(f"  Avoid presence rate:        {summary['avoid_present_rate']:.2%}")
+        print(f"  Avoid validity rate:        {summary['avoid_valid_rate']:.2%}")
 
-        print(f"\n[错误统计]")
-        print(f"  总错误数:   {summary['total_errors']}")
-        print(f"  总警告数:   {summary['total_warnings']}")
+        print(f"\n[Error and Warning Statistics]")
+        print(f"  Total errors:   {summary['total_errors']}")
+        print(f"  Total warnings:   {summary['total_warnings']}")
 
         if summary['common_errors']:
-            print(f"\n[常见错误Top 5]")
+            print(f"\n[Top 5 Common Errors]")
             for i, (error, count) in enumerate(list(summary['common_errors'].items())[:5], 1):
-                print(f"  {i}. {error}: {count}次")
+                print(f"  {i}. {error}: {count} occurrences")
 
         if show_details and results:
-            print(f"\n[详细信息]")
+            print(f"\n[Details]")
             for i, result in enumerate(results[:10], 1):
-                print(f"\n指令 {i}:")
-                print(f"  有效: {result.is_valid}")
-                print(f"  分数: {result.format_score:.4f}")
+                print(f"\nInstruction {i}:")
+                print(f"  Valid: {result.is_valid}")
+                print(f"  Score: {result.format_score:.4f}")
                 if result.errors:
-                    print(f"  错误: {', '.join(result.errors)}")
+                    print(f"  Errors: {', '.join(result.errors)}")
                 if result.warnings:
-                    print(f"  警告: {', '.join(result.warnings)}")
+                    print(f"  Warnings: {', '.join(result.warnings)}")
 
             if len(results) > 10:
-                print(f"\n  ... (还有 {len(results) - 10} 条)")
+                print(f"\n  ... ({len(results) - 10} more entries)")
 
         print("=" * 80 + "\n")
 
