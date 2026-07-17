@@ -307,12 +307,12 @@ class GPTAutomator:
     def init_driver(self):
         """Initialize the browser driver."""
         print("\n" + "="*60)
-        print("正在初始化浏览器...")
+        print("Initializing browser...")
         print("="*60)
 
         if not os.path.exists(CHROME_PATH):
             raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
-        print(f"✓ Chrome路径验证成功")
+        print(f" Chrome path validated successfully")
 
         try:
             options = webdriver.ChromeOptions()
@@ -332,20 +332,20 @@ class GPTAutomator:
             options.add_experimental_option('excludeSwitches', ['enable-automation'])
             options.add_experimental_option('useAutomationExtension', False)
 
-            print("✓ ChromeOptions配置完成")
-            print("正在启动ChromeDriver...")
+            print(" ChromeOptions configuration complete")
+            print("Starting ChromeDriver...")
             self.driver = webdriver.Chrome(options=options)
-            print(f"✓ ChromeDriver启动成功")
+            print(f" ChromeDriver started successfully")
 
-            print(f"\n正在导航到: {GPT_URL}")
+            print(f"\nNavigating to: {GPT_URL}")
             self.driver.get(GPT_URL)
             time.sleep(8)
 
-            print(f"✓ 页面加载完成: {self.driver.title}")
+            print(f" Page loaded: {self.driver.title}")
             print("="*60 + "\n")
 
         except Exception as e:
-            print(f"\n✗ 浏览器初始化失败: {e}")
+            print(f"\n Browser initialization failed: {e}")
             raise
 
     def extract_domain_from_header(self, header: str) -> str:
@@ -416,13 +416,13 @@ class GPTAutomator:
 
             return json.dumps(data, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"  ⚠ JSON清洗失败: {e}")
+            print(f"  JSON cleanup failed: {e}")
             return json_str
 
     def find_input_box(self, debug=False):
         """Find input box."""
         if debug:
-            print("🔍 定位输入框...")
+            print(" Locating input field...")
 
         if self.cached_input_selector:
             try:
@@ -431,7 +431,7 @@ class GPTAutomator:
                 )
                 if element.is_displayed() and element.is_enabled():
                     if debug:
-                        print(f"  ✓ 使用缓存选择器成功")
+                        print(f"  Cached selector used successfully")
                     return element
                 else:
                     self.cached_input_selector = None
@@ -450,7 +450,7 @@ class GPTAutomator:
         for selector_type, selector in selectors:
             try:
                 if debug:
-                    print(f"  尝试: {selector}")
+                    print(f"  Attempt: {selector}")
 
                 element = WebDriverWait(self.driver, 3).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, selector))
@@ -459,7 +459,7 @@ class GPTAutomator:
                 if element.is_displayed() and element.is_enabled():
                     self.cached_input_selector = selector
                     if debug:
-                        print(f"  ✓ 成功: {selector}")
+                        print(f"  Succeeded: {selector}")
                     return element
 
             except:
@@ -569,16 +569,16 @@ class GPTAutomator:
 
             return False
         except Exception as e:
-            print(f"检测更新异常: {e}")
+            print(f"Error checking for updates: {e}")
             return False
 
     def wait_for_response_complete(self, timeout=300):
         """Wait for the browser response to finish."""
-        print("  等待生成...", end='', flush=True)
+        print("  Waiting for generation...", end='', flush=True)
         start_time = time.time()
         last_progress_time = start_time
 
-        print(" [等待响应]", end='', flush=True)
+        print(" [Waiting for response]", end='', flush=True)
         response_appeared = False
 
         consecutive_validation_failures = 0
@@ -590,7 +590,7 @@ class GPTAutomator:
                 current_count = self.get_current_response_count()
 
                 if current_count > self.response_count_before_send:
-                    print(f" [检测到可能的新回复,验证中]", end='', flush=True)
+                    print(f" [Possible new response detected; validating]", end='', flush=True)
                     time.sleep(2)
 
                     recheck_count = self.get_current_response_count()
@@ -599,22 +599,22 @@ class GPTAutomator:
                         if self._validate_new_response():
                             elapsed = int(time.time() - start_time)
                             response_appeared = True
-                            print(f" ✓ [新回复已确认,耗时{elapsed}s]", end='', flush=True)
+                            print(f"  [New response confirmed; elapsed {elapsed}s]", end='', flush=True)
                             break
                         else:
                             consecutive_validation_failures += 1
-                            print(f" [内容验证失败{consecutive_validation_failures}/{MAX_VALIDATION_FAILURES}]", end='',
+                            print(f" [Content validation failed{consecutive_validation_failures}/{MAX_VALIDATION_FAILURES}]", end='',
                                   flush=True)
 
                             if consecutive_validation_failures >= MAX_VALIDATION_FAILURES:
                                 elapsed = int(time.time() - start_time)
-                                print(f" ⚠️ [验证失败但强制接受,耗时{elapsed}s]", end='', flush=True)
+                                print(f"  [Validation failed but accepted; elapsed {elapsed}s]", end='', flush=True)
                                 response_appeared = True
                                 break
 
                             time.sleep(2)
                     else:
-                        print(f" [数量未稳定,继续等待]", end='', flush=True)
+                        print(f" [Count not stable; continuing to wait]", end='', flush=True)
                         consecutive_validation_failures = 0
                         time.sleep(1)
                 else:
@@ -631,11 +631,11 @@ class GPTAutomator:
             time.sleep(0.5)
 
         if not response_appeared:
-            print(f" ✗ 等待响应超时({WAIT_NEW_RESPONSE_TIMEOUT}s)")
+            print(f"  Response wait timed out ({WAIT_NEW_RESPONSE_TIMEOUT}s)")
             return False
 
         time.sleep(1)
-        print(" [检测完成]", end='', flush=True)
+        print(" [Check complete]", end='', flush=True)
 
         stable_count = 0
         max_stability_checks = 10
@@ -650,7 +650,7 @@ class GPTAutomator:
                 else:
                     stable_count += 1
                     if stable_count >= CONTENT_STABLE_CHECKS:
-                        print(" ✓ 完成")
+                        print("  Complete")
                         return True
                     else:
                         print(".", end='', flush=True)
@@ -664,10 +664,10 @@ class GPTAutomator:
                 time.sleep(1)
 
             except Exception as e:
-                print(f"⚠ [{str(e)[:20]}]", end='', flush=True)
+                print(f" [{str(e)[:20]}]", end='', flush=True)
                 time.sleep(1)
 
-        print(" ✓ 完成(达到检查上限)")
+        print("  Completed (reached check limit)")
         return True
 
     def extract_response(self):
@@ -691,26 +691,26 @@ class GPTAutomator:
                     response_text = last_response.text
 
                 if response_text and len(response_text) > 10:
-                    print(f"  ✓ 提取到回复 ({len(response_text)} 字符)")
+                    print(f"  Extracted response ({len(response_text)} characters)")
 
                     has_definition = "Definition:" in response_text
                     has_emphasis = "Emphasis" in response_text or "Caution" in response_text
                     has_avoid = "Avoid" in response_text
 
                     if has_definition or has_emphasis or has_avoid:
-                        print(f"  ✓ 内容验证通过（包含指令关键词）")
+                        print(f"  Content validation passed (contains instruction keywords)")
                     else:
-                        print(f"  ⚠ 警告：回复可能不包含预期格式")
+                        print(f"  Warning: response may not contain the expected format")
 
                     return response_text
                 else:
-                    print(f"  ⚠ 提取的内容太短: {len(response_text) if response_text else 0} 字符")
+                    print(f"  Extracted content is too short: {len(response_text) if response_text else 0} characters")
 
-            print(f"  ✗ 无法提取有效回复（当前{current_count}条，发送前{self.response_count_before_send}条）")
+            print(f"  Unable to extract a valid response (current {current_count} items, before sending {self.response_count_before_send} items)")
             return ""
 
         except Exception as e:
-            print(f"  ✗ 提取回复失败: {e}")
+            print(f"  Failed to extract response: {e}")
             return ""
 
     def _validate_new_response(self):
@@ -746,7 +746,7 @@ class GPTAutomator:
             return True
 
         except Exception as e:
-            print(f"[验证异常,接受]", end='', flush=True)
+            print(f"[Validation exception, accepted]", end='', flush=True)
             return True
 
     def parse_instructions(self, response_text, expected_count):
@@ -776,11 +776,11 @@ class GPTAutomator:
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
-                    print(f"\n📤 发送提示词...")
+                    print(f"\n Sending prompt...")
                     self.response_count_before_send = self.get_current_response_count()
-                    print(f"  📊 当前页面已有 {self.response_count_before_send} 条回复")
+                    print(f"  Current page has {self.response_count_before_send} responses")
                 else:
-                    print(f"  🔄 重试 {attempt}/{max_retries-1}...")
+                    print(f"  Retry {attempt}/{max_retries-1}...")
 
                 input_box = self.find_input_box(debug=(attempt == 0))
                 if not input_box:
@@ -825,28 +825,28 @@ class GPTAutomator:
                         continue
                     return False
 
-                print(f"  ✓ 文本设置成功 ({len(current_value)} 字符)")
+                print(f"  Text set successfully ({len(current_value)} characters)")
 
                 button = self.find_submit_button()
                 if button:
                     self.driver.execute_script("arguments[0].click();", button)
-                    print(f"  ✓ 点击发送按钮")
+                    print(f"  Clicked the Send button")
                 else:
                     input_box.send_keys(Keys.RETURN)
-                    print(f"  ✓ 使用Enter发送")
+                    print(f"  Sent with Enter")
 
                 time.sleep(2)
 
                 check_value = input_box.get_attribute("value") if tag_name == "textarea" else input_box.text
                 if not check_value or len(check_value.strip()) < 50:
-                    print("  ✓ 确认消息已发送")
+                    print("  Confirmed message sent")
                     return True
 
                 time.sleep(2)
                 return True
 
             except Exception as e:
-                print(f"  ✗ 发送异常: {e}")
+                print(f"  Send error: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                 else:
@@ -857,15 +857,15 @@ class GPTAutomator:
     def process_batch(self, uml_data_batch, start_idx):
         """Process batch."""
         print(f"\n{'=' * 60}")
-        print(f"处理第 {start_idx + 1}-{start_idx + len(uml_data_batch)} 条UML数据")
+        print(f"Processing record {start_idx + 1}-{start_idx + len(uml_data_batch)} UML records")
         print(f"{'=' * 60}")
 
         first_header = uml_data_batch[0][0] if uml_data_batch else ""
         domain = self.extract_domain_from_header(first_header)
         example_text = self.get_example_for_domain(domain)
 
-        print(f"  🏷️ 识别领域: {domain}")
-        print(f"  📝 使用示例: {domain} 领域\n")
+        print(f"  Detected domain: {domain}")
+        print(f"  Example: {domain} domain\n")
 
         data_text = ""
         for i, (header, description) in enumerate(uml_data_batch, 1):
@@ -885,8 +885,8 @@ class GPTAutomator:
         for retry_count in range(max_retries):
             if retry_count > 0:
                 retry_happened = True
-                print(f"\n🔄 检测到生成错误,正在重试 ({retry_count}/{max_retries - 1})...")
-                print("  🔄 开启新对话以重试...")
+                print(f"\n Generation error detected; retrying ({retry_count}/{max_retries - 1})...")
+                print("  Opening a new conversation to retry...")
                 self.start_new_chat()
                 time.sleep(2)
 
@@ -911,7 +911,7 @@ class GPTAutomator:
                     return [None] * len(uml_data_batch), retry_happened
 
             response = self.extract_response()
-            print(f"\n响应预览: {response[:200]}...\n")
+            print(f"\nResponse preview: {response[:200]}...\n")
 
             error_keywords = [
                 "Something went wrong",
@@ -926,25 +926,25 @@ class GPTAutomator:
             is_error_response = any(keyword in response for keyword in error_keywords)
 
             if is_error_response:
-                print(f"  ⚠️ 检测到生成错误: {response[:100]}")
+                print(f"  Generation error detected: {response[:100]}")
                 if retry_count < max_retries - 1:
-                    print(f"  ↻ 将在3秒后重新发送...")
+                    print(f"  Will resend in 3 seconds...")
                     continue
                 else:
-                    print(f"  ✗ 已达到最大重试次数({max_retries}),放弃本批次")
+                    print(f"  Maximum retry count reached ({max_retries}),abandoning this batch")
                     self.error_log.append({
                         'range': f"{start_idx + 1}-{start_idx + len(uml_data_batch)}",
                         'error': f'生成错误(重试{max_retries}次后失败)'
                     })
                     return [None] * len(uml_data_batch), retry_happened
             else:
-                print(f"  ✓ 响应正常,准备解析")
+                print(f"  Response looks normal; preparing to parse")
                 break
 
         instructions = self.parse_instructions(response, len(uml_data_batch))
 
         if len(instructions) != len(uml_data_batch):
-            print(f"  ⚠ 警告: 期望{len(uml_data_batch)}条,实际{len(instructions)}条")
+            print(f"  Warning: expected {len(uml_data_batch)} items, actual {len(instructions)} items")
             while len(instructions) < len(uml_data_batch):
                 instructions.append(None)
             instructions = instructions[:len(uml_data_batch)]
@@ -953,15 +953,15 @@ class GPTAutomator:
 
     def start_new_chat(self):
         """Start a new browser chat."""
-        print("\n>>> 开启新对话...")
+        print("\n>>> Opening a new conversation...")
         try:
             from selenium.webdriver.common.action_chains import ActionChains
 
-            print("  🔨 发送快捷键 Ctrl+Shift+O...")
+            print("  Sending shortcut Ctrl+Shift+O...")
             actions = ActionChains(self.driver)
             actions.key_down(Keys.CONTROL).key_down(Keys.SHIFT).send_keys('o').key_up(Keys.SHIFT).key_up(
                 Keys.CONTROL).perform()
-            print("  ✓ 快捷键已发送")
+            print("  Shortcut sent")
 
             time.sleep(3)
 
@@ -971,16 +971,16 @@ class GPTAutomator:
 
             self.batches_since_refresh = 0
 
-            print("  ✓ 新对话已就绪\n")
+            print("  New conversation ready\n")
 
         except Exception as e:
-            print(f"  ✗ 开启新对话失败: {e}")
-            print("  ℹ 将继续在当前对话中处理")
+            print(f"  Failed to open a new conversation: {e}")
+            print("  Continuing in the current conversation")
 
     def process_file(self, csv_path):
         """Process file."""
         print(f"\n{'#' * 60}")
-        print(f"# 处理文件: {os.path.basename(csv_path)}")
+        print(f"# Processing file: {os.path.basename(csv_path)}")
         print(f"{'#' * 60}")
 
         self.start_new_chat()
@@ -990,7 +990,7 @@ class GPTAutomator:
                 raw_data = f.read(100000)
                 result = chardet.detect(raw_data)
                 encoding = result['encoding']
-                print(f"文件编码: {encoding}")
+                print(f"File encoding: {encoding}")
 
             try:
                 df = pd.read_csv(csv_path, encoding=encoding)
@@ -998,7 +998,7 @@ class GPTAutomator:
                 for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                     try:
                         df = pd.read_csv(csv_path, encoding=enc)
-                        print(f"  ✓ 使用 {enc} 编码")
+                        print(f"  Using {enc} encoding")
                         break
                     except:
                         continue
@@ -1006,13 +1006,13 @@ class GPTAutomator:
                     raise Exception("Failed to read the file")
 
         except Exception as e:
-            print(f"✗ 读取文件失败: {e}")
+            print(f" Failed to read file: {e}")
             return 0
 
         required_columns = ['Header', 'Description', 'Instruction']
         if not all(col in df.columns for col in required_columns):
-            print(f"✗ CSV文件缺少必要的列: {required_columns}")
-            print(f"  当前列: {df.columns.tolist()}")
+            print(f" CSV file is missing required columns: {required_columns}")
+            print(f"  Current columns: {df.columns.tolist()}")
             return 0
 
         if 'Instruction' not in df.columns:
@@ -1023,14 +1023,14 @@ class GPTAutomator:
         total_rows = len(df)
 
         if self.test_mode:
-            print(f"*** 测试模式: 每个领域随机选择1条数据 ***\n")
+            print(f"*** Test mode: randomly select one item per domain ***\n")
 
             df['domain'] = df['Header'].apply(lambda h: self.extract_domain_from_header(h))
 
             domain_counts = df['domain'].value_counts()
-            print("领域分布：")
+            print("Domain distribution:")
             for domain, count in domain_counts.items():
-                print(f"  {domain}: {count} 条")
+                print(f"  {domain}: {count} items")
 
             selected_indices = []
             for domain in domain_counts.index:
@@ -1041,18 +1041,18 @@ class GPTAutomator:
 
             selected_indices.sort()
 
-            print(f"\n已选择 {len(selected_indices)} 条数据进行测试：")
+            print(f"\nSelected {len(selected_indices)} data items for testing:")
             for idx in selected_indices:
                 header = df.loc[idx, 'Header']
                 domain = df.loc[idx, 'domain']
-                print(f"  - {header} (领域: {domain})")
+                print(f"  - {header} (domain: {domain})")
             print()
 
             df = df.loc[selected_indices].reset_index(drop=True)
             total_rows = len(df)
 
-        print(f"总计需处理: {total_rows} 条UML数据\n")
-        print(f"刷新策略: 每{REFRESH_INTERVAL}条数据（{REFRESH_INTERVAL//BATCH_SIZE}批）或发生重试后刷新对话\n")
+        print(f"Total to process: {total_rows} UML records\n")
+        print(f"Refresh strategy: every {REFRESH_INTERVAL} items ({REFRESH_INTERVAL//BATCH_SIZE} batches) or refresh the conversation after a retry\n")
 
         for i in range(0, total_rows, BATCH_SIZE):
             batch_end = min(i + BATCH_SIZE, total_rows)
@@ -1076,17 +1076,17 @@ class GPTAutomator:
             self.batches_since_refresh += 1
 
             if (i + BATCH_SIZE) < total_rows:
-                print(f"\n  🔄 批次完成刷新 - 已处理{self.batches_since_refresh}批({self.batches_since_refresh * BATCH_SIZE}条数据)")
-                print(f"  ℹ️ 当前进度: {i + BATCH_SIZE}/{total_rows}")
+                print(f"\n Batch complete; refreshed - processed {self.batches_since_refresh} batch ({self.batches_since_refresh * BATCH_SIZE} data items)")
+                print(f"  Current progress: {i + BATCH_SIZE}/{total_rows}")
                 self.start_new_chat()
 
             if (i + BATCH_SIZE) % 50 == 0:
                 df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-                print(f"\n  💾 已保存进度: {i + BATCH_SIZE}/{total_rows}\n")
+                print(f"\n Progress saved: {i + BATCH_SIZE}/{total_rows}\n")
 
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-        print(f"\n✓ 文件处理完成: {os.path.basename(csv_path)}")
-        print(f"  已处理 {total_rows} 条UML数据\n")
+        print(f"\n File processing complete: {os.path.basename(csv_path)}")
+        print(f"  Processed {total_rows} UML records\n")
 
         return total_rows
 
@@ -1094,13 +1094,13 @@ class GPTAutomator:
         """Run the workflow."""
         start_time = datetime.now()
         print(f"\n{'=' * 60}")
-        print(f"{'批量UML业务逻辑指令生成系统':^60}")
+        print(f"{'Batch UML business-logic instruction generation system':^60}")
         print(f"{'=' * 60}")
-        print(f"开始时间: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"模式: {'测试模式 (每领域1条,共10条)' if self.test_mode else '完整模式'}")
-        print(f"批次大小: {BATCH_SIZE} 条/批")
-        print(f"刷新间隔: {REFRESH_INTERVAL} 条 ({REFRESH_INTERVAL//BATCH_SIZE} 批)")
-        print(f"响应超时: {WAIT_NEW_RESPONSE_TIMEOUT} 秒")
+        print(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Mode: {'Test mode (one item per domain, 10 items total)' if self.test_mode else 'Full mode'}")
+        print(f"Batch size: {BATCH_SIZE} items/batch")
+        print(f"Refresh interval: {REFRESH_INTERVAL} items ({REFRESH_INTERVAL//BATCH_SIZE} batches)")
+        print(f"Response timeout: {WAIT_NEW_RESPONSE_TIMEOUT} seconds")
         print(f"{'=' * 60}\n")
 
         try:
@@ -1110,63 +1110,63 @@ class GPTAutomator:
             if os.path.exists(csv_path):
                 total_processed = self.process_file(csv_path)
             else:
-                print(f"✗ 文件不存在: {csv_path}")
+                print(f" File not found: {csv_path}")
                 total_processed = 0
 
             end_time = datetime.now()
             duration = end_time - start_time
 
             print(f"\n{'=' * 60}")
-            print(f"{'处理完成':^60}")
+            print(f"{'Processing complete':^60}")
             print(f"{'=' * 60}")
-            print(f"结束时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"耗时: {duration}")
-            print(f"总计处理: {total_processed} 条UML数据")
-            print(f"成功: {total_processed - len(self.error_log)} 条")
-            print(f"失败: {len(self.error_log)} 条")
+            print(f"End time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Elapsed time: {duration}")
+            print(f"Total processed: {total_processed} UML records")
+            print(f"Succeeded: {total_processed - len(self.error_log)} items")
+            print(f"Failed: {len(self.error_log)} items")
 
             if self.error_log:
-                print(f"\n错误日志:")
+                print(f"\nError log:")
                 for error in self.error_log:
                     print(f"  - {error['range']}: {error['error']}")
 
             print(f"{'=' * 60}\n")
 
         except Exception as e:
-            print(f"\n✗ 运行错误: {e}")
+            print(f"\n Runtime error: {e}")
             import traceback
             traceback.print_exc()
         finally:
             if self.driver:
                 input("按 Enter 关闭浏览器...")
                 self.driver.quit()
-                print("✓ 浏览器已关闭")
+                print(" Browser closed")
 
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("请选择运行模式:")
-    print(f"  1. 测试模式 (每个领域随机1条,总共10条)")
-    print("  2. 完整模式 (处理所有数据)")
+    print("Select run mode:")
+    print(f"  1. Test mode (one random item per domain, 10 items total)")
+    print("  2. Full mode (process all data)")
     print("="*60)
 
     while True:
         choice = input("\n请输入选项 (1 或 2): ").strip()
         if choice == "1":
             test_mode = True
-            print("\n✓ 已选择: 测试模式")
+            print("\n Selected: test mode")
             break
         elif choice == "2":
             test_mode = False
-            print("\n✓ 已选择: 完整模式")
-            confirm = input("⚠ 完整模式将处理大量数据,确认继续? (y/n): ").strip().lower()
+            print("\n Selected: full mode")
+            confirm = input(" 完整模式将处理大量数据,确认继续? (y/n): ").strip().lower()
             if confirm == 'y':
                 break
             else:
-                print("已取消")
+                print("Cancelled")
                 exit(0)
         else:
-            print("✗ 无效选项,请输入 1 或 2")
+            print(" Invalid option; enter 1 or 2")
 
     automator = GPTAutomator(test_mode=test_mode)
     automator.run()

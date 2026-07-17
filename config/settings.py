@@ -278,7 +278,7 @@ class PathConfig:
         for directory in dirs:
             directory.mkdir(parents=True, exist_ok=True)
 
-        print(f"✓ Created {len(dirs)} required directories")
+        print(f" Created {len(dirs)} required directories")
 
 
 @dataclass
@@ -794,7 +794,7 @@ def set_vision_model_version(version: str):
     """Set the vision-model version."""
     global _vision_model_config
     _vision_model_config = VisionModelConfig(version=version)
-    print(f"✓ Switched vision model version: {version}")
+    print(f" Switched vision model version: {version}")
     print(f"  Model: {_vision_model_config.get_model_name()}")
 
 
@@ -813,37 +813,37 @@ def validate_config() -> tuple:
 
     qwen3_8b_path = path_cfg.QWEN3_8B_PATH
     if not qwen3_8b_path.exists():
-        messages.append(f"❌ Qwen3-8B模型未找到: {qwen3_8b_path}")
+        messages.append(f" Qwen3-8B模型未找到: {qwen3_8b_path}")
         is_valid = False
     else:
-        print(f"✓ Qwen3-8B model path is valid")
+        print(f" Qwen3-8B model path is valid")
 
     vision_path = path_cfg.get_vision_model_path('qwen3')
     if not vision_path.exists():
-        messages.append(f"⚠ Qwen3-VL-8B 模型未找到: {vision_path}")
-        print(f"⚠ Qwen3-VL-8B model not found (ignore if not downloaded yet)")
+        messages.append(f" Qwen3-VL-8B 模型未找到: {vision_path}")
+        print(f" Qwen3-VL-8B model not found (ignore if not downloaded yet)")
     else:
-        print(f"✓ Qwen3-VL-8B vision model path is valid")
+        print(f" Qwen3-VL-8B vision model path is valid")
 
     print("\n[2/5] Checking datasets...")
     if path_cfg.IMAGE_DATASET_CSV.exists():
-        print(f"✓ Image dataset found")
+        print(f" Image dataset found")
     else:
-        messages.append(f"⚠ 图像数据集未找到: {path_cfg.IMAGE_DATASET_CSV}")
+        messages.append(f" 图像数据集未找到: {path_cfg.IMAGE_DATASET_CSV}")
 
     text_dataset_count = sum(1 for f in path_cfg.TEXT_DATASET_FILES.values() if f.exists())
-    print(f"✓ Found {text_dataset_count}/{len(path_cfg.TEXT_DATASET_FILES)} text dataset files")
+    print(f" Found {text_dataset_count}/{len(path_cfg.TEXT_DATASET_FILES)} text dataset files")
 
     if not path_cfg.UML_DATASET_CSV.exists():
-        messages.append(f"⚠ UML数据集未找到（可能尚未创建）: {path_cfg.UML_DATASET_CSV}")
+        messages.append(f" UML数据集未找到（可能尚未创建）: {path_cfg.UML_DATASET_CSV}")
 
     print("\n[3/5] Checking CUDA environment...")
     device_cfg = get_device_config()
 
     if device_cfg.device != "cuda":
-        messages.append("⚠ CUDA不可用，将使用CPU模式（速度极慢）")
+        messages.append(" CUDA不可用，将使用CPU模式（速度极慢）")
     else:
-        print(f"✓ CUDA is available")
+        print(f" CUDA is available")
 
     print("\n[4/5] Checking dependencies...")
     required_packages = {
@@ -856,16 +856,16 @@ def validate_config() -> tuple:
     for package, description in required_packages.items():
         try:
             __import__(package)
-            print(f"✓ {package} ({description})")
+            print(f" {package} ({description})")
         except ImportError:
-            messages.append(f"❌ 缺少依赖: {package} - {description}")
+            messages.append(f" 缺少依赖: {package} - {description}")
             is_valid = False
 
     print("\n[5/5] Creating required directories...")
     try:
         path_cfg.create_directories()
     except Exception as e:
-        messages.append(f"❌ 创建目录失败: {str(e)}")
+        messages.append(f" 创建目录失败: {str(e)}")
         is_valid = False
 
     print("\n" + "=" * 60)
@@ -873,9 +873,9 @@ def validate_config() -> tuple:
     print("=" * 60)
 
     if is_valid:
-        print("✓ Configuration validation passed")
+        print(" Configuration validation passed")
     else:
-        print("✗ Configuration validation failed; please fix the following issues:")
+        print(" Configuration validation failed; please fix the following issues:")
 
     for msg in messages:
         print(f"  {msg}")

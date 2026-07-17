@@ -1013,7 +1013,7 @@ def _plot_router_optimization(router_results):
     bars = ax.bar(range(len(configs)), f1_vals, color=colors, width=0.5,
                   edgecolor='white', linewidth=0.5)
     for bar, v, i in zip(bars, f1_vals, range(len(configs))):
-        label = f'{v:.4f}' + (' ★' if i == best_idx else '')
+        label = f'{v:.4f}' + (' ' if i == best_idx else '')
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.003,
                 label, ha='center', fontsize=10, fontweight='bold')
 

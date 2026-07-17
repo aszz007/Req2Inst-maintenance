@@ -282,7 +282,7 @@ Examples:
     print("-" * 80)
 
     for result in results:
-        status = "✓ 成功" if result['success'] else "✗ 失败"
+        status = " 成功" if result['success'] else " 失败"
         print(f"  {result['method']:20s} / {result['expert']:10s} : {status}")
 
     if failed_tasks:

@@ -78,7 +78,7 @@ def recognize_single_image(image_path: str, version: str = 'qwen3') -> Dict:
     print(f"Recognition result")
     print(f"{'='*80}")
     if result.get('recognition_status') == 'success':
-        print(f"✓ Recognition succeeded")
+        print(f" Recognition succeeded")
         print(f"Confidence: {result.get('confidence', 0):.3f}")
         print(f"\nDescription: {result.get('description', '')}")
 
@@ -90,7 +90,7 @@ def recognize_single_image(image_path: str, version: str = 'qwen3') -> Dict:
             if details.get('spatial_info'):
                 print(f"  Spatial information: {details.get('spatial_info')}")
     else:
-        print(f"✗ Recognition failed: {result.get('error', 'Unknown error')}")
+        print(f" Recognition failed: {result.get('error', 'Unknown error')}")
 
     print(f"{'='*80}\n")
 
@@ -154,16 +154,16 @@ def batch_recognize_images(
 
             if result.get('recognition_status') == 'success':
                 success_count += 1
-                print(f"✓ Recognition succeeded")
+                print(f" Recognition succeeded")
                 print(f"  Confidence: {result.get('confidence', 0):.3f}")
                 print(f"  Description: {result.get('description', '')[:80]}...")
             else:
                 fail_count += 1
-                print(f"✗ Recognition failed: {result.get('error', 'Unknown error')}")
+                print(f" Recognition failed: {result.get('error', 'Unknown error')}")
 
         except Exception as e:
             fail_count += 1
-            print(f"✗ Processing failed: {str(e)}")
+            print(f" Processing failed: {str(e)}")
             results.append({
                 'image_path': str(image_path),
                 'image_name': image_path.name,
@@ -257,10 +257,10 @@ def main():
                 print(json.dumps(sample, ensure_ascii=False, indent=2))
                 print("="*80)
 
-        print("\n✓ All recognition tasks completed!")
+        print("\n All recognition tasks completed!")
 
     except Exception as e:
-        print(f"\n✗ Program execution failed: {str(e)}")
+        print(f"\n Program execution failed: {str(e)}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

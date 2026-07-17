@@ -309,15 +309,15 @@ def main():
             include_failed=INCLUDE_FAILED
         )
 
-        print(f"✓ Dataset build completed!")
-        print(f"✓ Output file: {output_path}")
+        print(f" Dataset build completed!")
+        print(f" Output file: {output_path}")
         print(f"\nNext steps:")
         print(f"1. Review the error log for any issues")
         print(f"2. Populate the 'Instruction' column as needed")
         print(f"3. Use the dataset for model training or other applications")
 
     except Exception as e:
-        print(f"\n✗ Dataset build failed: {str(e)}")
+        print(f"\n Dataset build failed: {str(e)}")
         import traceback
         traceback.print_exc()
 

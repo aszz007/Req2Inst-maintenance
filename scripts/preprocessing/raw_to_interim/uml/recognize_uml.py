@@ -196,7 +196,7 @@ def batch_recognize_uml(
 
             if result.get('success', False):
                 success_count += 1
-                print(f"✓ Recognition succeeded")
+                print(f" Recognition succeeded")
 
                 try:
                     desc = json.loads(result['description'])
@@ -207,11 +207,11 @@ def batch_recognize_uml(
                     pass
             else:
                 fail_count += 1
-                print(f"✗ Recognition failed: {result.get('error', 'Unknown error')}")
+                print(f" Recognition failed: {result.get('error', 'Unknown error')}")
 
         except Exception as e:
             fail_count += 1
-            print(f"✗ Processing failed: {str(e)}")
+            print(f" Processing failed: {str(e)}")
 
             metadata = extract_metadata_from_path(image_path)
 

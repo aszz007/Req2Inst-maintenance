@@ -302,12 +302,12 @@ class UMLBatchRepairer:
     def init_driver(self):
         """Initialize the browser driver."""
         print("\n" + "="*60)
-        print("正在初始化浏览器...")
+        print("Initializing browser...")
         print("="*60)
 
         if not os.path.exists(CHROME_PATH):
             raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
-        print(f"✓ Chrome路径验证成功")
+        print(f" Chrome path validated successfully")
 
         try:
             options = webdriver.ChromeOptions()
@@ -327,20 +327,20 @@ class UMLBatchRepairer:
             options.add_experimental_option('excludeSwitches', ['enable-automation'])
             options.add_experimental_option('useAutomationExtension', False)
 
-            print("✓ ChromeOptions配置完成")
-            print("正在启动ChromeDriver...")
+            print(" ChromeOptions configuration complete")
+            print("Starting ChromeDriver...")
             self.driver = webdriver.Chrome(options=options)
-            print(f"✓ ChromeDriver启动成功")
+            print(f" ChromeDriver started successfully")
 
-            print(f"\n正在导航到: {GPT_URL}")
+            print(f"\nNavigating to: {GPT_URL}")
             self.driver.get(GPT_URL)
             time.sleep(8)
 
-            print(f"✓ 页面加载完成: {self.driver.title}")
+            print(f" Page loaded: {self.driver.title}")
             print("="*60 + "\n")
 
         except Exception as e:
-            print(f"\n✗ 浏览器初始化失败: {e}")
+            print(f"\n Browser initialization failed: {e}")
             raise
 
     def find_input_box(self, debug=False):
@@ -366,19 +366,19 @@ class UMLBatchRepairer:
             try:
                 elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
                 if debug and elements:
-                    print(f"  找到{len(elements)}个元素: {selector}")
+                    print(f"  Found {len(elements)} elements: {selector}")
 
                 for elem in elements:
                     if elem.is_displayed() and elem.is_enabled():
                         self.cached_input_selector = selector
                         if debug:
-                            print(f"  ✓ 成功定位输入框: {selector}")
+                            print(f"  Input field located successfully: {selector}")
                         return elem
             except:
                 continue
 
         if debug:
-            print("  ✗ 未找到可用输入框")
+            print("  No usable input field found")
         return None
 
     def find_submit_button(self):
@@ -483,20 +483,20 @@ class UMLBatchRepairer:
 
             return False
         except Exception as e:
-            print(f"检测更新异常: {e}")
+            print(f"Error checking for updates: {e}")
             return False
 
     def start_new_chat(self):
         """Start a new browser chat."""
-        print("\n>>> 开启新对话...")
+        print("\n>>> Opening a new conversation...")
         try:
             from selenium.webdriver.common.action_chains import ActionChains
 
-            print("  🔨 发送快捷键 Ctrl+Shift+O...")
+            print("  Sending shortcut Ctrl+Shift+O...")
             actions = ActionChains(self.driver)
             actions.key_down(Keys.CONTROL).key_down(Keys.SHIFT).send_keys('o').key_up(Keys.SHIFT).key_up(
                 Keys.CONTROL).perform()
-            print("  ✓ 快捷键已发送")
+            print("  Shortcut sent")
 
             time.sleep(3)
 
@@ -504,22 +504,22 @@ class UMLBatchRepairer:
             self.cached_button_selector = None
             self.response_count_before_send = 0
 
-            print("  ✓ 新对话已就绪\n")
+            print("  New conversation ready\n")
 
         except Exception as e:
-            print(f"  ✗ 开启新对话失败: {e}")
-            print("  ℹ 将继续在当前对话中处理")
+            print(f"  Failed to open a new conversation: {e}")
+            print("  Continuing in the current conversation")
 
     def send_prompt(self, prompt_text, max_retries=3):
         """Submit a prompt to the browser session."""
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
-                    print(f"\n📤 发送提示词...")
+                    print(f"\n Sending prompt...")
                     self.response_count_before_send = self.get_current_response_count()
-                    print(f"  📊 当前页面已有 {self.response_count_before_send} 条回复")
+                    print(f"  Current page has {self.response_count_before_send} responses")
                 else:
-                    print(f"  🔄 重试 {attempt}/{max_retries-1}...")
+                    print(f"  Retry {attempt}/{max_retries-1}...")
 
                 input_box = self.find_input_box(debug=(attempt == 0))
                 if not input_box:
@@ -564,28 +564,28 @@ class UMLBatchRepairer:
                         continue
                     return False
 
-                print(f"  ✓ 文本设置成功 ({len(current_value)} 字符)")
+                print(f"  Text set successfully ({len(current_value)} characters)")
 
                 button = self.find_submit_button()
                 if button:
                     self.driver.execute_script("arguments[0].click();", button)
-                    print(f"  ✓ 点击发送按钮")
+                    print(f"  Clicked the Send button")
                 else:
                     input_box.send_keys(Keys.RETURN)
-                    print(f"  ✓ 使用Enter发送")
+                    print(f"  Sent with Enter")
 
                 time.sleep(2)
 
                 check_value = input_box.get_attribute("value") if tag_name == "textarea" else input_box.text
                 if not check_value or len(check_value.strip()) < 50:
-                    print("  ✓ 确认消息已发送")
+                    print("  Confirmed message sent")
                     return True
 
                 time.sleep(2)
                 return True
 
             except Exception as e:
-                print(f"  ✗ 发送异常: {e}")
+                print(f"  Send error: {e}")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                 else:
@@ -626,16 +626,16 @@ class UMLBatchRepairer:
             return True
 
         except Exception as e:
-            print(f"[验证异常,接受]", end='', flush=True)
+            print(f"[Validation exception, accepted]", end='', flush=True)
             return True
 
     def wait_for_response_complete(self, timeout=300):
         """Wait for the browser response to finish."""
-        print("  等待生成...", end='', flush=True)
+        print("  Waiting for generation...", end='', flush=True)
         start_time = time.time()
         last_progress_time = start_time
 
-        print(" [等待响应]", end='', flush=True)
+        print(" [Waiting for response]", end='', flush=True)
         response_appeared = False
 
         consecutive_validation_failures = 0
@@ -647,7 +647,7 @@ class UMLBatchRepairer:
                 current_count = self.get_current_response_count()
 
                 if current_count > self.response_count_before_send:
-                    print(f" [检测到可能的新回复,验证中]", end='', flush=True)
+                    print(f" [Possible new response detected; validating]", end='', flush=True)
                     time.sleep(2)
 
                     recheck_count = self.get_current_response_count()
@@ -656,22 +656,22 @@ class UMLBatchRepairer:
                         if self._validate_new_response():
                             elapsed = int(time.time() - start_time)
                             response_appeared = True
-                            print(f" ✓ [新回复已确认,耗时{elapsed}s]", end='', flush=True)
+                            print(f"  [New response confirmed; elapsed {elapsed}s]", end='', flush=True)
                             break
                         else:
                             consecutive_validation_failures += 1
-                            print(f" [内容验证失败{consecutive_validation_failures}/{MAX_VALIDATION_FAILURES}]", end='',
+                            print(f" [Content validation failed{consecutive_validation_failures}/{MAX_VALIDATION_FAILURES}]", end='',
                                   flush=True)
 
                             if consecutive_validation_failures >= MAX_VALIDATION_FAILURES:
                                 elapsed = int(time.time() - start_time)
-                                print(f" ⚠️ [验证失败但强制接受,耗时{elapsed}s]", end='', flush=True)
+                                print(f"  [Validation failed but accepted; elapsed {elapsed}s]", end='', flush=True)
                                 response_appeared = True
                                 break
 
                             time.sleep(2)
                     else:
-                        print(f" [数量未稳定,继续等待]", end='', flush=True)
+                        print(f" [Count not stable; continuing to wait]", end='', flush=True)
                         consecutive_validation_failures = 0
                         time.sleep(1)
                 else:
@@ -688,11 +688,11 @@ class UMLBatchRepairer:
             time.sleep(0.5)
 
         if not response_appeared:
-            print(f" ✗ 等待响应超时({WAIT_NEW_RESPONSE_TIMEOUT}s)")
+            print(f"  Response wait timed out ({WAIT_NEW_RESPONSE_TIMEOUT}s)")
             return False
 
         time.sleep(1)
-        print(" [检测完成]", end='', flush=True)
+        print(" [Check complete]", end='', flush=True)
 
         stable_count = 0
         max_stability_checks = 10
@@ -707,7 +707,7 @@ class UMLBatchRepairer:
                 else:
                     stable_count += 1
                     if stable_count >= CONTENT_STABLE_CHECKS:
-                        print(" ✓ 完成")
+                        print("  Complete")
                         return True
                     else:
                         print(".", end='', flush=True)
@@ -721,10 +721,10 @@ class UMLBatchRepairer:
                 time.sleep(1)
 
             except Exception as e:
-                print(f"⚠ [{str(e)[:20]}]", end='', flush=True)
+                print(f" [{str(e)[:20]}]", end='', flush=True)
                 time.sleep(1)
 
-        print(" ✓ 完成(达到检查上限)")
+        print("  Completed (reached check limit)")
         return True
 
     def extract_response(self):
@@ -748,26 +748,26 @@ class UMLBatchRepairer:
                     response_text = last_response.text
 
                 if response_text and len(response_text) > 10:
-                    print(f"  ✓ 提取到回复 ({len(response_text)} 字符)")
+                    print(f"  Extracted response ({len(response_text)} characters)")
 
                     has_definition = "Definition:" in response_text
                     has_emphasis = "Emphasis" in response_text or "Caution" in response_text
                     has_avoid = "Avoid" in response_text
 
                     if has_definition or has_emphasis or has_avoid:
-                        print(f"  ✓ 内容验证通过（包含指令关键词）")
+                        print(f"  Content validation passed (contains instruction keywords)")
                     else:
-                        print(f"  ⚠ 警告：回复可能不包含预期格式")
+                        print(f"  Warning: response may not contain the expected format")
 
                     return response_text
                 else:
-                    print(f"  ⚠ 提取的内容太短: {len(response_text) if response_text else 0} 字符")
+                    print(f"  Extracted content is too short: {len(response_text) if response_text else 0} characters")
 
-            print(f"  ✗ 无法提取有效回复（当前{current_count}条，发送前{self.response_count_before_send}条）")
+            print(f"  Unable to extract a valid response (current {current_count} items, before sending {self.response_count_before_send} items)")
             return ""
 
         except Exception as e:
-            print(f"  ✗ 提取回复失败: {e}")
+            print(f"  Failed to extract response: {e}")
             return ""
 
     def _clean_and_merge_content(self, text):
@@ -904,7 +904,7 @@ class UMLBatchRepairer:
 
             return json.dumps(data, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"  ⚠ JSON清洗失败: {e}")
+            print(f"  JSON cleanup failed: {e}")
             return json_str
 
     def validate_instruction_format(self, instruction):
@@ -959,7 +959,7 @@ class UMLBatchRepairer:
     def detect_error_batches(self, df):
         """Detect error batches."""
         print("\n" + "="*60)
-        print("开始检测错误数据...")
+        print("Starting error-data scan...")
         print("="*60)
 
         error_batches = []
@@ -1008,10 +1008,10 @@ class UMLBatchRepairer:
 
                 error_batches.append((len(error_batches) + 1, i, batch_data))
 
-        print(f"\n检测结果:")
-        print(f"  总数据条数: {total_rows}")
-        print(f"  错误数据条数: {error_count}")
-        print(f"  需修复批次数: {len(error_batches)}")
+        print(f"\nScan results:")
+        print(f"  Total data items: {total_rows}")
+        print(f"  Erroneous data items: {error_count}")
+        print(f"  Batches requiring repair: {len(error_batches)}")
 
         return error_batches
 
@@ -1021,28 +1021,28 @@ class UMLBatchRepairer:
             return
 
         print("\n" + "="*60)
-        print("详细错误报告")
+        print("Detailed error report")
         print("="*60)
 
         for row_num, header, error_msg in self.error_details:
-            print(f"\n第 {row_num} 条:")
+            print(f"\nRow {row_num} item:")
             print(f"  Header: {header[:50]}...")
-            print(f"  错误: {error_msg}")
+            print(f"  Error: {error_msg}")
 
         print("\n" + "="*60)
 
     def process_batch(self, batch_data, start_idx, batch_num, max_retries=3):
         """Process batch."""
         print(f"\n{'='*60}")
-        print(f"批次 #{batch_num} | 数据范围: {start_idx + 1}-{start_idx + len(batch_data)}")
+        print(f"Batch #{batch_num} | Data range: {start_idx + 1}-{start_idx + len(batch_data)}")
         print(f"{'='*60}")
 
         first_header = batch_data[0][0] if batch_data else ""
         domain = self.extract_domain_from_header(first_header)
         example_text = self.get_example_for_domain(domain)
 
-        print(f"  🏷️ 识别领域: {domain}")
-        print(f"  📝 使用示例: {domain} 领域\n")
+        print(f"  Detected domain: {domain}")
+        print(f"  Example: {domain} domain\n")
 
         data_text = ""
         for i, (header, description) in enumerate(batch_data, 1):
@@ -1057,8 +1057,8 @@ class UMLBatchRepairer:
 
         for retry_count in range(max_retries):
             if retry_count > 0:
-                print(f"\n🔄 检测到生成错误,正在重试 ({retry_count}/{max_retries - 1})...")
-                print("  🔄 开启新对话以重试...")
+                print(f"\n Generation error detected; retrying ({retry_count}/{max_retries - 1})...")
+                print("  Opening a new conversation to retry...")
                 self.start_new_chat()
                 time.sleep(2)
 
@@ -1083,7 +1083,7 @@ class UMLBatchRepairer:
                     return [None]
 
             response = self.extract_response()
-            print(f"\n响应预览: {response[:200]}...\n")
+            print(f"\nResponse preview: {response[:200]}...\n")
 
             error_keywords = [
                 "Something went wrong",
@@ -1098,19 +1098,19 @@ class UMLBatchRepairer:
             is_error_response = any(keyword in response for keyword in error_keywords)
 
             if is_error_response:
-                print(f"  ⚠️ 检测到生成错误: {response[:100]}")
+                print(f"  Generation error detected: {response[:100]}")
                 if retry_count < max_retries - 1:
-                    print(f"  ↻ 将在3秒后重新发送...")
+                    print(f"  Will resend in 3 seconds...")
                     continue
                 else:
-                    print(f"  ✗ 已达到最大重试次数({max_retries}),放弃本批次")
+                    print(f"  Maximum retry count reached ({max_retries}),abandoning this batch")
                     self.error_log.append({
                         'range': f"{start_idx + 1}",
                         'error': f'生成错误(重试{max_retries}次后失败)'
                     })
                     return [None]
             else:
-                print(f"  ✓ 响应正常,准备解析")
+                print(f"  Response looks normal; preparing to parse")
                 break
 
         instruction = self.parse_uml_instruction(response)
@@ -1118,19 +1118,19 @@ class UMLBatchRepairer:
         if instruction:
             is_valid, errors = self.validate_instruction_format(instruction)
             if is_valid:
-                print(f"  ✓ 指令格式验证通过")
+                print(f"  Instruction format validation passed")
                 return [instruction]
             else:
-                print(f"  ⚠ 指令格式验证失败: {errors}")
+                print(f"  Instruction format validation failed: {errors}")
                 return [instruction]
         else:
-            print(f"  ✗ 解析失败")
+            print(f"  Parsing failed")
             return [None]
 
     def repair_file(self, csv_path):
         """Repair failed records in one file."""
         print(f"\n{'#' * 60}")
-        print(f"# 处理文件: {os.path.basename(csv_path)}")
+        print(f"# Processing file: {os.path.basename(csv_path)}")
         print(f"{'#' * 60}")
 
         try:
@@ -1138,7 +1138,7 @@ class UMLBatchRepairer:
                 raw_data = f.read(100000)
                 result = chardet.detect(raw_data)
                 encoding = result['encoding']
-                print(f"文件编码: {encoding}")
+                print(f"File encoding: {encoding}")
 
             try:
                 df = pd.read_csv(csv_path, encoding=encoding)
@@ -1146,7 +1146,7 @@ class UMLBatchRepairer:
                 for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                     try:
                         df = pd.read_csv(csv_path, encoding=enc)
-                        print(f"  ✓ 使用 {enc} 编码")
+                        print(f"  Using {enc} encoding")
                         break
                     except:
                         continue
@@ -1154,7 +1154,7 @@ class UMLBatchRepairer:
                     raise Exception("Failed to read the file")
 
         except Exception as e:
-            print(f"✗ 读取文件失败: {e}")
+            print(f" Failed to read file: {e}")
             return 0
 
         if 'Instruction' not in df.columns:
@@ -1165,16 +1165,16 @@ class UMLBatchRepairer:
         error_batches = self.detect_error_batches(df)
 
         if not error_batches:
-            print("\n✓ 未发现需要修复的错误数据")
+            print("\n No erroneous data requiring repair found")
             self.print_error_report()
             return 0
 
         self.print_error_report()
 
-        print(f"\n⚠️ 发现 {len(error_batches)} 个错误批次,共约 {len(error_batches) * BATCH_SIZE} 条数据需要修复")
+        print(f"\n Found {len(error_batches)} erroneous batches, about {len(error_batches) * BATCH_SIZE} data items require repair")
         user_input = input("是否继续修复? (y/n): ").strip().lower()
         if user_input != 'y':
-            print("❌ 用户取消修复")
+            print(" User cancelled repair")
             return 0
 
         self.start_new_chat()
@@ -1195,15 +1195,15 @@ class UMLBatchRepairer:
             repaired_batches += 1
 
             df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-            print(f"  ✓ 已保存进度: {start_idx + len(batch_data)}/{len(df)}")
+            print(f"  Progress saved: {start_idx + len(batch_data)}/{len(df)}")
 
             if repaired_batches < len(error_batches):
                 self.start_new_chat()
 
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-        print(f"\n✓ 文件修复完成: {os.path.basename(csv_path)}")
-        print(f"  修复批次: {repaired_batches}")
-        print(f"  修复数据: {self.repaired_count} 条\n")
+        print(f"\n File repair complete: {os.path.basename(csv_path)}")
+        print(f"  Batches repaired: {repaired_batches}")
+        print(f"  Data items repaired: {self.repaired_count} items\n")
 
         return self.repaired_count
 
@@ -1211,13 +1211,13 @@ class UMLBatchRepairer:
         """Run the workflow."""
         start_time = datetime.now()
         print(f"\n{'=' * 60}")
-        print(f"{'UML批次完整性修复系统':^60}")
+        print(f"{'UML batch integrity repair system':^60}")
         print(f"{'=' * 60}")
-        print(f"开始时间: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"批次大小: {BATCH_SIZE} 条/批")
+        print(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Batch size: {BATCH_SIZE} items/batch")
         period_check_status = "启用" if ENABLE_PERIOD_CHECK else "关闭"
-        print(f"检测功能: ERROR标记 + 三段式格式 + 句号检查({period_check_status})")
-        print(f"目标文件: {CSV_FILE}")
+        print(f"Checks: ERROR markers + three-part format + period check ({period_check_status})")
+        print(f"Target file: {CSV_FILE}")
         print(f"{'=' * 60}\n")
 
         try:
@@ -1227,35 +1227,35 @@ class UMLBatchRepairer:
             if os.path.exists(csv_path):
                 total_repaired = self.repair_file(csv_path)
             else:
-                print(f"✗ 文件不存在: {csv_path}")
+                print(f" File not found: {csv_path}")
                 total_repaired = 0
 
             end_time = datetime.now()
             duration = end_time - start_time
 
             print(f"\n{'=' * 60}")
-            print(f"{'修复完成':^60}")
+            print(f"{'Repair complete':^60}")
             print(f"{'=' * 60}")
-            print(f"结束时间: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"耗时: {duration}")
-            print(f"总计修复: {total_repaired} 条数据")
+            print(f"End time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Elapsed time: {duration}")
+            print(f"Total repaired: {total_repaired} data items")
 
             if self.error_log:
-                print(f"\n错误日志:")
+                print(f"\nError log:")
                 for error in self.error_log:
                     print(f"  - {error['range']}: {error['error']}")
 
             print(f"{'=' * 60}\n")
 
         except Exception as e:
-            print(f"\n✗ 运行错误: {e}")
+            print(f"\n Runtime error: {e}")
             import traceback
             traceback.print_exc()
         finally:
             if self.driver:
                 input("按 Enter 关闭浏览器...")
                 self.driver.quit()
-                print("✓ 浏览器已关闭")
+                print(" Browser closed")
 
 
 if __name__ == "__main__":

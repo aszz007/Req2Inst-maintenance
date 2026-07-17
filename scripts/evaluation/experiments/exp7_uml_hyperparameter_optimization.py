@@ -622,7 +622,7 @@ def run(args):
         rl    = q.get('rougeL', 0)
         delta = rl - baseline_rougeL
         sign  = '+' if delta >= 0 else ''
-        star  = ' ★' if c == results.get('best_config') else ''
+        star  = ' ' if c == results.get('best_config') else ''
         base  = ' [baseline]' if c.get('is_baseline') else ''
         logger.info(
             f'{c["name"]:<38} {rl:>8.4f} {sign}{delta:>9.4f} '

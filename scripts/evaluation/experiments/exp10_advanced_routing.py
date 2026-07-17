@@ -1351,7 +1351,7 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
             'n_samples': len(fused_scores),
             'fusion_helps': delta > 0,
         }
-        status = '✓ fusion helps' if delta > 0 else '✗ fusion hurts'
+        status = ' fusion helps' if delta > 0 else ' fusion hurts'
         logger.info(
             f"  [D4] {pair_key}: fused={fused_avg:.4f}, e1_solo={e1_avg:.4f}, "
             f"e2_solo={e2_avg:.4f}, delta={delta:+.4f} {status}"
