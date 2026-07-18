@@ -34,16 +34,12 @@ def detect_rtx4090() -> bool:
 
 def print_header():
     """Print header."""
-    print("=" * 80)
-    print(" " * 18 + "LoRA (Unified) Expert Training")
-    print("=" * 80)
-    print()
+    print("LoRA (Unified) Expert Training")
 
 
 def validate_environment():
     """Validate environment."""
     print("Checking runtime environment...")
-    print("-" * 80)
 
     try:
         import transformers
@@ -81,8 +77,6 @@ def validate_environment():
         logger.error("PyTorch is not installed")
         return False
 
-    print("-" * 80)
-    print()
     return True
 
 
@@ -115,17 +109,12 @@ def main():
     if is_rtx4090:
         logger.info("Detected RTX 4090; enabling optimized settings")
 
-    print("=" * 80)
-    print("Comparison experiment: LoRA (Unified) vs Multi-Expert LoRA")
-    print("=" * 80)
-    print("Goal: verify the advantages of the multi-expert architecture over LoRA (Unified)")
-    print("Configuration:")
-    print("  - Uses the best LoRA hyperparameters from exp4 (rank=64, alpha=128, dropout=0.05)")
-    print("  - Uses the same training datasets (text + image + FlowChart)")
-    print("  - Only difference: no multi-expert routing")
-    print("Expected: Multi-Expert LoRA achieves better performance through expert specialization")
-    print("=" * 80)
-    print()
+    prompt_mode = "domain-specific" if args.use_domain_templates else "unified General"
+    print("Comparison configuration:")
+    print("  - Method: LoRA (Unified)")
+    print(f"  - Prompt templates: {prompt_mode}")
+    print("  - LoRA parameters: rank=64, alpha=128, dropout=0.05")
+    print("  - Training data: text + image + FlowChart")
 
     logger.info("Creating the LoRA (Unified) comparison trainer...")
     try:
@@ -157,7 +146,6 @@ def main():
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
     print(f"  - Data sources: text + image + FlowChart (mixed dataset)")
-    print()
 
     logger.info("Setting up model and LoRA configuration...")
     if not trainer.setup_model():
@@ -165,36 +153,21 @@ def main():
         return 1
 
     logger.info("Starting training...")
-    print("=" * 80)
-    print("Training started - this may take a while, please wait...")
-    print("=" * 80)
-    print()
 
     success = trainer.train()
 
     if success:
-        print()
-        print("=" * 80)
-        print(" " * 25 + "Training completed successfully!")
-        print("=" * 80)
-        print()
+        print("Training completed successfully!")
 
         path_cfg = get_path_config()
         print(f"LoRA weights saved to: {path_cfg.LORA_SINGLE_CKPT}")
-        print()
         print("Next steps:")
         print("  1. Use these weights for inference testing")
         print("  2. Compare performance with Multi-Expert LoRA")
         print("  3. Analyze the differences between LoRA (Unified) and the multi-expert architecture")
-        print()
 
         return 0
     else:
-        print()
-        print("=" * 80)
-        print(" " * 28 + "Training failed")
-        print("=" * 80)
-        print()
         logger.error("An error occurred during training; check the logs")
         return 1
 

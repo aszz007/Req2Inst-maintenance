@@ -45,7 +45,7 @@ stack, install the lightweight CI dependencies instead:
 
 ```bash
 python -m pip install -r requirements-ci.txt
-python -m pytest -q tests/test_repository_quality.py tests/test_manuscript_terminology.py tests/test_model_compatibility.py tests/test_experiment_alignment.py -k "not config_exposes_only_supported_vision_version"
+python -m pytest -q tests/test_repository_quality.py tests/test_manuscript_terminology.py tests/test_model_compatibility.py tests/test_experiment_alignment.py tests/test_console_output.py -k "not config_exposes_only_supported_vision_version"
 python -m ruff check --select E9 .
 ```
 
