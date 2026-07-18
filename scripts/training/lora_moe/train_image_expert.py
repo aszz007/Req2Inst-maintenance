@@ -195,7 +195,7 @@ def main():
         print()
         print("Next steps:")
         print("  1. Use these weights for inference testing")
-        print("  2. Continue training the other experts (Text, UML, General)")
+        print("  2. Continue training the other experts (Text, FlowChart, General)")
         print()
 
         return 0

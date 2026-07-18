@@ -126,9 +126,9 @@ def main():
     print(f"Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print(f"  - Data sources: text + image + uml")
+    print(f"  - Data sources: text + image + FlowChart")
     print()
-    print("Note: The General Expert uses all text + all images + 1,500 UML samples")
+    print("Note: The General Expert uses all text + all images + 1,500 FlowChart samples")
     print()
 
     logger.info("Starting training...")

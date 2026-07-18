@@ -849,7 +849,7 @@ def _run_output_ensemble(router, features, general_test, args):
             ensemble_groups[(expert1, expert2)].append((i, prompt_str, w1, w2))
 
     logger.info(f"  [DEBUG] Template usage distribution: {dict(template_usage)}")
-    logger.info(f"  [v12] UML-domain samples sent to the ensemble: {uml_ensemble_count} (bidirectional OOD correction + enhanced parameters)")
+    logger.info(f"  [v12] FlowChart-domain samples sent to the ensemble: {uml_ensemble_count} (bidirectional OOD correction + enhanced parameters)")
 
     n_raw_high_conf = sum(1 for (_, _, _, _, _, w1r, _) in sample_meta if w1r >= 0.85)
     n_post_ood_redirected = len(cache_results) - n_raw_high_conf
@@ -866,7 +866,7 @@ def _run_output_ensemble(router, features, general_test, args):
         ood_tag = ""
         if is_uml_grp:
             n_uml_tpl = tpl_counts.get('uml', 0)
-            ood_tag = f" [UML enhancement: applying OOD correction to {n_uml_tpl} samples with the UML template]"
+            ood_tag = f" [FlowChart enhancement: applying OOD correction to {n_uml_tpl} samples with the legacy uml template]"
         logger.info(
             f"    [v12 group] {e1}+{e2}: {len(items)} samples, "
             f"avg_w1={avg_w1:.2f}, avg_w2={avg_w2:.2f}"
@@ -1095,14 +1095,14 @@ def _run_output_ensemble(router, features, general_test, args):
                 except Exception:
                     pass
         logger.info(
-            f"  [DEBUG][UML-ensemble] ensemble outputs={len(uml_ensemble_samples)}, "
+            f"  [DEBUG][FlowChart-ensemble] ensemble outputs={len(uml_ensemble_samples)}, "
             f"avg_ROUGE-L={np.mean(uml_ens_rouges):.4f}, "
             f"avg_chars={np.mean(uml_ens_lens):.0f}, "
             f"long outputs (>700 characters)={sum(1 for l in uml_ens_lens if l > 700)}"
         )
     if uml_cache_samples:
         logger.info(
-            f"  [DEBUG][UML-cache] cached single-expert outputs={len(uml_cache_samples)} "
+            f"  [DEBUG][FlowChart-cache] cached single-expert outputs={len(uml_cache_samples)} "
             f"(high confidence, w1>=0.85)"
         )
     # per-expert-pair ROUGE-L
@@ -1572,7 +1572,7 @@ def _process_minibatch(
         f"    [minibatch] B={B}, expert1={expert1}(T={T1}), expert2={expert2}(T={T2}), "
         f"max_new_tokens={max_new_tokens}, soft_limit={_SOFT_LIMIT}, "
         f"eos_boost_rate={_EOS_BOOST_RATE}"
-        + (f" [UML enhancement: max={max_new_tokens},sl={_SOFT_LIMIT},rate={_EOS_BOOST_RATE}]"
+        + (f" [FlowChart enhancement: max={max_new_tokens},sl={_SOFT_LIMIT},rate={_EOS_BOOST_RATE}]"
            if _is_uml_involved else "")
     )
 
@@ -2453,7 +2453,7 @@ def _plot_summary_table(exp9_strategies, soft_rougeL, router_rougeL, ensemble_ro
     fig, ax = plt.subplots(figsize=(16, 6))
     ax.axis('off')
 
-    headers = ['Strategy', 'Text', 'Image', 'UML', 'General', 'Average', 'Router Acc', 'Gap↓']
+    headers = ['Strategy', 'Text', 'Image', 'FlowChart', 'General', 'Average', 'Router Acc', 'Gap↓']
 
     def per_d(strategy_name, domain):
         return exp9_strategies.get(strategy_name, {}).get('per_domain', {}).get(domain, 0)

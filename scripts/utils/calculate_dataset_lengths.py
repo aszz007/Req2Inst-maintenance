@@ -177,16 +177,16 @@ def main():
     else:
         print(f"[Image] File not found: {image_path}")
 
-    # 3. UML Expert
+    # 3. FlowChart Expert
     uml_path = Path(path_cfg.UML_DATASET_CSV)
     if uml_path.exists():
         df, enc = read_csv_safely(uml_path)
         if df is not None:
-            print(f"[UML] Read successfully | encoding: {enc}")
+            print(f"[FlowChart] Read successfully | encoding: {enc}")
             lengths = calculate_lengths_from_df(df, tokenizer, 'uml')
-            print_stats("UML Expert", lengths)
+            print_stats("FlowChart Expert", lengths)
     else:
-        print(f"[UML] File not found: {uml_path}")
+        print(f"[FlowChart] File not found: {uml_path}")
 
 
 if __name__ == "__main__":

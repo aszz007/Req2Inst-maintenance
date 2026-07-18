@@ -1,4 +1,4 @@
-"""Train the UML expert."""
+"""Train the FlowChart expert."""
 
 import sys
 import argparse
@@ -28,7 +28,7 @@ def detect_rtx4090() -> bool:
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 17 + "Prompt Tuning UML Expert Training")
+    print(" " * 17 + "Prompt Tuning FlowChart Expert Training")
     print("=" * 80)
     print()
 
@@ -75,7 +75,7 @@ def validate_environment() -> bool:
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='Train the UML expert with prompt tuning')
+    parser = argparse.ArgumentParser(description='Train the FlowChart expert with prompt tuning')
     parser.add_argument('--use_4bit', action='store_true', default=True,
                         help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
@@ -99,7 +99,7 @@ def main():
         logger.error("Environment validation failed; check the required dependencies")
         return 1
 
-    logger.info("Creating prompt-tuning UML expert trainer...")
+    logger.info("Creating prompt-tuning FlowChart expert trainer...")
     try:
         trainer = PromptTuningTrainer(
             expert_type='uml',

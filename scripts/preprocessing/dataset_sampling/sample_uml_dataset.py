@@ -1,4 +1,4 @@
-"""Create a reproducible sample of the UML dataset."""
+"""Create a reproducible sample of the FlowChart dataset."""
 
 import argparse
 import ast
@@ -22,12 +22,12 @@ DATASET_TOTAL = 1500
 
 
 def load_uml_dataset(dataset_path: Path) -> pd.DataFrame:
-    """Load UML dataset."""
+    """Load FlowChart dataset."""
     if not dataset_path.exists():
-        raise FileNotFoundError(f"UML dataset file not found: {dataset_path}")
+        raise FileNotFoundError(f"FlowChart dataset file not found: {dataset_path}")
 
     df = pd.read_csv(dataset_path, encoding="utf-8")
-    print(f"Loading UML dataset: {dataset_path.name}")
+    print(f"Loading FlowChart dataset: {dataset_path.name}")
     print(f"Total: {len(df)} rows, columns: {list(df.columns)}\n")
     return df
 
@@ -63,8 +63,8 @@ def display_samples(samples: pd.DataFrame) -> None:
     """Display representative samples."""
     print("=" * 70)
     print(f"Random sample ({len(samples)} rows)")
-    print("Note: UML Expert input is a JSON text description, not a UML diagram")
-    print("Note: Both UML Expert and General Expert use this dataset")
+    print("Note: FlowChart Expert input is a JSON text description, not a FlowChart diagram")
+    print("Note: Both FlowChart Expert and General Expert use this dataset")
     print("=" * 70)
 
     for idx, row in samples.iterrows():
@@ -118,7 +118,7 @@ def save_samples(samples: pd.DataFrame, output_path: str) -> None:
 def parse_args() -> argparse.Namespace:
     """Parse args."""
     parser = argparse.ArgumentParser(
-        description="Randomly sample and display examples from the UML dataset (data/dataset/uml/uml_dataset.csv)"
+        description="Randomly sample and display examples from the FlowChart dataset (data/dataset/uml/uml_dataset.csv)"
     )
     parser.add_argument(
         "--n",
@@ -163,7 +163,7 @@ def run_sampling(n: int = 3, seed: int = None, output: str = None,
 
     print(f"\nDataset size: {len(df)} rows (framework reference: {DATASET_TOTAL} rows)")
     print(f"Train/validation/test reference: 1200 / 150 / 150")
-    print(f"Used by: UML Expert + General Expert (shared dataset)")
+    print(f"Used by: FlowChart Expert + General Expert (shared dataset)")
 
     if output:
         save_samples(samples, output)

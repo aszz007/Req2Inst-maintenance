@@ -15,9 +15,13 @@ provisional.
 ## Documentation source of truth
 
 The current execution baseline is Qwen3-8B for instruction generation and
-Qwen3-VL-8B-Instruct for image/UML recognition. `config/settings.py`,
+Qwen3-VL-8B-Instruct for image and flowchart recognition. `config/settings.py`,
 `models/language_model.py`, and `models/vision_model.py` are the code-level
 sources of truth.
+
+The manuscript calls the third requirement domain **FlowChart**. Internal paths,
+classes, dataset keys, and CLI values continue to use the legacy `uml` identifier
+until a dedicated compatibility migration is designed.
 
 Legacy Qwen-7B names, old absolute paths, and old environment labels remain in
 some files. They are documented as maintenance debt rather than silently

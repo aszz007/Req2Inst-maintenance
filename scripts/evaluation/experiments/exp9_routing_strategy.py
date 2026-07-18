@@ -916,7 +916,7 @@ def _plot_summary_table(strategies, phase2_results=None):
 
     strategy_order = ['Worst Routing', 'Random Routing', 'General-Only',
                       'Hard Routing', 'Oracle Routing']
-    headers = ['Strategy', 'Text', 'Image', 'UML', 'General', 'Average']
+    headers = ['Strategy', 'Text', 'Image', 'FlowChart', 'General', 'Average']
 
     table_data = []
     for name in strategy_order:
@@ -973,7 +973,7 @@ def _generate_report(phase1_results, phase2_results=None):
         "\n## Phase 1: Oracle上下界分析",
         "\n### 策略对比结果",
         "",
-        "| 策略 | Text | Image | UML | General | 平均 |",
+        "| 策略 | Text | Image | FlowChart | General | 平均 |",
         "|------|------|-------|-----|---------|------|",
     ]
 

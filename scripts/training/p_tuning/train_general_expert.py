@@ -60,7 +60,7 @@ def main():
     print(f"  - Virtual Tokens: {ptuning_cfg.num_virtual_tokens}")
     print(f"  - Encoder Hidden Size: {ptuning_cfg.encoder_hidden_size}")
     print(f"  - Prefix Projection: {ptuning_cfg.prefix_projection}")
-    print("Data sources: text + image + uml (mixed dataset)")
+    print("Data sources: text + image + FlowChart (mixed dataset)")
     print("=" * 80)
     print()
 
@@ -89,7 +89,7 @@ def main():
     print(f"Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print(f"  - Data sources: text + image + uml")
+    print(f"  - Data sources: text + image + FlowChart")
     print()
 
     logger.info("Starting training...")

@@ -1,4 +1,4 @@
-"""Train the UML expert."""
+"""Train the FlowChart expert."""
 
 import sys
 import argparse
@@ -18,7 +18,7 @@ logger = get_logger('training.train_uml_expert')
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 30 + "UML Expert Training")
+    print(" " * 30 + "FlowChart Expert Training")
     print("=" * 80)
     print()
 
@@ -31,7 +31,7 @@ def print_config(use_4bit: bool, use_rtx4090: bool):
 
     print("Training configuration:")
     print("-" * 80)
-    print(f"Expert type: UML Expert")
+    print(f"Expert type: FlowChart Expert")
     print(f"Dataset: uml_dataset.csv (1,500 samples)")
     print(f"Base model: {path_cfg.QWEN3_8B_PATH}")
     print(f"Output directory: checkpoints/lora_moe/uml_expert/")
@@ -140,7 +140,7 @@ def detect_rtx4090() -> bool:
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='Train the UML expert')
+    parser = argparse.ArgumentParser(description='Train the FlowChart expert')
     parser.add_argument('--use_4bit', action='store_true', default=True,
                         help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
@@ -164,7 +164,7 @@ def main():
         logger.error("Environment validation failed; check the required dependencies")
         return 1
 
-    logger.info(f"Creating UML expert trainer...")
+    logger.info(f"Creating FlowChart expert trainer...")
     try:
         trainer = LoRATrainer(
             expert_type='uml',

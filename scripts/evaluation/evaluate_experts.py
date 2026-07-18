@@ -184,8 +184,8 @@ class ExpertEvaluator:
             save_predictions: bool = True,
             batch_size: int = 8
     ) -> Dict:
-        """Evaluate UML expert."""
-        logger.info("Evaluating UML expert")
+        """Evaluate FlowChart expert."""
+        logger.info("Evaluating FlowChart expert")
 
         loader = UMLDatasetLoader()
         data = loader.load_csv_file()
@@ -196,13 +196,13 @@ class ExpertEvaluator:
 
         logger.info(f"Test samples: {len(test_data)}")
         logger.info(f"Batch size: {batch_size}")
-        logger.info(f"UML dataset: uml_dataset.csv")
+        logger.info(f"FlowChart dataset: uml_dataset.csv")
 
-        self._display_samples(test_data, "UML Expert")
+        self._display_samples(test_data, "FlowChart Expert")
 
         expert = UMLExpert()
         if not expert.load_model():
-            logger.error("Failed to load UML expert")
+            logger.error("Failed to load FlowChart expert")
             return {}
 
         inputs = [item['input'] for item in test_data]
@@ -263,13 +263,13 @@ class ExpertEvaluator:
                 image_test[:image_samples] +
                 uml_test[:uml_samples]
             )
-            logger.info(f"Test samples: {len(test_data)} (text: {text_samples}, image: {image_samples}, UML: {uml_samples})")
+            logger.info(f"Test samples: {len(test_data)} (text: {text_samples}, image: {image_samples}, FlowChart: {uml_samples})")
         else:
             test_data = text_test + image_test + uml_test
-            logger.info(f"Test samples: {len(test_data)} (text: {len(text_test)}, image: {len(image_test)}, UML: {len(uml_test)})")
+            logger.info(f"Test samples: {len(test_data)} (text: {len(text_test)}, image: {len(image_test)}, FlowChart: {len(uml_test)})")
 
         logger.info(f"Batch size: {batch_size}")
-        logger.info(f"UML dataset: uml_dataset.csv")
+        logger.info(f"FlowChart dataset: uml_dataset.csv")
 
         self._display_samples(test_data, "General Expert")
 
@@ -434,7 +434,7 @@ class ExpertEvaluator:
         try:
             all_results['uml_expert'] = self.evaluate_uml_expert(num_samples)
         except Exception as e:
-            logger.error(f"UML expert evaluation failed: {e}")
+            logger.error(f"FlowChart expert evaluation failed: {e}")
             self._force_cleanup_gpu()
 
         try:

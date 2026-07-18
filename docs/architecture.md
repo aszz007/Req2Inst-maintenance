@@ -5,26 +5,39 @@ legacy code or claiming that every historical experiment uses the same path.
 
 ## System boundary
 
-Req2Inst accepts text requirements, natural images, UML diagrams, or recognized
+Req2Inst accepts text requirements, image requirements, flowchart requirements,
+or recognized
 JSON. It produces English crowdsourcing instructions and experiment metadata.
 Base model files, LoRA checkpoints, datasets, and routine outputs are external
 local artifacts.
+
+## Terminology and compatibility boundary
+
+The manuscript uses **FlowChart** as the public name of the third requirement
+domain. The implementation predates that terminology and retains `uml` in paths,
+class names, dataset keys, and CLI values. Documentation and display text use
+FlowChart, while internal uml contracts remain unchanged to preserve
+reproducibility.
 
 ## End-to-end inference path
 
 1. `scripts/inference/generate_instructions.py` scans `inputs/` or a supplied
    input directory.
-2. Text files are loaded directly. Image and UML files can be passed to
+2. Text files are loaded directly. Image and flowchart files can be passed to
    `scripts/inference/recognize_inputs.py`.
 3. `models/vision_model.py` uses Qwen3-VL-8B-Instruct to produce a structured
-   image or UML description.
+   image or flowchart description.
 4. `src/instruction_generation/generator.py` provides the public generation
    interface.
 5. `src/routing/moe_model.py` normalizes the input and invokes a router.
-6. `src/routing/expert_router.py` performs the default type-based selection.
-   Experimental soft and learned routing implementations live in
+6. The manuscript describes adaptive expert selection with a Router MLP,
+   including single-expert routing and top-2 output ensembling. The current
+   default
+   entry point still uses `src/routing/expert_router.py` for type-based selection;
+   soft and learned routing implementations remain under
    `src/routing/soft_router.py` and `src/routing/learned_router.py`.
-7. A Text, Image, UML, or General expert builds its domain prompt and calls the
+7. A Text, Image, FlowChart, or General expert builds its domain prompt and
+   calls the
    shared Qwen3-8B language-model wrapper with a LoRA adapter.
 8. The generated instruction and routing metadata are written under
    `outputs/generated_instructions/`.
@@ -45,7 +58,7 @@ detection. It is the current source of truth for the Qwen3 baseline.
 
 - `models/language_model.py`: Qwen3-8B loading, optional 4-bit execution, LoRA
   adapter management, generation, batching, and output cleanup.
-- `models/vision_model.py`: Qwen3-VL-8B-Instruct loading and image/UML
+- `models/vision_model.py`: Qwen3-VL-8B-Instruct loading and image/flowchart
   recognition.
 - `models/prompt_templates/`: domain-specific three-part instruction prompts.
 
@@ -62,7 +75,8 @@ detection. It is the current source of truth for the Qwen3 baseline.
 
 `src/training/` contains dataset loaders, base training behavior, and trainer
 variants. Method- and expert-specific launchers are under `scripts/training/`.
-General-expert data is assembled dynamically from text, image, and UML sources.
+General-expert data is assembled dynamically from text, image, and FlowChart
+sources.
 
 ### Evaluation
 
@@ -82,9 +96,9 @@ not every historical script invokes that validator through the same path.
 The active baseline is:
 
 - Qwen3-8B for instruction generation;
-- Qwen3-VL-8B-Instruct for recognition;
+- Qwen3-VL-8B-Instruct for image and flowchart recognition;
 - four domain experts;
-- `checkpoints/lora_moe/` as the standard LoRA-MoE checkpoint root.
+- `checkpoints/lora_moe/` as the standard Multi-Expert LoRA checkpoint root.
 
 Qwen-7B model metadata still present in `src/routing/expert_router.py` is known
 legacy state. It is not modified during documentation cleanup because changing
@@ -96,7 +110,7 @@ runtime metadata belongs in a dedicated, regression-tested maintenance task.
 - Some paths are hard-coded for the original Windows or Linux workstation.
 - Historical environment and model names coexist with current names.
 - Some helper logic is duplicated across experiment and preprocessing scripts.
-- There is no established lightweight test suite yet.
+- The lightweight test suite currently covers model-version compatibility only.
 
 These items describe future refactoring scope; they are not evidence that the
 completed experiment run was invalid.

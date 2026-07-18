@@ -64,7 +64,8 @@ Expected logical fields are:
 
 - Text: a low-level requirement field and an instruction field.
 - Image: a description field and an instruction field.
-- UML: a description field and an instruction field.
+- FlowChart (legacy uml dataset key): a description field and an instruction
+  field.
 - General: dynamically combines the three domains rather than requiring a
   dedicated source CSV.
 
@@ -87,7 +88,7 @@ another experiment without recording the change.
 
 ## Basic commands
 
-Recognize a single image or UML input:
+Recognize a single image or flowchart input:
 
 ```bash
 python scripts/inference/recognize_inputs.py \

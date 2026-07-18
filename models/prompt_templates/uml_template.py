@@ -1,11 +1,11 @@
-"""Define the UML-domain prompt template for three-part instruction generation."""
+"""Define the FlowChart-domain prompt template for three-part instruction generation."""
 
 import json
 from typing import Union
 
 
 class UMLInstructionTemplate:
-    """Build UML-domain instruction prompts."""
+    """Build FlowChart-domain instruction prompts."""
 
     UML_RECOGNITION_PROMPT = """Please carefully analyze this Use Case Diagram and output the recognition results in JSON format.
 

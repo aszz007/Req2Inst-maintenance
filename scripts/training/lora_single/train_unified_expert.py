@@ -35,7 +35,7 @@ def detect_rtx4090() -> bool:
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 18 + "LoRA-Single Unified Expert Training")
+    print(" " * 18 + "LoRA (Unified) Expert Training")
     print("=" * 80)
     print()
 
@@ -88,7 +88,7 @@ def validate_environment():
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='Train a unified LoRA-Single model')
+    parser = argparse.ArgumentParser(description='Train the LoRA (Unified) comparison model (legacy lora_single implementation)')
     parser.add_argument('--use_4bit', action='store_true', default=True,
                         help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
@@ -108,18 +108,18 @@ def main():
         logger.info("Detected RTX 4090; enabling optimized settings")
 
     print("=" * 80)
-    print("Comparison experiment: LoRA-Single vs LoRA-MoE")
+    print("Comparison experiment: LoRA (Unified) vs Multi-Expert LoRA")
     print("=" * 80)
-    print("Goal: verify the advantages of the MoE architecture over a single model")
+    print("Goal: verify the advantages of the multi-expert architecture over LoRA (Unified)")
     print("Configuration:")
     print("  - Uses the best LoRA hyperparameters from exp4 (rank=64, alpha=128, dropout=0.05)")
-    print("  - Uses the same training datasets (text + image + uml)")
-    print("  - Only difference: no MoE routing")
-    print("Expected: LoRA-MoE achieves better performance through expert specialization")
+    print("  - Uses the same training datasets (text + image + FlowChart)")
+    print("  - Only difference: no multi-expert routing")
+    print("Expected: Multi-Expert LoRA achieves better performance through expert specialization")
     print("=" * 80)
     print()
 
-    logger.info("Creating LoRA-Single unified model trainer...")
+    logger.info("Creating the LoRA (Unified) comparison trainer...")
     try:
         path_cfg = get_path_config()
         trainer = LoRATrainer(
@@ -148,7 +148,7 @@ def main():
     print(f"Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print(f"  - Data sources: text + image + uml (mixed dataset)")
+    print(f"  - Data sources: text + image + FlowChart (mixed dataset)")
     print()
 
     logger.info("Setting up model and LoRA configuration...")
@@ -176,8 +176,8 @@ def main():
         print()
         print("Next steps:")
         print("  1. Use these weights for inference testing")
-        print("  2. Compare performance with LoRA-MoE")
-        print("  3. Analyze the differences between the single model and the MoE architecture")
+        print("  2. Compare performance with Multi-Expert LoRA")
+        print("  3. Analyze the differences between LoRA (Unified) and the multi-expert architecture")
         print()
 
         return 0

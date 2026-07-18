@@ -2,7 +2,7 @@
 """
 Experiment 6: Few-Shot vs Fine-Tuning
 
-Compare zero/few-shot prompting with base Qwen3-8B against fine-tuned LoRA-MoE
+Compare zero/few-shot prompting with base Qwen3-8B against fine-tuned Multi-Expert LoRA
 on the text expert test set.
 
 Configurations:
@@ -10,7 +10,7 @@ Configurations:
   - 1-shot  (1 run)
   - 3-shot  (1 run)
   - 5-shot  (3 runs: seed 42, 43, 44)
-  - LoRA-MoE fine-tuned text expert
+  - Multi-Expert LoRA fine-tuned text expert
 
 Output: outputs/evaluations/experiments/exp6_fewshot_learning/
 """
@@ -150,10 +150,10 @@ def run_lora_moe(test_data, args):
     filename = 'text_predictions.json'
     cached = load_predictions_cache(cache_subdir, filename)
     if cached and not args.force_regenerate:
-        logger.info('LoRA-MoE: loading from cache')
+        logger.info('Multi-Expert LoRA: loading from cache')
         return cached
 
-    logger.info('LoRA-MoE: running text-expert inference...')
+    logger.info('Multi-Expert LoRA: running text-expert inference...')
     from src.experts import TextExpert
     expert = TextExpert(lora_path=None, use_4bit=True)
     if not expert.load_model():
@@ -205,7 +205,7 @@ def plot_bar_with_errorbars(shot_summary, lora_rougeL, exp_dir, test_mode=False)
         means.append(mean)
         stds.append(std)
 
-    n_shot_labels.append('LoRA-MoE')
+    n_shot_labels.append('Multi-Expert LoRA')
     means.append(lora_rougeL)
     stds.append(0)
 
@@ -228,7 +228,7 @@ def plot_bar_with_errorbars(shot_summary, lora_rougeL, exp_dir, test_mode=False)
             plt.Rectangle((0, 0), 1, 1, color='#ff7f0e', alpha=0.85),
             plt.Rectangle((0, 0), 1, 1, color='#1f77b4', alpha=0.85),
         ],
-        labels=['Few-Shot (base model)', 'LoRA-MoE (fine-tuned)']
+        labels=['Few-Shot (base model)', 'Multi-Expert LoRA (fine-tuned)']
     )
     plt.tight_layout()
     path = plots_dir / 'fewshot_vs_finetuning.png'
@@ -313,11 +313,11 @@ def run(args):
     finally:
         generator.unload_model()
 
-    logger.info('\n=== LoRA-MoE (fine-tuned) ===')
+    logger.info('\n=== Multi-Expert LoRA (fine-tuned) ===')
     lora_moe_cache_subdir = path_cfg.OUTPUTS_DIR / 'inference_cache' / 'lora_moe'
     if getattr(args, 'only_missing', False) and _is_full_run_cache(
             lora_moe_cache_subdir, 'text_predictions.json'):
-        logger.info('LoRA-MoE: cache exists, skipping (--only-missing)')
+        logger.info('Multi-Expert LoRA: cache exists, skipping (--only-missing)')
         lora_rougeL = 0.0
     else:
         try:
@@ -334,11 +334,11 @@ def run(args):
                     'binary_classification': b,
                 }
                 lora_rougeL = q.get('rougeL', 0)
-                logger.info(f'LoRA-MoE: ROUGE-L={lora_rougeL:.4f} F1={b.get("f1_score", 0):.4f}')
+                logger.info(f'Multi-Expert LoRA: ROUGE-L={lora_rougeL:.4f} F1={b.get("f1_score", 0):.4f}')
             else:
                 lora_rougeL = 0.0
         except Exception as e:
-            logger.error(f'LoRA-MoE evaluation failed: {e}')
+            logger.error(f'Multi-Expert LoRA evaluation failed: {e}')
             lora_rougeL = 0.0
 
     EXP_DIR.mkdir(parents=True, exist_ok=True)
@@ -353,7 +353,7 @@ def run(args):
     logger.info(f'{"Configuration":<16} {"Mean ROUGE-L":>14} {"Std. dev.":>8}')
     for n_shots, (mean, std) in sorted(shot_summary.items()):
         logger.info(f'{n_shots}-shot{" ":>10} {mean:>14.4f} {std:>8.4f}')
-    logger.info(f'LoRA-MoE{" ":>10} {lora_rougeL:>14.4f} {"0.0000":>8}')
+    logger.info(f'Multi-Expert LoRA{" ":>10} {lora_rougeL:>14.4f} {"0.0000":>8}')
     logger.info(f'\nResults saved to: {EXP_DIR}')
 
 

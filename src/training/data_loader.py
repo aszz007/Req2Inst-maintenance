@@ -231,7 +231,7 @@ def normalize_json_string(json_str: str) -> str:
 
 
 def filter_uml_json_positions(uml_data: dict) -> dict:
-    """Filter token positions that belong to UML JSON content."""
+    """Filter token positions that belong to FlowChart JSON content."""
     if not isinstance(uml_data, dict):
         return uml_data
 
@@ -420,16 +420,16 @@ class UMLDatasetLoader:
         self.path_cfg = get_path_config()
         self.dataset_csv = self.path_cfg.UML_DATASET_CSV
 
-        logger.info(f"Initializing UML dataset loader - dataset: {self.dataset_csv}")
+        logger.info(f"Initializing FlowChart dataset loader - dataset: {self.dataset_csv}")
 
     def load_csv_file(self) -> List[Dict]:
         """Load CSV file."""
         csv_path = self.dataset_csv
 
-        logger.info(f"Loading UML dataset: {csv_path}")
+        logger.info(f"Loading FlowChart dataset: {csv_path}")
 
         if not csv_path.exists():
-            logger.error(f"UML dataset file does not exist: {csv_path}")
+            logger.error(f"FlowChart dataset file does not exist: {csv_path}")
             return []
 
         try:
@@ -485,7 +485,7 @@ class UMLDatasetLoader:
                                 filtered_json = filter_uml_json_positions(desc_json)
                                 description = normalize_json_string(json.dumps(filtered_json, ensure_ascii=False))
                             else:
-                                logger.warning(f"Row {idx}: UML JSON has an unexpected structure; skipping")
+                                logger.warning(f"Row {idx}: FlowChart JSON has an unexpected structure; skipping")
                                 continue
                         except json.JSONDecodeError:
                             pass
@@ -503,11 +503,11 @@ class UMLDatasetLoader:
                     logger.warning(f"Error while processing row {idx}: {e}")
                     continue
 
-            logger.info(f"Loaded {len(data_list)} UML records")
+            logger.info(f"Loaded {len(data_list)} FlowChart records")
             return data_list
 
         except Exception as e:
-            logger.error(f"Failed to load UML dataset: {e}")
+            logger.error(f"Failed to load FlowChart dataset: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return []
@@ -519,7 +519,7 @@ class GeneralDatasetLoader:
     def __init__(self, use_domain_templates: bool = False):
         """Initialize the instance."""
         self.use_domain_templates = use_domain_templates
-        logger.info("Initializing GeneralDatasetLoader - loading text, image, and UML data")
+        logger.info("Initializing GeneralDatasetLoader - loading text, image, and FlowChart data")
         logger.info(f"Template mode: {'domain-specific templates (lora_single)' if use_domain_templates else 'general template (general_expert)'}")
 
     def load_all_data(self) -> List[Dict]:
@@ -570,7 +570,7 @@ class GeneralDatasetLoader:
 
         logger.info(f"Image records: {len(image_raw)}")
 
-        logger.info("Loading UML data...")
+        logger.info("Loading FlowChart data...")
         uml_loader = UMLDatasetLoader()
         uml_raw = uml_loader.load_csv_file()
 
@@ -592,12 +592,12 @@ class GeneralDatasetLoader:
                 'data_type': 'uml'
             })
 
-        logger.info(f"UML records: {len(uml_raw)}")
+        logger.info(f"FlowChart records: {len(uml_raw)}")
 
         logger.info(f"Total general-dataset records: {len(all_data)}")
         logger.info(f"  - Text: {len(text_raw)}")
         logger.info(f"  - Image: {len(image_raw)}")
-        logger.info(f"  - UML: {len(uml_raw)}")
+        logger.info(f"  - FlowChart: {len(uml_raw)}")
 
         return all_data
 

@@ -1,7 +1,8 @@
 # Req2Inst
 
-> Multimodal crowdsourcing instruction generation with Qwen3, LoRA experts,
-> and rule/learned routing.
+> Multimodal crowdsourcing instruction generation with Qwen3,
+> specialized LoRA experts,
+> and adaptive expert routing.
 
 [Documentation](docs/README.md) · [Reproducibility](docs/reproducibility.md) ·
 [Contribution guide](CONTRIBUTING.md)
@@ -19,7 +20,8 @@ separate from later code refactoring.
 
 ## What Req2Inst does
 
-Req2Inst converts text requirements, natural images, and UML diagrams into
+Req2Inst converts text requirements, image requirements (including UI
+screenshots and open-domain images), and flowchart requirements into
 concise English instructions for crowdsourcing workers. The expected output is
 a three-part instruction:
 
@@ -32,15 +34,15 @@ Things to Avoid: ...
 The current pipeline is:
 
 ```text
-text / image / UML input
+text / image / FlowChart input
         |
-        +-- image and UML recognition with Qwen3-VL-8B-Instruct
+        +-- image and flowchart recognition with Qwen3-VL-8B-Instruct
         |
 structured text or JSON representation
         |
-type-based or experimental routing
+expert routing (paper: Router MLP; default CLI: type-based)
         |
-Qwen3-8B + Text/Image/UML/General LoRA expert
+Qwen3-8B + Text/Image/FlowChart/General LoRA expert
         |
 three-part instruction + evaluation artifacts
 ```
@@ -48,11 +50,22 @@ three-part instruction + evaluation artifacts
 ## Current model baseline
 
 - Instruction generation: **Qwen3-8B**.
-- Image and UML recognition: **Qwen3-VL-8B-Instruct**.
-- Expert set: Text, Image, UML, and General.
-- Main adaptation method: LoRA-MoE.
-- Comparison methods: LoRA-Single, Prompt Tuning, P-Tuning v2, and the
-  repository's full-finetuning comparison configuration.
+- Image and flowchart recognition: **Qwen3-VL-8B-Instruct**.
+- Expert set: Text, Image, FlowChart, and General.
+- Main adaptation method: Multi-Expert LoRA (implemented under the legacy
+  lora_moe path name).
+- Paper comparison methods: LoRA (Unified), LoRA (Task-Specific), Prompt
+  Tuning, and P-Tuning v2.
+- Additional repository implementation: full fine-tuning, retained for local
+  comparison but not listed as a main method in the manuscript's Table 3.
+
+The paper-facing domain name is **FlowChart**. Existing source paths, class
+names,
+dataset files, and CLI values retain the legacy `uml` identifier for backward
+compatibility. The paper evaluates a Router MLP for single-expert selection and
+top-2 output ensembling; the repository also retains the default type-based
+router
+and several experimental routing implementations.
 
 Some old comments and metadata still mention Qwen-7B. They are historical
 artifacts from an earlier project stage and do not describe the current model
@@ -120,8 +133,8 @@ Create local input subdirectories as needed:
 
 ```text
 inputs/text/   .txt requirement files
-inputs/image/  .jpg/.jpeg/.png natural images
-inputs/uml/    .jpg/.jpeg/.png UML diagrams
+inputs/image/  .jpg/.jpeg/.png UI screenshots or open-domain images
+inputs/uml/    .jpg/.jpeg/.png flowchart images (legacy internal directory name)
 ```
 
 Run the end-to-end generator:

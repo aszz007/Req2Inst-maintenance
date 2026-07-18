@@ -74,8 +74,8 @@ METHOD_LABELS = {
     'lsa': 'LSA',
     'template': 'Template',
     'zeroshot': 'Zero-Shot',
-    'lora_moe': 'LoRA-MoE',
-    'lora_single': 'LoRA-Single',
+    'lora_moe': 'Multi-Expert LoRA',
+    'lora_single': 'LoRA (Unified)',
     'p_tuning': 'P-Tuning v2',
     'prompt_tuning': 'Prompt Tuning',
     'full_finetuning': 'Full FT',
@@ -457,7 +457,7 @@ def plot_gpu_memory_comparison(results_by_method, test_mode=False):
     legend_labels = []
     if 'lora_moe' in methods:
         legend_handles.append(plt.Rectangle((0, 0), 1, 1, color=COLOR_MAP['lora_moe']))
-        legend_labels.append('LoRA-MoE')
+        legend_labels.append('Multi-Expert LoRA')
     soft_prompt = {'p_tuning', 'prompt_tuning'}
     if soft_prompt & set(methods):
         legend_handles.append(plt.Rectangle((0, 0), 1, 1, color=COLOR_MAP['p_tuning']))
@@ -670,7 +670,7 @@ def generate_report(results, results_by_method, test_mode=False):
 
         if 'lora_moe' in results_by_method:
             moe = results_by_method['lora_moe']
-            lines.append(f'\n### LoRA-MoE 效率分析\n')
+            lines.append(f'\n### Multi-Expert LoRA 效率分析\n')
             lines.append(f'- 加载时间: {moe["load_time_s"]:.2f}s')
             lines.append(f'- 中位延迟: {moe["latency_median_ms"]:.1f}ms '
                          f'(P95={moe["latency_p95_ms"]:.1f}ms, '

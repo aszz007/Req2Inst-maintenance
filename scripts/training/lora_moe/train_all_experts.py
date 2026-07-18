@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Run all configured LoRA-MoE expert-training tasks."""
+"""Run all configured Multi-Expert LoRA expert-training tasks."""
 
 import subprocess
 import sys
@@ -111,7 +111,7 @@ def create_all_tasks() -> List[TrainingTask]:
     tasks.append(TrainingTask(
         task_id=task_id,
         expert_type='general',
-        description="通用兜底专家(text + image + uml数据)"
+        description="General fallback expert (text + image + FlowChart data)"
     ))
     task_id += 1
 

@@ -1,4 +1,4 @@
-"""Train the UML expert."""
+"""Train the FlowChart expert."""
 
 import sys
 import argparse
@@ -29,14 +29,14 @@ def detect_rtx4090() -> bool:
 def print_header():
     """Print header."""
     print("=" * 80)
-    print(" " * 15 + "P-Tuning v2 UML Expert Training (Prefix Tuning)")
+    print(" " * 15 + "P-Tuning v2 FlowChart Expert Training (Prefix Tuning)")
     print("=" * 80)
     print()
 
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='Train the UML Expert with P-Tuning v2')
+    parser = argparse.ArgumentParser(description='Train the FlowChart Expert with P-Tuning v2')
     parser.add_argument('--use_4bit', action='store_true', default=True,
                         help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
@@ -63,7 +63,7 @@ def main():
     print("=" * 80)
     print()
 
-    logger.info("Creating P-Tuning v2 UML expert trainer...")
+    logger.info("Creating P-Tuning v2 FlowChart expert trainer...")
     try:
         trainer = PTuningTrainer(
             expert_type='uml',

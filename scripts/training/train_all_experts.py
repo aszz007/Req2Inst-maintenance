@@ -54,7 +54,7 @@ def print_header():
     print(" " * 22 + "Train All Experts")
     print("=" * 80)
     print("\nThis script will train 16 models in sequence:")
-    print("  - Round 1: LoRA-MoE (4 experts, about 3 hours)")
+    print("  - Round 1: Multi-Expert LoRA (4 experts, about 3 hours)")
     print("  - Round 2: Prompt Tuning (4 experts, about 4 hours)")
     print("  - Round 3: P-Tuning v2 (4 experts, about 5 hours)")
     print("  - Round 4: Near-full fine-tuning (4 experts, about 7 hours)")
@@ -206,10 +206,10 @@ Examples:
         session_num = 1
         for method in methods_to_train:
             method_display = {
-                'lora_moe': 'LoRA-MoE（混合专家微调）',
-                'prompt_tuning': 'Prompt Tuning（软提示）',
-                'p_tuning': 'P-Tuning v2（前缀微调）',
-                'full_finetuning': '准全参数微调'
+                'lora_moe': 'Multi-Expert LoRA',
+                'prompt_tuning': 'Prompt Tuning',
+                'p_tuning': 'P-Tuning v2',
+                'full_finetuning': 'Full Fine-Tuning (repository-only)'
             }[method]
 
             total_method_time = sum(

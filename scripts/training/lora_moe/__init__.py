@@ -1,1 +1,1 @@
-"""Initialize the LoRA-MoE package."""
+"""Initialize the Multi-Expert LoRA package."""
