@@ -63,7 +63,7 @@ def display_samples(samples: pd.DataFrame) -> None:
         elif "High_Requirements" in row:
             high = str(row.get("High_Requirements", "")).strip()
             if high:
-                print(f"[High_Requirements（display only; not used for training）]\n{high}")
+                print(f"[High_Requirements (display only; not used for training)]\n{high}")
         if OUTPUT_FIELD in row:
             instr = str(row[OUTPUT_FIELD]).strip()
             print(f"\n[{OUTPUT_FIELD}]\n{instr}")

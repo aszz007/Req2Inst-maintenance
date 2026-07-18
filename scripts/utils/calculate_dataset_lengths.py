@@ -162,7 +162,7 @@ def main():
             except Exception as e:
                 print(f"[Text] Unexpected error while processing {csv_file.name}: {e}")
 
-        print_stats("Text Expert (所有文件合并)", all_text_lengths)
+        print_stats("Text Expert (all files combined)", all_text_lengths)
     else:
         print(f"[Text] Directory not found: {text_dir}")
 
