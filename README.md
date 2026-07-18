@@ -1,5 +1,7 @@
 # Req2Inst
 
+[![Repository quality](https://github.com/aszz007/Req2Inst/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/aszz007/Req2Inst/actions/workflows/quality.yml)
+
 > Multimodal crowdsourcing instruction generation with Qwen3,
 > specialized LoRA experts,
 > and adaptive expert routing.
