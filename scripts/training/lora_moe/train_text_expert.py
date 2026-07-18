@@ -26,10 +26,7 @@ def detect_rtx4090() -> bool:
 
 def print_header():
     """Print header."""
-    print("=" * 80)
-    print(" " * 20 + "Text Expert Training")
-    print("=" * 80)
-    print()
+    print("Text Expert Training")
 
 
 def print_config(use_4bit: bool, use_rtx4090_opt: bool):
@@ -39,17 +36,14 @@ def print_config(use_4bit: bool, use_rtx4090_opt: bool):
     lora_cfg = get_lora_config('conservative')
 
     print("Training configuration:")
-    print("-" * 80)
     print(f"Expert type: Text Expert")
     print(f"Base model: {path_cfg.QWEN3_8B_PATH}")
     print(f"Output directory: checkpoints/lora_moe/text_expert/")
-    print()
     print(f"LoRA configuration:")
     print(f"  - Rank: {lora_cfg.rank}")
     print(f"  - Alpha: {lora_cfg.alpha}")
     print(f"  - Dropout: {lora_cfg.dropout}")
     print(f"  - Target Modules: {lora_cfg.target_modules}")
-    print()
 
     if use_rtx4090_opt:
         print(f"Training parameters (RTX 4090 optimized):")
@@ -74,16 +68,11 @@ def print_config(use_4bit: bool, use_rtx4090_opt: bool):
         print(f"  - Max Seq Length: {train_cfg.max_seq_length}")
         print(f"  - 4-bit quantization: {'yes' if use_4bit else 'no'}")
 
-    print("-" * 80)
-    print()
-
-
 def validate_environment():
     """Validate environment."""
     import os
 
     print("Checking runtime environment...")
-    print("-" * 80)
 
     try:
         import transformers
@@ -121,8 +110,6 @@ def validate_environment():
         logger.error("PyTorch is not installed")
         return False
 
-    print("-" * 80)
-    print()
     return True
 
 
@@ -176,40 +163,24 @@ def main():
     print(f"Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print()
 
     logger.info("Starting training...")
-    print("=" * 80)
-    print("Training started - this may take a while, please wait...")
-    print("=" * 80)
-    print()
 
     success = trainer.train()
 
     if success:
-        print()
-        print("=" * 80)
-        print(" " * 25 + "Training completed successfully!")
-        print("=" * 80)
-        print()
+        print("Training completed successfully!")
 
         path_cfg = get_path_config()
         output_path = path_cfg.PROJECT_ROOT / 'checkpoints' / 'lora_moe' / 'text_expert'
         print(f"LoRA weights saved to: {output_path}")
         print(f"Checkpoint directory: {output_path / 'training_checkpoints'}")
-        print()
         print("Next steps:")
         print("  1. Use these weights for inference testing")
         print("  2. Continue training the other experts (Image, FlowChart, General)")
-        print()
 
         return 0
     else:
-        print()
-        print("=" * 80)
-        print(" " * 28 + "Training failed")
-        print("=" * 80)
-        print()
         logger.error("An error occurred during training; check the logs")
         return 1
 

@@ -17,10 +17,7 @@ logger = get_logger('training.train_uml_expert')
 
 def print_header():
     """Print header."""
-    print("=" * 80)
-    print(" " * 30 + "FlowChart Expert Training")
-    print("=" * 80)
-    print()
+    print("FlowChart Expert Training")
 
 
 def print_config(use_4bit: bool, use_rtx4090: bool):
@@ -30,19 +27,16 @@ def print_config(use_4bit: bool, use_rtx4090: bool):
     lora_cfg = get_lora_config('conservative')
 
     print("Training configuration:")
-    print("-" * 80)
     print(f"Expert type: FlowChart Expert")
     print(f"Dataset: uml_dataset.csv (1,500 samples)")
     print(f"Base model: {path_cfg.QWEN3_8B_PATH}")
     print(f"Output directory: checkpoints/lora_moe/uml_expert/")
-    print()
 
     print(f"LoRA configuration:")
     print(f"  - Rank: {lora_cfg.rank}")
     print(f"  - Alpha: {lora_cfg.alpha}")
     print(f"  - Dropout: {lora_cfg.dropout}")
     print(f"  - Target Modules: {lora_cfg.target_modules}")
-    print()
 
     if use_rtx4090:
         print(f"Training parameters (RTX 4090 optimized):")
@@ -67,14 +61,9 @@ def print_config(use_4bit: bool, use_rtx4090: bool):
         print(f"  - Max Seq Length: {train_cfg.max_seq_length}")
         print(f"  - 4-bit quantization: {use_4bit}")
 
-    print("-" * 80)
-    print()
-
-
 def validate_environment():
     """Validate environment."""
     print("Checking runtime environment...")
-    print("-" * 80)
 
     try:
         import transformers
@@ -121,8 +110,6 @@ def validate_environment():
         logger.error("PyTorch is not installed")
         return False
 
-    print("-" * 80)
-    print()
     return True
 
 
@@ -192,42 +179,25 @@ def main():
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
     print(f"  - Dataset: uml_dataset.csv (1,500 rows)")
-    print()
     print("Note: 1,500 samples use the standard 80:10:10 split")
-    print()
 
     logger.info("Starting training...")
-    print("=" * 80)
-    print("Training started - this may take a while, please wait...")
-    print("=" * 80)
-    print()
 
     success = trainer.train()
 
     if success:
-        print()
-        print("=" * 80)
-        print(" " * 25 + "Training completed successfully!")
-        print("=" * 80)
-        print()
+        print("Training completed successfully!")
 
         path_cfg = get_path_config()
         output_path = path_cfg.PROJECT_ROOT / 'checkpoints' / 'lora_moe' / 'uml_expert'
         print(f"LoRA weights saved to: {output_path}")
         print(f"Checkpoint directory: {output_path / 'training_checkpoints'}")
-        print()
         print("Next steps:")
         print("  1. Use these weights for inference testing")
         print("  2. Continue training the General Expert")
-        print()
 
         return 0
     else:
-        print()
-        print("=" * 80)
-        print(" " * 28 + "Training failed")
-        print("=" * 80)
-        print()
         logger.error("An error occurred during training; check the logs")
         return 1
 
