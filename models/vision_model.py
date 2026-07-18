@@ -33,9 +33,10 @@ class VisionModel:
         path_cfg = get_path_config()
         device_cfg = get_device_config()
 
-        self.version = "qwen3"
+        self.version = version or get_vision_model_config().version
+        configured_model_path = path_cfg.get_vision_model_path(self.version)
         if model_path is None:
-            self.model_path = str(path_cfg.get_vision_model_path('qwen3'))
+            self.model_path = str(configured_model_path)
         else:
             self.model_path = model_path
         self.model_name = "Qwen3-VL-8B-Instruct"

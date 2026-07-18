@@ -41,7 +41,7 @@ def print_config(use_4bit: bool, use_rtx4090_opt: bool):
     print("Training configuration:")
     print("-" * 80)
     print(f"Expert type: Text Expert")
-    print(f"Base model: {path_cfg.QWEN_7B_CHAT_PATH}")
+    print(f"Base model: {path_cfg.QWEN3_8B_PATH}")
     print(f"Output directory: checkpoints/lora_moe/text_expert/")
     print()
     print(f"LoRA configuration:")

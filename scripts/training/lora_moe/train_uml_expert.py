@@ -33,7 +33,7 @@ def print_config(use_4bit: bool, use_rtx4090: bool):
     print("-" * 80)
     print(f"Expert type: UML Expert")
     print(f"Dataset: uml_dataset.csv (1,500 samples)")
-    print(f"Base model: {path_cfg.QWEN_7B_CHAT_PATH}")
+    print(f"Base model: {path_cfg.QWEN3_8B_PATH}")
     print(f"Output directory: checkpoints/lora_moe/uml_expert/")
     print()
 

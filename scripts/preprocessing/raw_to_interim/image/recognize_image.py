@@ -23,7 +23,7 @@ def parse_args():
         '--version',
         type=str,
         default='qwen3',
-        choices=['qwen2.5', 'qwen3'],
+        choices=['qwen3'],
         help='Select the vision model version (default: qwen3)'
     )
     parser.add_argument(

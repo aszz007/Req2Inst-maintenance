@@ -42,7 +42,7 @@ def print_config(use_4bit: bool, use_rtx4090_opt: bool):
     print("-" * 80)
     print(f"Expert type: General Expert (fallback expert)")
     print(f"Dataset: text + image + uml_dataset")
-    print(f"Base model: {path_cfg.QWEN_7B_CHAT_PATH}")
+    print(f"Base model: {path_cfg.QWEN3_8B_PATH}")
     print(f"Output directory: checkpoints/lora_moe/general_expert/")
     print()
     print(f"Data sources: all text + all images + 1,500 UML samples")
