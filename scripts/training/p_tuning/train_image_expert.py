@@ -28,10 +28,7 @@ def detect_rtx4090() -> bool:
 
 def print_header():
     """Print header."""
-    print("=" * 80)
-    print(" " * 15 + "P-Tuning v2 Image Expert Training (Prefix Tuning)")
-    print("=" * 80)
-    print()
+    print("P-Tuning v2 Image Expert Training (Prefix Tuning)")
 
 
 def main():
@@ -52,16 +49,12 @@ def main():
         logger.info("Detected RTX 4090; enabling optimized settings")
 
     ptuning_cfg = get_ptuning_config()
-    print("=" * 80)
     print("Comparison experiment: P-Tuning v2 vs LoRA")
-    print("=" * 80)
     print("Method: P-Tuning v2 (Prefix Tuning)")
     print("Configuration:")
     print(f"  - Virtual Tokens: {ptuning_cfg.num_virtual_tokens}")
     print(f"  - Encoder Hidden Size: {ptuning_cfg.encoder_hidden_size}")
     print(f"  - Prefix Projection: {ptuning_cfg.prefix_projection}")
-    print("=" * 80)
-    print()
 
     logger.info("Creating P-Tuning v2 image expert trainer...")
     try:
@@ -88,40 +81,24 @@ def main():
     print(f"Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print()
 
     logger.info("Starting training...")
-    print("=" * 80)
-    print("Training started - this may take a while, please wait...")
-    print("=" * 80)
-    print()
 
     success = trainer.train()
 
     if success:
-        print()
-        print("=" * 80)
-        print(" " * 25 + "Training completed successfully!")
-        print("=" * 80)
-        print()
+        print("Training completed successfully!")
 
         path_cfg = get_path_config()
         output_path = path_cfg.PTUNING_CKPTS['image']
         print(f"P-Tuning v2 weights saved to: {output_path}")
         print(f"Checkpoint directory: {output_path / 'training_checkpoints'}")
-        print()
         print("Next steps:")
         print("  1. Use these weights for inference testing")
         print("  2. Continue training the other experts (Text, FlowChart, General)")
-        print()
 
         return 0
     else:
-        print()
-        print("=" * 80)
-        print(" " * 28 + "Training failed")
-        print("=" * 80)
-        print()
         logger.error("An error occurred during training; check the logs")
         return 1
 
