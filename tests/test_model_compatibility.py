@@ -1,6 +1,7 @@
 """Lightweight compatibility checks for the current Qwen3-only baseline."""
 
 import ast
+import importlib.util
 import subprocess
 import sys
 import unittest
@@ -95,5 +96,29 @@ class ModelCompatibilityTests(unittest.TestCase):
         self.assertIn("Invalid environment type", result.stdout)
 
 
+    def test_expert_registry_uses_current_text_model_version(self):
+        module_path = ROOT / "src/routing/expert_router.py"
+        spec = importlib.util.spec_from_file_location("req2inst_expert_router", module_path)
+        module = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(module)
+
+        versions = [
+            expert.model_version
+            for expert in module.ExpertRouter().list_experts()
+        ]
+        self.assertEqual(versions, ["qwen3_8b"] * 4)
+
+    def test_lora_moe_config_helpers_use_current_base_model_path(self):
+        script_paths = (
+            ROOT / "scripts/training/lora_moe/train_general_expert.py",
+            ROOT / "scripts/training/lora_moe/train_image_expert.py",
+            ROOT / "scripts/training/lora_moe/train_text_expert.py",
+            ROOT / "scripts/training/lora_moe/train_uml_expert.py",
+        )
+        for path in script_paths:
+            source = path.read_text(encoding="utf-8")
+            self.assertNotIn("QWEN_7B_CHAT_PATH", source, str(path))
+            self.assertIn("QWEN3_8B_PATH", source, str(path))
 if __name__ == "__main__":
     unittest.main()

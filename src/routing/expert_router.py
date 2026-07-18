@@ -55,7 +55,7 @@ class ExpertRouter:
         registry['text'].append(ExpertConfig(
             name='text_expert',
             expert_type='text',
-            model_version='qwen-7b',
+            model_version='qwen3_8b',
             dataset_variant=None,
             path=str(self.lora_weights_dir / 'text_expert'),
             is_default=True
@@ -64,7 +64,7 @@ class ExpertRouter:
         registry['image'].append(ExpertConfig(
             name='image_expert',
             expert_type='image',
-            model_version='qwen-7b',
+            model_version='qwen3_8b',
             dataset_variant=None,
             path=str(self.lora_weights_dir / 'image_expert'),
             is_default=True
@@ -73,7 +73,7 @@ class ExpertRouter:
         registry['uml'].append(ExpertConfig(
             name='uml_expert',
             expert_type='uml',
-            model_version='qwen-7b',
+            model_version='qwen3_8b',
             dataset_variant=None,
             path=str(self.lora_weights_dir / 'uml_expert'),
             is_default=True
@@ -82,7 +82,7 @@ class ExpertRouter:
         registry['general'].append(ExpertConfig(
             name='general_expert',
             expert_type='general',
-            model_version='qwen-7b',
+            model_version='qwen3_8b',
             dataset_variant=None,
             path=str(self.lora_weights_dir / 'general_expert'),
             is_default=True
