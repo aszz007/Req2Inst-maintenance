@@ -50,6 +50,22 @@ def test_exp10_keeps_the_last_complete_optional_implementation():
     assert "--debug-ensemble" in source
 
 
+def test_exp10_docs_separate_manuscript_routing_from_later_variants():
+    documentation = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            ROOT / "docs/experiments.md",
+            ROOT / "docs/architecture.md",
+        )
+    )
+
+    assert "Learned Router" in documentation
+    assert "Output Ensemble" in documentation
+    assert "top-2 logit fusion" in documentation
+    assert "v13-v15" in documentation
+    assert "repository-only" in documentation
+
+
 def test_historical_local_experiment_artifacts_remain_untracked():
     historical_artifacts = {
         "evaluation_report.json",

@@ -82,10 +82,12 @@ sources.
 
 `src/utils/enhanced_metrics.py` implements generation, format, and binary
 evaluation reports. `scripts/evaluation/experiments/` contains experiments
-1-11. Experiment 10 is retained as a repository-only advanced-routing and
-output-ensemble exploration; it is not part of the manuscript evaluation or a
-validated paper improvement. Cached predictions and generated plots are local
-artifacts, not source.
+1-11. Experiment 10 contains the manuscript-reported MLP Learned Router and
+Output Ensemble evaluation, along with later repository-only diagnostics and
+weighting explorations. Only the paper-described top-1 selection and top-2 logit
+fusion configuration should be treated as manuscript evidence; later variants
+are not separate validated paper improvements. Cached predictions and generated
+plots are local artifacts, not source.
 
 ### Quality format
 
