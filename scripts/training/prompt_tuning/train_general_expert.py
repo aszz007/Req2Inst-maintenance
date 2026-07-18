@@ -27,16 +27,12 @@ def detect_rtx4090() -> bool:
 
 def print_header():
     """Print header."""
-    print("=" * 80)
-    print(" " * 12 + "Prompt Tuning General Expert Training")
-    print("=" * 80)
-    print()
+    print("Prompt Tuning General Expert Training")
 
 
 def validate_environment() -> bool:
     """Validate environment."""
     print("Checking runtime environment...")
-    print("-" * 80)
 
     try:
         import transformers
@@ -68,8 +64,6 @@ def validate_environment() -> bool:
         logger.error("PyTorch is not installed")
         return False
 
-    print("-" * 80)
-    print()
     return True
 
 
@@ -127,38 +121,21 @@ def main():
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
     print(f"  - Data sources: text + image + FlowChart")
-    print()
     print("Note: The General Expert uses all text + all images + 1,500 FlowChart samples")
-    print()
 
     logger.info("Starting training...")
-    print("=" * 80)
-    print("Training started - this may take a while, please wait...")
-    print("=" * 80)
-    print()
 
     success = trainer.train()
 
     if success:
-        print()
-        print("=" * 80)
-        print(" " * 25 + "Training completed successfully!")
-        print("=" * 80)
-        print()
+        print("Training completed successfully!")
         print(f"Prompt Tuning weights saved to: {trainer.output_dir}")
         print(f"Checkpoint directory: {trainer.output_dir / 'training_checkpoints'}")
-        print()
         print("Next steps:")
         print("  1. Use these weights for inference testing")
         print("  2. All experts are trained; you can start the comparison experiments")
-        print()
         return 0
     else:
-        print()
-        print("=" * 80)
-        print(" " * 28 + "Training failed")
-        print("=" * 80)
-        print()
         logger.error("An error occurred during training; check the logs")
         return 1
 

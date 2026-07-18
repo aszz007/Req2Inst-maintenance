@@ -12,6 +12,34 @@ MULTI_EXPERT_TRAINING = {
     "FlowChart Expert Training": ROOT / "scripts/training/lora_moe/train_uml_expert.py",
     "General Expert Training": ROOT / "scripts/training/lora_moe/train_general_expert.py",
 }
+PROMPT_TUNING_TRAINING = {
+    "Prompt Tuning Text Expert Training": (
+        ROOT / "scripts/training/prompt_tuning/train_text_expert.py"
+    ),
+    "Prompt Tuning Image Expert Training": (
+        ROOT / "scripts/training/prompt_tuning/train_image_expert.py"
+    ),
+    "Prompt Tuning FlowChart Expert Training": (
+        ROOT / "scripts/training/prompt_tuning/train_uml_expert.py"
+    ),
+    "Prompt Tuning General Expert Training": (
+        ROOT / "scripts/training/prompt_tuning/train_general_expert.py"
+    ),
+}
+P_TUNING_TRAINING = {
+    "P-Tuning v2 Text Expert Training (Prefix Tuning)": (
+        ROOT / "scripts/training/p_tuning/train_text_expert.py"
+    ),
+    "P-Tuning v2 Image Expert Training (Prefix Tuning)": (
+        ROOT / "scripts/training/p_tuning/train_image_expert.py"
+    ),
+    "P-Tuning v2 FlowChart Expert Training (Prefix Tuning)": (
+        ROOT / "scripts/training/p_tuning/train_uml_expert.py"
+    ),
+    "P-Tuning v2 General Expert Training (Prefix Tuning)": (
+        ROOT / "scripts/training/p_tuning/train_general_expert.py"
+    ),
+}
 
 
 def _print_calls(tree: ast.AST) -> list[ast.Call]:
@@ -135,3 +163,64 @@ def test_multi_expert_training_console_output_keeps_operational_information():
         for message in common_messages:
             assert message in source
         assert "Training started - this may take a while" not in source
+
+
+def test_prompt_based_training_console_output_has_no_display_noise():
+    paths = (*PROMPT_TUNING_TRAINING.values(), *P_TUNING_TRAINING.values())
+    for path in paths:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for call in _print_calls(tree):
+            assert call.args, f"Empty print call remains in {path}"
+            value = _constant_text(call.args[0])
+            if value is None:
+                continue
+            stripped = value.strip()
+            assert not stripped or set(stripped) not in ({"="}, {"-"})
+
+
+def test_prompt_tuning_console_output_keeps_operational_information():
+    common_messages = (
+        "Checking runtime environment...",
+        "Transformers version:",
+        "PEFT version:",
+        "PyTorch version:",
+        "Dataset statistics:",
+        "Training samples:",
+        "Validation samples:",
+        "Training completed successfully!",
+        "Prompt Tuning weights saved to:",
+        "Checkpoint directory:",
+        "An error occurred during training; check the logs",
+    )
+    for header, path in PROMPT_TUNING_TRAINING.items():
+        source = path.read_text(encoding="utf-8")
+        assert header in source
+        for message in common_messages:
+            assert message in source
+        assert "Training started - this may take a while" not in source
+        assert "Training failed" not in source
+
+
+def test_p_tuning_console_output_keeps_operational_information():
+    common_messages = (
+        "Comparison experiment: P-Tuning v2 vs LoRA",
+        "Method: P-Tuning v2 (Prefix Tuning)",
+        "Configuration:",
+        "Virtual Tokens:",
+        "Encoder Hidden Size:",
+        "Prefix Projection:",
+        "Dataset statistics:",
+        "Training samples:",
+        "Validation samples:",
+        "Training completed successfully!",
+        "P-Tuning v2 weights saved to:",
+        "Checkpoint directory:",
+        "An error occurred during training; check the logs",
+    )
+    for header, path in P_TUNING_TRAINING.items():
+        source = path.read_text(encoding="utf-8")
+        assert header in source
+        for message in common_messages:
+            assert message in source
+        assert "Training started - this may take a while" not in source
+        assert "Training failed" not in source
