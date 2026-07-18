@@ -107,6 +107,21 @@ Train selected components:
 python scripts/training/train_all_experts.py --method lora_moe --expert text
 ```
 
+Train the manuscript-aligned LoRA (Unified) comparison model. By default, all
+three input domains use the unified General prompt template:
+
+```bash
+python scripts/training/lora_single/train_unified_expert.py
+```
+
+The earlier domain-template variant remains available as an explicit
+reproducibility option:
+
+```bash
+python scripts/training/lora_single/train_unified_expert.py \
+  --use_domain_templates
+```
+
 Run selected or cached experiments:
 
 ```bash
