@@ -2,7 +2,7 @@
 """
 Experiment 1: Baseline Comparison
 
-Compare retrieval/rule-based baselines against LoRA-MoE on the text expert
+Compare retrieval/rule-based baselines against Multi-Expert LoRA on the text expert
 test set.
 
 Methods evaluated:
@@ -10,7 +10,7 @@ Methods evaluated:
   - LSA (retrieval)
   - Template Filling (rule-based)
   - Zero-Shot (base Qwen3-8B, no LoRA)
-  - LoRA-MoE (text expert fine-tuned)
+  - Multi-Expert LoRA (text expert fine-tuned)
 
 Output: outputs/evaluations/experiments/exp1_baseline_comparison/
 """
@@ -181,10 +181,10 @@ def run_lora_moe(test_data, args):
     cache_path = CACHE_DIR / 'lora_moe' / 'text_predictions.json'
     cached = load_predictions_cache(cache_path.parent, cache_path.name)
     if cached and not args.force_regenerate:
-        logger.info('LoRA-MoE: loading from cache')
+        logger.info('Multi-Expert LoRA: loading from cache')
         return cached
 
-    logger.info('LoRA-MoE: loading text expert and generating...')
+    logger.info('Multi-Expert LoRA: loading text expert and generating...')
     from src.experts import TextExpert
 
     inputs = [d['input'] for d in test_data]
@@ -195,7 +195,7 @@ def run_lora_moe(test_data, args):
 
     expert = TextExpert(lora_path=None, use_4bit=True)
     if not expert.load_model():
-        logger.error('Failed to load LoRA-MoE text expert')
+        logger.error('Failed to load Multi-Expert LoRA text expert')
         return None
 
     try:
@@ -220,7 +220,7 @@ def plot_comparison(metrics_by_method, exp_dir, test_mode=False):
         'lsa': 'LSA',
         'template': 'Template',
         'zeroshot': 'Zero-Shot',
-        'lora_moe': 'LoRA-MoE',
+        'lora_moe': 'Multi-Expert LoRA',
     }
 
     methods = [m for m in METHODS if m in metrics_by_method]

@@ -1,4 +1,4 @@
-"""Convert UML inputs into structured JSON descriptions."""
+"""Convert FlowChart inputs into structured JSON descriptions."""
 
 from pathlib import Path
 from typing import Dict, Optional
@@ -16,7 +16,7 @@ def get_vision_model() -> VisionModel:
     """Return vision model."""
     global _vision_model
     if _vision_model is None:
-        logger.info("Initializing the vision model (Qwen3-VL-8B for UML recognition)...")
+        logger.info("Initializing the vision model (Qwen3-VL-8B for FlowChart recognition)...")
         _vision_model = VisionModel(version='qwen3')
     return _vision_model
 
@@ -26,8 +26,8 @@ def convert_uml_to_json(
     save_path: Optional[str] = None,
     max_retries: int = 2
 ) -> Dict:
-    """Convert UML to JSON."""
-    logger.info(f"Processing UML diagram: {Path(uml_path).name}")
+    """Convert FlowChart to JSON."""
+    logger.info(f"Processing FlowChart diagram: {Path(uml_path).name}")
 
     try:
         start_time = time.time()
@@ -59,7 +59,7 @@ def convert_uml_to_json(
         return output_data
 
     except Exception as e:
-        logger.error(f"UML processing failed: {e}")
+        logger.error(f"FlowChart processing failed: {e}")
         return {
             "description": "",
             "recognition_status": "failed",
@@ -72,7 +72,7 @@ def batch_convert_umls(
     output_dir: Optional[str] = None,
     progress_callback: Optional[callable] = None
 ) -> Dict:
-    """Convert UML inputs in batches."""
+    """Convert FlowChart inputs in batches."""
     results = []
     success = 0
     failed = 0

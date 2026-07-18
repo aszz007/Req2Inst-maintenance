@@ -1,4 +1,4 @@
-"""Generate UML-domain crowdsourcing instructions with browser-assisted batching."""
+"""Generate FlowChart-domain crowdsourcing instructions with browser-assisted batching."""
 
 import os
 import time
@@ -857,7 +857,7 @@ class GPTAutomator:
     def process_batch(self, uml_data_batch, start_idx):
         """Process batch."""
         print(f"\n{'=' * 60}")
-        print(f"Processing record {start_idx + 1}-{start_idx + len(uml_data_batch)} UML records")
+        print(f"Processing record {start_idx + 1}-{start_idx + len(uml_data_batch)} FlowChart records")
         print(f"{'=' * 60}")
 
         first_header = uml_data_batch[0][0] if uml_data_batch else ""
@@ -1051,7 +1051,7 @@ class GPTAutomator:
             df = df.loc[selected_indices].reset_index(drop=True)
             total_rows = len(df)
 
-        print(f"Total to process: {total_rows} UML records\n")
+        print(f"Total to process: {total_rows} FlowChart records\n")
         print(f"Refresh strategy: every {REFRESH_INTERVAL} items ({REFRESH_INTERVAL//BATCH_SIZE} batches) or refresh the conversation after a retry\n")
 
         for i in range(0, total_rows, BATCH_SIZE):
@@ -1086,7 +1086,7 @@ class GPTAutomator:
 
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
         print(f"\n File processing complete: {os.path.basename(csv_path)}")
-        print(f"  Processed {total_rows} UML records\n")
+        print(f"  Processed {total_rows} FlowChart records\n")
 
         return total_rows
 
@@ -1094,7 +1094,7 @@ class GPTAutomator:
         """Run the workflow."""
         start_time = datetime.now()
         print(f"\n{'=' * 60}")
-        print(f"{'Batch UML business-logic instruction generation system':^60}")
+        print(f"{'Batch FlowChart business-logic instruction generation system':^60}")
         print(f"{'=' * 60}")
         print(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Mode: {'Test mode (one item per domain, 10 items total)' if self.test_mode else 'Full mode'}")
@@ -1121,7 +1121,7 @@ class GPTAutomator:
             print(f"{'=' * 60}")
             print(f"End time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"Elapsed time: {duration}")
-            print(f"Total processed: {total_processed} UML records")
+            print(f"Total processed: {total_processed} FlowChart records")
             print(f"Succeeded: {total_processed - len(self.error_log)} items")
             print(f"Failed: {len(self.error_log)} items")
 

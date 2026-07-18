@@ -1,4 +1,4 @@
-"""Implement the UML-domain expert."""
+"""Implement the FlowChart-domain expert."""
 
 import json
 from pathlib import Path
@@ -40,7 +40,7 @@ def _build_prompt_for_domain(input_data):
 
 
 class UMLExpert(BaseExpert):
-    """Generate instructions for UML-domain inputs."""
+    """Generate instructions for FlowChart-domain inputs."""
 
     def __init__(self,
                  lora_path: Optional[str] = None,
@@ -74,7 +74,7 @@ class UMLExpert(BaseExpert):
             use_4bit=use_4bit
         )
 
-        logger.info("UML expert initialized")
+        logger.info("FlowChart expert initialized")
 
     def generate_instruction(self, input_data: Union[str, dict], sample_index: int = None) -> str:
         """Generate instruction."""
@@ -88,7 +88,7 @@ class UMLExpert(BaseExpert):
             show_debug = sample_index is None or sample_index < 3
 
             if show_debug:
-                logger.info("[UML expert debug] Raw input data:")
+                logger.info("[FlowChart expert debug] Raw input data:")
                 logger.info(f"Data type: {type(input_data).__name__}")
 
                 if isinstance(input_data, dict):

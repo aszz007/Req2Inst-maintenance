@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 """
-Experiment 7: UML Expert LoRA Hyperparameter Optimization
+Experiment 7: FlowChart Expert LoRA Hyperparameter Optimization
 
 Motivation: Exp4 found text_r64_a128_d0.05 as the optimal config for Text Expert,
-and this was applied globally to all experts including UML. However, UML Expert
+and this was applied globally to all experts including FlowChart. However, FlowChart Expert
 showed no improvement or slight degradation compared to the original default.
-UML data has distinct characteristics (avg 1063 tokens, highly structured
+FlowChart data has distinct characteristics (avg 1063 tokens, highly structured
 relational JSON) that may actually prefer a lower-rank configuration with
 stronger regularisation.
 
-Research question: Is rank=64 truly optimal for UML, or does UML peak at a
+Research question: Is rank=64 truly optimal for FlowChart, or does FlowChart peak at a
 lower rank where generalisation matters more than raw capacity?
 
-Baseline: Reuses the existing lora_moe UML checkpoint (trained at r64/a128/d0.05,
+Baseline: Reuses the existing lora_moe FlowChart checkpoint (trained at r64/a128/d0.05,
 the current LoRATrainer default after Exp4's global parameter transfer).
 
 CONFIGS design (12 configurations):
   - (64, 128, 0.05) baseline — reuse LORA_MOE_CKPTS['uml'], NO retrain
-  - Sweep downward: r8, r16(×3 dropout), r32(×3 dropout) — test if UML prefers lower rank
-  - Intermediate: r48 — does UML peak between r32 and r64?
+  - Sweep downward: r8, r16(×3 dropout), r32(×3 dropout) — test if FlowChart prefers lower rank
+  - Intermediate: r48 — does FlowChart peak between r32 and r64?
   - Same-rank dropout ablation: r64 with d0.0 and d0.1
-  - Upper bound: r96 — does further capacity help UML at all?
+  - Upper bound: r96 — does further capacity help FlowChart at all?
 
 Output: outputs/evaluations/experiments/exp7_uml_hyperparameters/
 """
@@ -54,7 +54,7 @@ path_cfg = get_path_config()
 CACHE_DIR = path_cfg.OUTPUTS_DIR / 'inference_cache' / 'lora_moe_exp7'
 EXP_DIR   = path_cfg.OUTPUTS_DIR / 'evaluations' / 'experiments' / 'exp7_uml_hyperparameters'
 
-# Baseline: the existing UML checkpoint was trained with the post-Exp4
+# Baseline: the existing FlowChart checkpoint was trained with the post-Exp4
 # LoRATrainer defaults: rank=64, alpha=128, dropout=0.05.
 BASELINE_RANK    = 64
 BASELINE_ALPHA   = 128
@@ -71,10 +71,10 @@ CONFIGS = [
     (32, 64,  0.0),
     (32, 64,  0.05),
     (32, 64,  0.1),
-    (48, 96,  0.05),   # intermediate: does UML peak before r64?
+    (48, 96,  0.05),   # intermediate: does FlowChart peak before r64?
     (64, 128, 0.0),    # same rank as baseline, dropout ablation
     (64, 128, 0.1),    # same rank as baseline, dropout ablation
-    (96, 192, 0.05),   # upper bound: does more capacity help UML at all?
+    (96, 192, 0.05),   # upper bound: does more capacity help FlowChart at all?
 ]
 
 
@@ -105,7 +105,7 @@ def _is_baseline(rank, alpha, dropout):
 
 
 def _get_ckpt_path(rank, alpha, dropout):
-    """Baseline reuses the production UML ckpt; all others go to lora_moe_exp7/."""
+    """Baseline reuses the production FlowChart ckpt; all others go to lora_moe_exp7/."""
     if _is_baseline(rank, alpha, dropout):
         return path_cfg.LORA_MOE_CKPTS['uml']
     return path_cfg.CHECKPOINTS_DIR / 'lora_moe_exp7' / _config_name(rank, alpha, dropout)
@@ -128,7 +128,7 @@ def train_config(rank, alpha, dropout, args):
         logger.info(f'Checkpoint already exists; skipping training: {ckpt_path}')
         return
 
-    logger.info(f'Training UML configuration r={rank} a={alpha} d={dropout} -> {ckpt_path}')
+    logger.info(f'Training FlowChart configuration r={rank} a={alpha} d={dropout} -> {ckpt_path}')
     from src.training.lora_trainer import LoRATrainer
 
     trainer = LoRATrainer(
@@ -153,7 +153,7 @@ def run_inference(rank, alpha, dropout, test_data, args):
     Returns the loaded cache dict, or None on failure.
 
     Note on batch_size:
-      UML sequences average 1063 tokens (95th-percentile 1554 tokens).
+      FlowChart sequences average 1063 tokens (95th-percentile 1554 tokens).
       Training already uses batch=1 to avoid OOM.  For inference we use
       batch_size=2 as a safe default; reduce further if OOM occurs.
     """
@@ -246,7 +246,7 @@ def plot_rank_vs_rouge(config_results, exp_dir):
 
     ax.set_xlabel('LoRA Rank')
     ax.set_ylabel('ROUGE-L (Mean over Dropout Settings)')
-    ax.set_title('Exp7: UML Expert — ROUGE-L vs LoRA Rank')
+    ax.set_title('Exp7: FlowChart Expert — ROUGE-L vs LoRA Rank')
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
@@ -309,7 +309,7 @@ def plot_all_configs_bar(config_results, exp_dir):
         ax.legend(fontsize=8)
 
     ax.set_xlabel('ROUGE-L')
-    ax.set_title('Exp7: UML Expert — All Configs ROUGE-L Comparison\n'
+    ax.set_title('Exp7: FlowChart Expert — All Configs ROUGE-L Comparison\n'
                  '(green = better than baseline, red = worse, blue = baseline)')
     ax.grid(axis='x', alpha=0.3)
     plt.tight_layout()
@@ -353,7 +353,7 @@ def plot_heatmap_dropout_alpha(config_results, exp_dir, fixed_rank=32):
     ax.set_yticklabels([str(d) for d in unique_dropouts])
     ax.set_xlabel('Alpha')
     ax.set_ylabel('Dropout')
-    ax.set_title(f'Exp7: UML ROUGE-L Heatmap (rank={fixed_rank})')
+    ax.set_title(f'Exp7: FlowChart ROUGE-L Heatmap (rank={fixed_rank})')
     for i in range(len(unique_dropouts)):
         for j in range(len(unique_alphas)):
             ax.text(j, i, f'{matrix[i, j]:.3f}',
@@ -369,7 +369,7 @@ def plot_dropout_effect(config_results, exp_dir):
     """
     Line chart: for each rank that has multiple dropout settings,
     ROUGE-L vs dropout.
-    Reveals whether UML is more regularisation-sensitive than Text.
+    Reveals whether FlowChart is more regularisation-sensitive than Text.
     """
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
@@ -398,7 +398,7 @@ def plot_dropout_effect(config_results, exp_dir):
 
     ax.set_xlabel('Dropout')
     ax.set_ylabel('ROUGE-L')
-    ax.set_title('Exp7: UML Expert — Dropout Effect per Rank')
+    ax.set_title('Exp7: FlowChart Expert — Dropout Effect per Rank')
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
@@ -411,7 +411,7 @@ def plot_dropout_effect(config_results, exp_dir):
 def plot_uml_vs_text_transfer(config_results, exp_dir):
     """
     Bar chart comparing the text-transfer baseline (r64, applied from Exp4)
-    against the best UML-specific config found in Exp7.
+    against the best FlowChart-specific config found in Exp7.
 
     Directly answers: does domain-specific hyperparameter search beat
     cross-modal parameter transfer?
@@ -440,7 +440,7 @@ def plot_uml_vs_text_transfer(config_results, exp_dir):
     colors = ['#aec6cf']
 
     if best_key != baseline_key:
-        labels.append(f'Best UML-Specific\n({_config_name(*best_key)})')
+        labels.append(f'Best FlowChart-Specific\n({_config_name(*best_key)})')
         values.append(best_score)
         colors.append('#77dd77' if best_score >= baseline_score else '#ff9999')
 
@@ -473,7 +473,7 @@ def plot_uml_vs_text_transfer(config_results, exp_dir):
 
     ax.set_ylim(0, max(values) * 1.25)
     ax.set_ylabel('ROUGE-L')
-    ax.set_title('Exp7: Cross-Modal Transfer vs UML-Specific Optimisation')
+    ax.set_title('Exp7: Cross-Modal Transfer vs FlowChart-Specific Optimisation')
     ax.grid(axis='y', alpha=0.3)
     plt.tight_layout()
     path = plots_dir / 'uml_vs_text_transfer.png'
@@ -486,14 +486,14 @@ def plot_uml_vs_text_transfer(config_results, exp_dir):
 
 def run(args):
     """Run the workflow."""
-    logger.info('Experiment 7: UML expert LoRA hyperparameter optimization')
+    logger.info('Experiment 7: FlowChart expert LoRA hyperparameter optimization')
     logger.info(f'Baseline: rank={BASELINE_RANK}, alpha={BASELINE_ALPHA}, '
-                f'dropout={BASELINE_DROPOUT} (reusing the lora_moe UML checkpoint)')
+                f'dropout={BASELINE_DROPOUT} (reusing the lora_moe FlowChart checkpoint)')
     logger.info(f'Total configurations: {len(CONFIGS)}')
 
     # UMLDatasetLoader uses load_csv_file() (singular),
     # unlike TextDatasetLoader.load_csv_files() (plural) used in exp4
-    logger.info('Loading UML dataset...')
+    logger.info('Loading FlowChart dataset...')
     all_data = UMLDatasetLoader().load_csv_file()
     _, _, test_data = split_dataset_for_expert(all_data, 'uml')
     logger.info(f'Test samples: {len(test_data)}')
@@ -650,7 +650,7 @@ def _delete_caches_for_rerun(rerun_configs_str):
 def main():
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
-        description='Exp7: UML Expert LoRA hyperparameter optimization'
+        description='Exp7: FlowChart Expert LoRA hyperparameter optimization'
     )
     parser.add_argument('--force-regenerate', action='store_true',
                         help='Rerun inference even if a cache exists')

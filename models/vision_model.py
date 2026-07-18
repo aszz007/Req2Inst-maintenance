@@ -1,4 +1,4 @@
-"""Provide Qwen3-VL-8B-Instruct image and UML recognition."""
+"""Provide Qwen3-VL-8B-Instruct image and FlowChart recognition."""
 
 import torch
 import torch.nn.functional as F
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 
 
 class VisionModel:
-    """Recognize image and UML inputs with Qwen3-VL."""
+    """Recognize image and FlowChart inputs with Qwen3-VL."""
 
     def __init__(self, model_path: Optional[str] = None, version: str = None):
         """Initialize the instance."""
@@ -63,7 +63,7 @@ class VisionModel:
         logger.info(f"GPU information: {device_cfg.get_gpu_info()}")
         logger.info(f"Quantization: {'4-bit' if self.use_quantization else 'FP16 (no quantization)'}")
         logger.info(f"GPU profile: {self.gpu_tier.upper()} tier")
-        logger.info(f"UML generation tokens: {self.uml_gen_config['max_new_tokens']}, image generation tokens: {self.image_gen_config['max_new_tokens']}")
+        logger.info(f"FlowChart generation tokens: {self.uml_gen_config['max_new_tokens']}, image generation tokens: {self.image_gen_config['max_new_tokens']}")
         logger.info(f"Streaming output: {'enabled' if self.enable_streaming else 'disabled'}")
 
         gc.collect()
@@ -347,13 +347,13 @@ class VisionModel:
 
     def recognize_uml(self, uml_path: str, max_retries: int = 2, prompt: Optional[str] = None,
                       streaming: Optional[bool] = None) -> Dict:
-        """Recognize UML."""
+        """Recognize FlowChart."""
         if prompt is None:
             prompt = UMLInstructionTemplate.get_recognition_prompt()
 
         use_streaming = streaming if streaming is not None else self.enable_streaming
 
-        logger.info(f"Recognizing UML diagram: {Path(uml_path).name}")
+        logger.info(f"Recognizing FlowChart diagram: {Path(uml_path).name}")
         logger.info(f"Generation configuration: max_tokens={self.uml_gen_config['max_new_tokens']}, temp={self.uml_gen_config['temperature']}")
         logger.info(f"Streaming output: {'enabled' if use_streaming else 'disabled'}")
 
@@ -373,9 +373,9 @@ class VisionModel:
 
                 if result['success'] or attempt == max_retries - 1:
                     if result['success']:
-                        logger.info("UML recognition succeeded")
+                        logger.info("FlowChart recognition succeeded")
                     else:
-                        logger.warning("UML recognition failed and the maximum number of retries has been reached")
+                        logger.warning("FlowChart recognition failed and the maximum number of retries has been reached")
                     return result
                 else:
                     logger.warning(f"Attempt {attempt + 1} failed; retrying...")
@@ -383,7 +383,7 @@ class VisionModel:
 
             except Exception as e:
                 if attempt == max_retries - 1:
-                    logger.error(f"UML recognition failed: {e}")
+                    logger.error(f"FlowChart recognition failed: {e}")
                     return {
                         'description': f"Recognition failed: {str(e)}",
                         'success': False,
@@ -580,7 +580,7 @@ class VisionModel:
             }
 
     def _parse_uml_response(self, response: str, uml_path: str) -> Dict:
-        """Parse UML response."""
+        """Parse FlowChart response."""
         try:
             json_str = self._extract_json(response) or response
 
@@ -598,7 +598,7 @@ class VisionModel:
             return {"description": json.dumps(result, ensure_ascii=False), "success": True}
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse UML JSON: {e}")
+            logger.error(f"Failed to parse FlowChart JSON: {e}")
             return {
                 'description': response[:500] if response else "",
                 'success': False,

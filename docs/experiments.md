@@ -6,12 +6,12 @@ The canonical orchestrator is
 | No. | Script | Purpose |
 | --- | --- | --- |
 | 1 | `exp1_baseline_comparison.py` | Baseline method comparison |
-| 2 | `exp2_compare_finetuning_methods.py` | Fine-tuning method comparison |
-| 3 | `exp3_moe_architecture_validation.py` | MoE architecture validation |
+| 2 | `exp2_compare_finetuning_methods.py` | Paper-aligned fine-tuning method comparison plus repository-only full fine-tuning |
+| 3 | `exp3_moe_architecture_validation.py` | Multi-expert architecture validation |
 | 4 | `exp4_lora_hyperparameter_optimization.py` | LoRA hyperparameter search |
 | 5 | `exp5_data_efficiency_analysis.py` | Data-efficiency analysis |
 | 6 | `exp6_fewshot_vs_finetuning.py` | Few-shot versus fine-tuning |
-| 7 | `exp7_uml_hyperparameter_optimization.py` | UML hyperparameter search |
+| 7 | `exp7_uml_hyperparameter_optimization.py` | FlowChart expert hyperparameter search |
 | 8 | `exp8_inference_efficiency.py` | Inference-efficiency analysis |
 | 9 | `exp9_routing_strategy.py` | Routing strategy comparison |
 | 10 | `exp10_advanced_routing.py` | Advanced routing strategies |

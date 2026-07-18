@@ -1,4 +1,4 @@
-"""Match UML records and build the interim UML dataset."""
+"""Match FlowChart records and build the interim FlowChart dataset."""
 
 import json
 import csv
@@ -163,7 +163,7 @@ class DatasetBuilder:
     ) -> str:
         """Build CSV dataset."""
         print("="*80)
-        print(" "*25 + "UML Dataset Builder")
+        print(" "*25 + "FlowChart Dataset Builder")
         print("="*80)
 
         image_folder = Path(image_folder)
@@ -290,11 +290,11 @@ def main():
 
 
     print("="*80)
-    print(" "*20 + "UML Use Case Diagram Dataset Builder")
+    print(" "*20 + "FlowChart Use Case Diagram Dataset Builder")
     print("="*80)
     print(f"Purpose: Convert images and JSON results into a CSV dataset")
     print(f"Output format: Header | Description | Instruction")
-    print(f"Description contents: UML recognition information only (actors, use_cases, etc.)")
+    print(f"Description contents: FlowChart recognition information only (actors, use_cases, etc.)")
     print(f"Filtered fields: image_path, image_name, success, timestamp")
     print("="*80 + "\n")
 

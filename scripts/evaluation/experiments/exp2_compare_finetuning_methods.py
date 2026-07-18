@@ -43,6 +43,20 @@ EXP_DIR = path_cfg.OUTPUTS_DIR / 'evaluations' / 'experiments' / 'exp2_finetunin
 METHODS = ['lora_moe', 'lora_single', 'p_tuning', 'prompt_tuning', 'full_finetuning']
 EXPERT_TYPES = ['text', 'image', 'uml', 'general']
 
+METHOD_DISPLAY_NAMES = {
+    'lora_moe': 'Multi-Expert LoRA',
+    'lora_single': 'LoRA (Unified)',
+    'p_tuning': 'P-Tuning v2',
+    'prompt_tuning': 'Prompt Tuning',
+    'full_finetuning': 'Full Fine-Tuning (repository-only)',
+}
+EXPERT_DISPLAY_NAMES = {
+    'text': 'Text',
+    'image': 'Image',
+    'uml': 'FlowChart',
+    'general': 'General',
+}
+
 # P-Tuning v2 and Prompt Tuning use soft prompt embeddings trained in FP16/BF16.
 # Loading them onto a 4bit quantized base causes attention distribution collapse
 # (outputs random vocabulary tokens). These methods must run in FP16 during inference.
@@ -182,9 +196,13 @@ def plot_grouped_bar(results_table, exp_dir):
             q = results_table[key].get('generation_quality', {})
             values = [q.get(k, 0) for k in metric_keys]
             offset = (i - len(METHODS) / 2) * width + width / 2
-            ax.bar(x + offset, values, width, label=method, color=method_colors[i % 5])
+            ax.bar(
+                x + offset, values, width,
+                label=METHOD_DISPLAY_NAMES[method],
+                color=method_colors[i % 5],
+            )
 
-        ax.set_title(f'Exp2: Fine-tuning Method Comparison - {expert_type.capitalize()} Expert')
+        ax.set_title(f'Exp2: Fine-tuning Method Comparison - {EXPERT_DISPLAY_NAMES[expert_type]} Expert')
         ax.set_xticks(x)
         ax.set_xticklabels(metric_labels)
         ax.set_ylabel('Score')
@@ -213,7 +231,7 @@ def run(args):
     results_table = {}
 
     for expert_type in EXPERT_TYPES:
-        logger.info(f'\n=== Expert Type: {expert_type} ===')
+        logger.info(f'\n=== Expert Type: {EXPERT_DISPLAY_NAMES[expert_type]} ===')
         try:
             test_data = _load_test_data(expert_type)
             logger.info(f'Test samples: {len(test_data)}')
@@ -222,7 +240,7 @@ def run(args):
             continue
 
         for method in METHODS:
-            label = f'{method}/{expert_type}'
+            label = f'{METHOD_DISPLAY_NAMES[method]}/{EXPERT_DISPLAY_NAMES[expert_type]}'
             logger.info(f'\n--- {label} ---')
 
             # --only-missing: skip if a valid full-run cache exists.

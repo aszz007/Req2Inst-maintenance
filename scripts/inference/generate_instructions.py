@@ -1,4 +1,4 @@
-"""Generate crowdsourcing instructions from text, image, or UML inputs."""
+"""Generate crowdsourcing instructions from text, image, or FlowChart inputs."""
 
 import argparse
 import json
@@ -61,7 +61,7 @@ Examples:
         type=str,
         default='qwen3',
         choices=['qwen3'],
-        help='Vision model version for image/UML recognition (default: qwen3, uses Qwen3-VL-8B)'
+        help='Vision model version for image/FlowChart recognition (default: qwen3, uses Qwen3-VL-8B)'
     )
 
     parser.add_argument(
@@ -92,7 +92,7 @@ def scan_input_directory(input_dir: Path) -> Dict[str, List[Path]]:
             - 'text': .txt files
             - 'json': .json files (already recognized)
             - 'image': image files (.jpg, .png, etc.)
-            - 'uml': UML diagram files (in uml/ subdirectory)
+            - 'uml': FlowChart diagram files (in uml/ subdirectory)
     """
     categorized = {
         'text': [],
@@ -121,7 +121,7 @@ def scan_input_directory(input_dir: Path) -> Dict[str, List[Path]]:
             categorized['image'].extend(image_dir.glob(f'*{ext.upper()}'))
         categorized['image'] = list(set(categorized['image']))  # Remove duplicates
 
-    # UML files
+    # FlowChart files
     uml_dir = input_dir / 'uml'
     if uml_dir.exists():
         image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.gif']
@@ -358,7 +358,7 @@ def main():
         logger.info(f"Please place files in subdirectories under: {input_dir}")
         logger.info("  - text/: .txt files (text requirements)")
         logger.info("  - image/: .jpg/.png files (images to annotate)")
-        logger.info("  - uml/: .jpg/.png files (UML diagrams)")
+        logger.info("  - uml/: .jpg/.png files (FlowChart diagrams)")
         return
 
     # Prepare inputs
@@ -389,9 +389,9 @@ def main():
         else:
             logger.error("Image recognition failed")
 
-    # 4. Recognize and load UML files
+    # 4. Recognize and load FlowChart files
     if categorized_files['uml'] and not args.no_recognition:
-        logger.info(f"\nRecognizing {len(categorized_files['uml'])} UML files...")
+        logger.info(f"\nRecognizing {len(categorized_files['uml'])} FlowChart files...")
         json_file = recognize_images(
             categorized_files['uml'],
             'uml',
@@ -400,9 +400,9 @@ def main():
         if json_file and json_file.exists():
             recognized_inputs = load_recognition_results(json_file, 'uml')
             all_inputs.extend(recognized_inputs)
-            logger.info(f"Loaded {len(recognized_inputs)} recognized UML diagrams")
+            logger.info(f"Loaded {len(recognized_inputs)} recognized FlowChart diagrams")
         else:
-            logger.error("UML recognition failed")
+            logger.error("FlowChart recognition failed")
 
     if not all_inputs:
         logger.error("No valid inputs to process!")

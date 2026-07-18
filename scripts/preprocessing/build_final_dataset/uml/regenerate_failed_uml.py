@@ -1,4 +1,4 @@
-"""Repair failed UML-domain instruction batches."""
+"""Repair failed FlowChart-domain instruction batches."""
 
 import os
 import time
@@ -286,7 +286,7 @@ Please generate instructions for the following {count} UML use case diagram(s). 
 
 
 class UMLBatchRepairer:
-    """Repair failed UML-instruction batches."""
+    """Repair failed FlowChart-instruction batches."""
 
     def __init__(self):
         self.driver = None
@@ -830,7 +830,7 @@ class UMLBatchRepairer:
         return result
 
     def parse_uml_instruction(self, response_text):
-        """Parse UML instruction."""
+        """Parse FlowChart instruction."""
         pattern = r'【图像\d+】\s*\n(.*?)(?=【图像\d+】|$)'
         matches = re.findall(pattern, response_text, re.DOTALL)
 
@@ -1211,7 +1211,7 @@ class UMLBatchRepairer:
         """Run the workflow."""
         start_time = datetime.now()
         print(f"\n{'=' * 60}")
-        print(f"{'UML batch integrity repair system':^60}")
+        print(f"{'FlowChart batch integrity repair system':^60}")
         print(f"{'=' * 60}")
         print(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Batch size: {BATCH_SIZE} items/batch")

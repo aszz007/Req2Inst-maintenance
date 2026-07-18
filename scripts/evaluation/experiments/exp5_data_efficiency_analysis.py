@@ -213,7 +213,7 @@ def plot_learning_curves(fraction_results, exp_dir):
 
     fig, ax = plt.subplots(figsize=(9, 5))
     colors = {'lora_moe': '#1f77b4', 'lora_single': '#ff7f0e', 'full_finetuning': '#2ca02c'}
-    labels = {'lora_moe': 'LoRA-MoE', 'lora_single': 'LoRA-Single', 'full_finetuning': 'Full FT'}
+    labels = {'lora_moe': 'Multi-Expert LoRA', 'lora_single': 'LoRA (Unified)', 'full_finetuning': 'Full Fine-Tuning (repository-only)'}
 
     for method in METHODS:
         xs, ys = [], []

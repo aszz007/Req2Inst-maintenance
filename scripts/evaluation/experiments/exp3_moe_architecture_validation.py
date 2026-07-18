@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Experiment 3: MoE Architecture Validation
+Experiment 3: Multi-Expert Architecture Validation
 
 Validate the value of expert specialization by comparing:
-  1. MoE-4: Route each test set to matched expert (text->TextExpert, etc.)
-  2. MoE-3: No GeneralExpert - reroute general inputs to best matched expert
-  3. Single-model (lora_single): All inputs through one unified model
+  1. Multi-Expert-4: Route each test set to its matched expert
+  2. Multi-Expert-3: Remove GeneralExpert and reroute general inputs
+  3. LoRA (Unified) (legacy key: lora_single): all inputs through one model
 
 Cross-domain analysis: evaluate each specialized expert on OTHER domains' test
 sets to show that specialization matters (3x3 matrix).
@@ -46,6 +46,11 @@ CACHE_DIR = path_cfg.OUTPUTS_DIR / 'inference_cache'
 EXP_DIR = path_cfg.OUTPUTS_DIR / 'evaluations' / 'experiments' / 'exp3_moe_architecture'
 
 SPECIALIZED_TYPES = ['text', 'image', 'uml']
+ARCH_DISPLAY_NAMES = {
+    'MoE-4': 'Multi-Expert-4',
+    'MoE-3': 'Multi-Expert-3',
+    'Single': 'LoRA (Unified)',
+}
 
 
 def _get_expert(expert_type, lora_path=None):
@@ -136,14 +141,14 @@ def run_cross_domain(expert_type, eval_domain, test_data, args):
 
 def run_general_via_text_expert(test_data, args):
     """
-    MoE-3 degraded routing: run General test set through TextExpert.
+    Multi-Expert-3 degraded routing: run the General test set through TextExpert.
 
-    MoE-3 removes GeneralExpert. When a general-type input arrives, the
+    Multi-Expert-3 removes GeneralExpert. When a general-type input arrives, the
     router must fall back to the most semantically similar specialized expert.
     TextExpert is the correct fallback because text samples constitute the
     largest share (~39%) of the General training set. This function provides
-    the MoE-3 general-domain score by running General test data through the
-    TextExpert checkpoint, making the MoE-3 vs MoE-4 architecture comparison
+    the Multi-Expert-3 general-domain score by running General test data through the
+    TextExpert checkpoint, making the Multi-Expert-3 vs Multi-Expert-4 comparison
     a genuine empirical measurement rather than a placeholder.
     """
     cache_subdir = CACHE_DIR / 'exp3_moe3_general_via_text'
@@ -158,7 +163,7 @@ def run_general_via_text_expert(test_data, args):
         try:
             preds = expert.batch_generate_instruction(inputs, batch_size=4)
         except Exception as e:
-            logger.error(f'MoE-3 general-via-text inference failed: {e}')
+            logger.error(f'Multi-Expert-3 general-via-text inference failed: {e}')
             preds = [''] * len(inputs)
         finally:
             expert.unload_model()
@@ -168,7 +173,7 @@ def run_general_via_text_expert(test_data, args):
         ]
         save_predictions_cache(
             samples, 'moe3_general_via_text', 'general',
-            {'expert': 'text', 'reason': 'MoE-3 degraded routing fallback'},
+            {'expert': 'text', 'reason': 'Multi-Expert-3 degraded routing fallback'},
             cache_subdir, filename
         )
         return load_predictions_cache(cache_subdir, filename)
@@ -177,7 +182,7 @@ def run_general_via_text_expert(test_data, args):
 
 
 def run_single_model(expert_type, test_data, args):
-    """Run single model."""
+    """Run the LoRA (Unified) baseline."""
     cache_subdir = CACHE_DIR / 'lora_single'
     filename = f'{expert_type}_predictions.json'
 
@@ -272,9 +277,9 @@ def plot_architecture_comparison(arch_scores, exp_dir):
     ax.bar(x - width / 2, rougeL_vals, width, label='ROUGE-L')
     ax.bar(x + width / 2, f1_vals, width, label='F1 Score')
     ax.set_xticks(x)
-    ax.set_xticklabels(configs)
+    ax.set_xticklabels([ARCH_DISPLAY_NAMES.get(c, c) for c in configs])
     ax.set_ylabel('Score')
-    ax.set_title('Exp3: MoE-4 vs MoE-3 vs Single Model')
+    ax.set_title('Exp3: Multi-Expert-4 vs Multi-Expert-3 vs LoRA (Unified)')
     ax.legend()
     ax.set_ylim(0, 1.0)
     ax.grid(axis='y', alpha=0.3)
@@ -287,7 +292,7 @@ def plot_architecture_comparison(arch_scores, exp_dir):
 
 def run(args):
     """Run the workflow."""
-    logger.info('Experiment 3: MoE architecture validation')
+    logger.info('Experiment 3: multi-expert architecture validation')
 
     results = {
         'experiment': 'exp3_moe_architecture_validation',
@@ -308,7 +313,7 @@ def run(args):
         except Exception as e:
             logger.error(f'Failed to load {et} data: {e}')
 
-    logger.info('\n--- MoE-4: Matched experts ---')
+    logger.info('\n--- Multi-Expert-4: matched experts ---')
     matched_rougeL = {}
     matched_f1 = {}
     for et in SPECIALIZED_TYPES:
@@ -363,13 +368,13 @@ def run(args):
             except Exception as e:
                 logger.error(f'Cross-domain {expert_type}->{eval_domain} failed: {e}')
 
-    logger.info('\n--- MoE-3: Degraded general-domain routing through TextExpert ---')
+    logger.info('\n--- Multi-Expert-3: degraded general-domain routing through TextExpert ---')
     moe3_general_rougeL = 0.0
     moe3_general_f1 = 0.0
     if 'general' in test_datasets:
         if getattr(args, 'only_missing', False) and _is_full_run_cache(
                 CACHE_DIR / 'exp3_moe3_general_via_text', 'general_via_text_predictions.json'):
-            logger.info('--only-missing: skipping degraded MoE-3 general-domain routing because cache exists')
+            logger.info('--only-missing: skipping degraded Multi-Expert-3 general-domain routing because cache exists')
         else:
             try:
                 cached = run_general_via_text_expert(test_datasets['general'], args)
@@ -380,16 +385,16 @@ def run(args):
                 moe3_general_f1 = b.get('f1_score', 0)
                 results['moe3_general_fallback'] = {
                     'expert_used': 'text',
-                    'reason': 'MoE-3 degraded routing: text expert has largest share in general training set',
+                    'reason': 'Multi-Expert-3 degraded routing: text expert has largest share in general training set',
                     'n_samples': len(cached['samples']) if cached else 0,
                     'generation_quality': q,
                     'binary_classification': b,
                 }
-                logger.info(f'MoE-3 general(via text): ROUGE-L={moe3_general_rougeL:.4f}')
+                logger.info(f'Multi-Expert-3 general(via text): ROUGE-L={moe3_general_rougeL:.4f}')
             except Exception as e:
-                logger.error(f'Degraded MoE-3 general-domain routing failed: {e}')
+                logger.error(f'Degraded Multi-Expert-3 general-domain routing failed: {e}')
 
-    logger.info('\n--- Single model (lora_single) ---')
+    logger.info('\n--- LoRA (Unified) (legacy key: lora_single) ---')
     single_rougeL_list = []
     single_f1_list = []
     for et in SPECIALIZED_TYPES + ['general']:
@@ -424,9 +429,9 @@ def run(args):
                 m = _metrics_from_cache(cached_general)
                 moe4_general_rougeL = m.get('generation_quality', {}).get('rougeL', 0)
                 moe4_general_f1 = m.get('binary_classification', {}).get('f1_score', 0)
-                logger.info(f'MoE-4 general(matched): ROUGE-L={moe4_general_rougeL:.4f}')
+                logger.info(f'Multi-Expert-4 general(matched): ROUGE-L={moe4_general_rougeL:.4f}')
             else:
-                logger.warning('lora_moe/general cache not found; setting the MoE-4 general score to 0')
+                logger.warning('lora_moe/general cache not found; setting the Multi-Expert-4 general score to 0')
         except Exception as e:
             logger.error(f'Failed to load lora_moe general cache: {e}')
 
@@ -449,7 +454,7 @@ def run(args):
             'rougeL': moe3_rougeL,
             'f1': moe3_f1,
             'note': 'General domain routed to TextExpert (largest share in general training set). '
-                    'Scores are four-domain averages: text/image/uml matched + general-via-text.'
+                    'Scores are four-domain averages: text/image/FlowChart matched + general-via-text.'
         },
         'Single': {'rougeL': single_rougeL, 'f1': single_f1},
     }
@@ -471,13 +476,16 @@ def run(args):
     logger.info('Architecture comparison summary')
     logger.info(f'{"Configuration":<12} {"ROUGE-L":>10} {"F1":>10}')
     for config, scores in arch_scores.items():
-        logger.info(f'{config:<12} {scores["rougeL"]:>10.4f} {scores["f1"]:>10.4f}')
+        logger.info(
+            f'{ARCH_DISPLAY_NAMES.get(config, config):<18} '
+            f'{scores["rougeL"]:>10.4f} {scores["f1"]:>10.4f}'
+        )
     logger.info(f'\nResults saved to: {EXP_DIR}')
 
 
 def main():
     """Run the command-line entry point."""
-    parser = argparse.ArgumentParser(description='Exp3: MoE architecture validation')
+    parser = argparse.ArgumentParser(description='Exp3: multi-expert architecture validation')
     parser.add_argument('--force-regenerate', action='store_true')
     parser.add_argument('--from-cache', action='store_true')
     parser.add_argument('--no-bertscore', action='store_true')

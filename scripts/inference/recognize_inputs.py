@@ -1,4 +1,4 @@
-"""Recognize image and UML inputs with the configured vision model."""
+"""Recognize image and FlowChart inputs with the configured vision model."""
 
 import argparse
 import json
@@ -44,7 +44,7 @@ def parse_args():
         type=str,
         required=True,
         choices=['image', 'uml'],
-        help='Recognition type: image or uml'
+        help='Recognition type: image or flowchart (use the legacy value: uml)'
     )
 
     parser.add_argument(

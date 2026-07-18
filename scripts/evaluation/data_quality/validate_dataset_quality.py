@@ -11,7 +11,7 @@ from typing import Dict, List, Tuple, Any
 
 
 class UMLDatasetValidator:
-    """Validate UML dataset records and instructions."""
+    """Validate FlowChart dataset records and instructions."""
 
     def __init__(self, dataset_path: str, enable_period_check: bool = False):
         """Initialize the instance."""
@@ -503,7 +503,7 @@ class UMLDatasetValidator:
     def validate_dataset(self) -> List[Dict[str, Any]]:
         """Validate dataset."""
         print("=" * 80)
-        print("UML Dataset Quality Validation".center(80))
+        print("FlowChart Dataset Quality Validation".center(80))
         print("=" * 80)
         print(f"Dataset: {os.path.basename(self.dataset_path)}")
         print(f"Period check: {'enabled' if self.enable_period_check else 'disabled'}")
@@ -659,7 +659,7 @@ def main():
     """Run the command-line entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Validate UML dataset quality')
+    parser = argparse.ArgumentParser(description='Validate FlowChart dataset quality')
     parser.add_argument('--dataset', type=str,
                        default='data/dataset/uml/uml_dataset.csv',
                        help='Path to the dataset CSV file')

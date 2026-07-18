@@ -4,8 +4,8 @@ Place local inputs under the following subdirectories:
 
 ```text
 text/   .txt requirement files
-image/  .jpg, .jpeg, or .png natural images
-uml/    .jpg, .jpeg, or .png UML diagrams
+image/  .jpg, .jpeg, or .png UI screenshots or open-domain images
+uml/    .jpg, .jpeg, or .png flowchart images (legacy internal directory name)
 ```
 
 Input assets are excluded from Git by default because they may be private or

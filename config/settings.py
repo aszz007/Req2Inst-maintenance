@@ -166,7 +166,7 @@ class PathConfig:
             'image': self.LORA_MOE_CKPTS['image'],
             'image_expert': self.LORA_MOE_CKPTS['image'],
 
-            # UML Expert
+            # FlowChart Expert
             'uml': self.LORA_MOE_CKPTS['uml'],
             'uml_expert': self.LORA_MOE_CKPTS['uml'],
 

@@ -1,4 +1,4 @@
-"""Recognize raw UML diagrams and write interim records."""
+"""Recognize raw FlowChart diagrams and write interim records."""
 
 import argparse
 import json
@@ -42,7 +42,7 @@ def extract_metadata_from_path(image_path: Path) -> dict:
 
 def parse_args():
     """Parse args."""
-    parser = argparse.ArgumentParser(description='Batch-recognize UML use case diagrams')
+    parser = argparse.ArgumentParser(description='Batch-recognize FlowChart use case diagrams')
     parser.add_argument(
         '--version',
         type=str,
@@ -77,14 +77,14 @@ def parse_args():
 
 
 def recognize_single_uml(image_path: str, version: str = 'qwen3', streaming: bool = False) -> Dict:
-    """Recognize single UML."""
+    """Recognize single FlowChart."""
     image_path = Path(image_path)
 
     if not image_path.exists():
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
     print(f"\n{'='*80}")
-    print(f"Single-image recognition - UML use case diagram")
+    print(f"Single-image recognition - FlowChart use case diagram")
     print(f"{'='*80}")
     print(f"Model version: {version.upper()}")
     print(f"Image path: {image_path}")
@@ -96,7 +96,7 @@ def recognize_single_uml(image_path: str, version: str = 'qwen3', streaming: boo
     print(f"[Model info] {model_info['model_name']}")
     print(f"[Device] {model_info['device']}\n")
 
-    print(f"[Recognizing] Processing UML diagram...")
+    print(f"[Recognizing] Processing FlowChart diagram...")
     result = model.recognize_uml(str(image_path), streaming=streaming)
 
     result['image_path'] = str(image_path)
@@ -140,7 +140,7 @@ def batch_recognize_uml(
     output_file: str = None,
     streaming: bool = False
 ) -> List[Dict]:
-    """Recognize UML."""
+    """Recognize FlowChart."""
     image_folder = Path(image_folder)
 
     if not image_folder.exists():
@@ -156,7 +156,7 @@ def batch_recognize_uml(
     total_images = len(image_files)
 
     print(f"\n{'='*80}")
-    print(f"Batch UML use case diagram recognition")
+    print(f"Batch FlowChart use case diagram recognition")
     print(f"{'='*80}")
     print(f"Model version: {version.upper()}")
     print(f"Image folder: {image_folder}")
@@ -300,7 +300,7 @@ def main():
     args = parse_args()
 
     print("=" * 80)
-    print(" " * 25 + f"UML Use Case Diagram Recognition System")
+    print(" " * 25 + f"FlowChart Use Case Diagram Recognition System")
     print("=" * 80)
     print(f"Model version: {args.version.upper()}")
     print(f"Function: Recognize elements and logical relationships in use case diagrams")
