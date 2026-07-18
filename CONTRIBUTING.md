@@ -39,6 +39,18 @@ The reconstructed dependency file is not an exact environment lock. Record
 Python, CUDA, GPU, PyTorch, Transformers, PEFT, and bitsandbytes versions when a
 change depends on runtime behavior.
 
+For repository-only checks that do not load models or require the full runtime
+stack, install the lightweight CI dependencies instead:
+
+```bash
+python -m pip install -r requirements-ci.txt
+python -m pytest -q tests/test_repository_quality.py tests/test_manuscript_terminology.py tests/test_model_compatibility.py -k "not config_exposes_only_supported_vision_version"
+python -m ruff check --select E9 .
+```
+
+The same lightweight checks run automatically for pull requests targeting
+`main` and for pushes to `main` or `codex/**`.
+
 ## Validation expectations
 
 Documentation-only changes should verify links, paths, and Git status. Python

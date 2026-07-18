@@ -48,7 +48,7 @@ Complete this checklist before changing the repository from private to public.
 - [ ] Confirm `outputs/`, datasets, model weights, browser profiles, and local
       inputs are not tracked.
 - [ ] Review README commands and all relative links from a clean checkout.
-- [ ] Add a small CI workflow only after compatible lightweight tests exist.
+- [x] Add a small CI workflow only after compatible lightweight tests exist.
 
 ## Community readiness
 
