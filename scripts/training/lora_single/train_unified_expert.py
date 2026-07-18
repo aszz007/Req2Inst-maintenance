@@ -93,6 +93,14 @@ def main():
                         help='Train with 4-bit quantization (default: True)')
     parser.add_argument('--no_4bit', dest='use_4bit', action='store_false',
                         help='Disable 4-bit quantization')
+    parser.add_argument(
+        '--use_domain_templates',
+        action='store_true',
+        help=(
+            'Use domain-specific prompt templates instead of the '
+            'manuscript-aligned unified General template'
+        )
+    )
     args = parser.parse_args()
 
     print_header()
@@ -127,7 +135,7 @@ def main():
             method_name='lora_single',
             use_4bit=args.use_4bit,
             use_rtx4090_optimization=use_rtx4090_opt,
-            use_domain_templates=True
+            use_domain_templates=args.use_domain_templates
         )
 
         trainer.output_dir = path_cfg.LORA_SINGLE_CKPT
