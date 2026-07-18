@@ -82,7 +82,10 @@ sources.
 
 `src/utils/enhanced_metrics.py` implements generation, format, and binary
 evaluation reports. `scripts/evaluation/experiments/` contains experiments
-1-11. Cached predictions and generated plots are local artifacts, not source.
+1-11. Experiment 10 is retained as a repository-only advanced-routing and
+output-ensemble exploration; it is not part of the manuscript evaluation or a
+validated paper improvement. Cached predictions and generated plots are local
+artifacts, not source.
 
 ### Quality format
 
@@ -100,17 +103,20 @@ The active baseline is:
 - four domain experts;
 - `checkpoints/lora_moe/` as the standard Multi-Expert LoRA checkpoint root.
 
-Qwen-7B model metadata still present in `src/routing/expert_router.py` is known
-legacy state. It is not modified during documentation cleanup because changing
-runtime metadata belongs in a dedicated, regression-tested maintenance task.
+The active expert registry uses the `qwen3_8b` model identifier. Central
+configuration, model wrappers, CLI compatibility checks, and regression tests
+define the supported model-version boundary.
 
 ## Known structural debt
 
 - Several scripts combine orchestration, model execution, metrics, and plotting.
 - Some paths are hard-coded for the original Windows or Linux workstation.
-- Historical environment and model names coexist with current names.
+- Historical path conventions and environment names coexist with current entry
+  points.
 - Some helper logic is duplicated across experiment and preprocessing scripts.
-- The lightweight test suite currently covers model-version compatibility only.
+- The lightweight test suite covers tracked-file syntax, documentation links,
+  manuscript terminology, model compatibility, and experiment defaults. It does
+  not replace model-backed training, inference, or metric validation.
 
 These items describe future refactoring scope; they are not evidence that the
 completed experiment run was invalid.

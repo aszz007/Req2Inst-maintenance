@@ -69,10 +69,10 @@ top-2 output ensembling; the repository also retains the default type-based
 router
 and several experimental routing implementations.
 
-Some old comments and metadata still mention Qwen-7B. They are historical
-artifacts from an earlier project stage and do not describe the current model
-configuration. Until the later code-cleanup phase, `config/settings.py` and
-the model wrappers are the source of truth.
+The tracked runtime configuration, model wrappers, CLI version choices, and
+expert registry use the current Qwen3 identifiers. Earlier model states remain
+recoverable from Git history but are not active source contracts.
+`config/settings.py` and the model wrappers are the source of truth.
 
 ## Repository layout
 

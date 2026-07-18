@@ -23,8 +23,9 @@ documentation-only change.
   `docs/data-and-artifacts.md`.
 - Check `git status` and preserve unrelated local modifications.
 - Treat `config/settings.py` as the current configuration source of truth.
-- Treat Qwen-7B references as legacy metadata unless a dedicated migration
-  task explicitly authorizes their removal.
+- Treat internal compatibility identifiers such as `uml` and `lora_moe` as
+  stable contracts unless a dedicated migration task explicitly authorizes
+  their replacement.
 - Never commit base models, checkpoints, private datasets, browser profiles,
   credentials, routine outputs, or inference caches.
 
