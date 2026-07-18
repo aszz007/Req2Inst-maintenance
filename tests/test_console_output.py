@@ -40,6 +40,20 @@ P_TUNING_TRAINING = {
         ROOT / "scripts/training/p_tuning/train_general_expert.py"
     ),
 }
+FULL_FINETUNING_TRAINING = {
+    "Full Fine-tuning Text Expert Training (Conservative, High-Quality Strategy)": (
+        ROOT / "scripts/training/full_finetuning/train_text_expert.py"
+    ),
+    "Full Fine-tuning Image Expert Training (Conservative, High-Quality Strategy)": (
+        ROOT / "scripts/training/full_finetuning/train_image_expert.py"
+    ),
+    "Full Fine-tuning FlowChart Expert Training (Conservative, High-Quality Strategy)": (
+        ROOT / "scripts/training/full_finetuning/train_uml_expert.py"
+    ),
+    "Full Fine-tuning General Expert Training (Conservative, High-Quality Strategy)": (
+        ROOT / "scripts/training/full_finetuning/train_general_expert.py"
+    ),
+}
 
 
 def _print_calls(tree: ast.AST) -> list[ast.Call]:
@@ -224,3 +238,40 @@ def test_p_tuning_console_output_keeps_operational_information():
             assert message in source
         assert "Training started - this may take a while" not in source
         assert "Training failed" not in source
+
+
+def test_full_finetuning_console_output_has_no_display_noise():
+    for path in FULL_FINETUNING_TRAINING.values():
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for call in _print_calls(tree):
+            assert call.args, f"Empty print call remains in {path}"
+            value = _constant_text(call.args[0])
+            if value is None:
+                continue
+            stripped = value.strip()
+            assert not stripped or set(stripped) not in ({"="}, {"-"})
+
+
+def test_full_finetuning_console_output_keeps_operational_information():
+    common_messages = (
+        "Training strategy: conservative, high-quality configuration",
+        "Configuration:",
+        "LoRA Rank: 16",
+        "LoRA Alpha: 32",
+        "Max Seq Length: 2048",
+        "Batch Size:",
+        "Gradient Accumulation:",
+        "4-bit quantization:",
+        "Expected:",
+        "Training completed successfully!",
+        "Full fine-tuning weights saved to:",
+        "Training summary:",
+        "Sample coverage:",
+        "Training quality:",
+        "Training failed",
+    )
+    for header, path in FULL_FINETUNING_TRAINING.items():
+        source = path.read_text(encoding="utf-8")
+        assert header in source
+        for message in common_messages:
+            assert message in source

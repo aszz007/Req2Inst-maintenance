@@ -17,10 +17,7 @@ logger = get_logger('training.full_finetuning.general_expert')
 
 def print_header():
     """Print header."""
-    print("=" * 80)
-    print(" " * 8 + "Full Fine-tuning General Expert Training (Conservative, High-Quality Strategy)")
-    print("=" * 80)
-    print()
+    print("Full Fine-tuning General Expert Training (Conservative, High-Quality Strategy)")
 
 
 def main():
@@ -36,9 +33,7 @@ def main():
 
     path_cfg = get_path_config()
 
-    print("=" * 80)
     print("Training strategy: conservative, high-quality configuration")
-    print("=" * 80)
     print("Configuration:")
     print(f"  - LoRA Rank: 16 (high quality)")
     print(f"  - LoRA Alpha: 32")
@@ -49,8 +44,6 @@ def main():
     print("Data sources: text + image + FlowChart (mixed dataset)")
     print("Note: Text 90%, Image 100%, and FlowChart 70% coverage")
     print("Expected: 16-18 GB GPU memory, 5-10% quality loss")
-    print("=" * 80)
-    print()
 
     logger.info("Initializing full fine-tuning general expert trainer...")
     trainer = FullFineTuningTrainer(
@@ -74,17 +67,12 @@ def main():
         logger.error("Training failed")
         return 1
 
-    print()
-    print("=" * 80)
-    print(" " * 25 + "Training completed successfully!")
-    print("=" * 80)
+    print("Training completed successfully!")
     print(f"Full fine-tuning weights saved to: {trainer.output_dir}")
-    print()
     print("Training summary:")
     print("  - Sample coverage: about 85% of General (mixed dataset)")
     print("  - Training quality: 5-10% loss (very good)")
     print("  - Configuration: batch=2, effective batch=128 (optimized)")
-    print()
 
     return 0
 
