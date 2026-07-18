@@ -14,16 +14,17 @@ The canonical orchestrator is
 | 7 | `exp7_uml_hyperparameter_optimization.py` | FlowChart expert hyperparameter search |
 | 8 | `exp8_inference_efficiency.py` | Inference-efficiency analysis |
 | 9 | `exp9_routing_strategy.py` | Routing strategy comparison |
-| 10 | `exp10_advanced_routing.py` | Repository-only advanced routing and output-ensemble exploration |
+| 10 | `exp10_advanced_routing.py` | MLP routing and output-ensemble evaluation with later repository-only diagnostics |
 | 11 | `exp11_ablation_optimization.py` | Ablation experiments |
 
 Experiments 9-11 receive `--all` automatically from the orchestrator.
 
-Experiment 10 is not part of the manuscript evaluation. The tracked script
-retains the last complete v15 confidence-adaptive PoE implementation for
-historical reproducibility, but its results should not be interpreted as a
-validated improvement or a paper claim. Earlier weighting and probability-
-mixture variants remain recoverable from Git history.
+Experiment 10 contains the manuscript-reported Learned Router and Output
+Ensemble evaluation. The paper uses the MLP router for top-1 expert selection
+and top-2 logit fusion after probability correction. The tracked script also
+retains later v13-v15 diagnostics, PoE, and confidence-adaptive weighting
+explorations for historical reproducibility. Those later optimization variants
+are repository-only research code, not separate validated paper improvements.
 
 ## Usage
 

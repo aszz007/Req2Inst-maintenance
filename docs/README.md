@@ -23,10 +23,10 @@ The manuscript calls the third requirement domain **FlowChart**. Internal paths,
 classes, dataset keys, and CLI values continue to use the legacy `uml` identifier
 until a dedicated compatibility migration is designed.
 
-Legacy Qwen-7B names, old absolute paths, and old environment labels remain in
-some files. They are documented as maintenance debt rather than silently
-rewritten during repository cleanup. Runtime-affecting cleanup will be handled
-later with regression verification.
+Legacy absolute paths and historical environment labels remain in some research
+scripts. They are documented as maintenance debt rather than silently rewritten
+during repository cleanup. Runtime-affecting cleanup requires dedicated
+regression verification.
 
 ## Status labels used in the documentation
 

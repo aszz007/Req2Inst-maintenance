@@ -9,9 +9,24 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+BASELINE_DOCS = (
+    ROOT / "README.md",
+    ROOT / "docs/README.md",
+    ROOT / "docs/architecture.md",
+    ROOT / "CONTRIBUTING.md",
+)
 
 
 class ModelCompatibilityTests(unittest.TestCase):
+    def test_current_docs_describe_the_qwen3_only_baseline(self):
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in BASELINE_DOCS
+        )
+        self.assertNotIn("Qwen-7B", combined)
+        self.assertIn("Qwen3-8B", combined)
+        self.assertIn("Qwen3-VL-8B-Instruct", combined)
+
     def test_config_exposes_only_supported_vision_version(self):
         sys.path.insert(0, str(ROOT))
         from config.settings import get_path_config, get_vision_model_config
