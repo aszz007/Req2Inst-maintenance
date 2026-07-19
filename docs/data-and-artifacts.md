@@ -29,6 +29,7 @@ release decision says otherwise:
 - `outputs/`
 - `inputs/` assets
 - browser profiles and automated-browser state
+- `scripts/plantuml.jar`, downloaded locally by the PlantUML generation script
 - model binaries such as `.safetensors`, `.pt`, `.pth`, and `.ckpt`
 
 `inputs/README.md` and `outputs/README.md` are tracked only to document the
@@ -67,6 +68,11 @@ record:
 
 If these facts are unclear, provide a download/preparation script or reference
 instructions instead of copying the asset into the repository.
+
+The PlantUML use-case generation script follows this policy: it downloads the
+fixed PlantUML 1.2024.3 release to the ignored `scripts/plantuml.jar` path when
+needed. The executable JAR remains local; the tracked script and reproducibility
+guide record how to obtain and verify it.
 
 ## Removing historical tracked artifacts
 

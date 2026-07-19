@@ -31,6 +31,22 @@ python -m pip install -e .
 For GPU workstations, install the matching PyTorch/CUDA wheel before the full
 requirements file if the default package index is unsuitable.
 
+## PlantUML runtime
+
+`scripts/data_generation/generate_plantuml_usecases.py` requires a local Java
+runtime and PlantUML 1.2024.3. If `scripts/plantuml.jar` is absent, the script
+downloads the fixed
+[`plantuml-1.2024.3.jar`](https://github.com/plantuml/plantuml/releases/download/v1.2024.3/plantuml-1.2024.3.jar)
+release asset from the upstream PlantUML GitHub repository and stores it at
+that ignored path.
+
+The JAR is a local third-party tool runtime rather than Req2Inst source and is
+not distributed in the current repository snapshot. The maintenance reference
+copy used SHA-256
+`519A4A7284C6A0357C369E4BB0CAF72C4BFBBDE851B8C6D6BBDB7AF3C01FC82F`.
+Verify the downloaded artifact, its upstream license, and the Java environment
+before a release or reproducibility run.
+
 ## Local model layout
 
 The central configuration expects:
