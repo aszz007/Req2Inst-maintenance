@@ -16,7 +16,6 @@ pd.options.mode.chained_assignment = None
 
 from config.settings import get_path_config, get_training_config
 from src.utils.logger import get_logger
-from src.utils.file_utils import load_json
 
 from models.prompt_templates.text_template import TextInstructionTemplate
 from models.prompt_templates.image_template import ImageInstructionTemplate
