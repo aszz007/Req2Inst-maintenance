@@ -413,7 +413,6 @@ Things to Avoid: {avoid}"""
 
         content = line[len(current_prefix):].strip()
 
-        original_content = content
         max_iterations = 10
         for iteration in range(max_iterations):
             found_duplicate = False
@@ -424,8 +423,6 @@ Things to Avoid: {avoid}"""
                     break
             if not found_duplicate:
                 break
-
-        # if content != original_content:
 
         if not content or content == '-':
             return f"{current_prefix} -"
@@ -441,15 +438,12 @@ Things to Avoid: {avoid}"""
             r'\.[a-z]{2,}',
         ]
 
-        original_content = content
         for pattern in garbage_patterns:
             match = re.search(pattern, content, re.IGNORECASE)
             if match:
                 idx = match.start()
                 content = content[:idx + 1].strip()
                 break
-
-        # if content != original_content:
 
         chinese_match = re.search(r'[\u4e00-\u9fff]', content)
         if chinese_match:
