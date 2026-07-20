@@ -11,9 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.training.lora_trainer import LoRATrainer
 from config.settings import (
-    get_path_config,
-    get_training_config,
-    get_lora_config
+    get_path_config
 )
 from src.utils.logger import get_logger
 
@@ -142,10 +140,10 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"Dataset statistics:")
+    print("Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print(f"  - Data sources: text + image + FlowChart (mixed dataset)")
+    print("  - Data sources: text + image + FlowChart (mixed dataset)")
 
     logger.info("Setting up model and LoRA configuration...")
     if not trainer.setup_model():
