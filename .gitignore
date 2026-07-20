@@ -221,7 +221,6 @@ tensorboard/
 outputs/*
 !outputs/README.md
 cloc.exe
-/scripts/plantuml.jar
 inputs/*
 !inputs/README.md
 checkpoints/

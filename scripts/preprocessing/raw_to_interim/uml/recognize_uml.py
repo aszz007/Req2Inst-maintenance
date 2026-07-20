@@ -54,7 +54,7 @@ def parse_args():
         '--input',
         type=str,
         default=None,
-        help='Input image directory (uses the configured test directory by default)'
+        help='Input image directory (uses the configured Roboflow directory by default)'
     )
     parser.add_argument(
         '--output',
@@ -328,7 +328,7 @@ def main():
                 image_folder = args.input
             else:
                 path_cfg = get_path_config()
-                image_folder = path_cfg.PLANT_UML_DIR
+                image_folder = path_cfg.ROBOFLOW_UML_DIR
                 print(f"[Info] Using the default input directory: {image_folder}")
                 print(f"[Info] Use --input to specify another directory\n")
 
