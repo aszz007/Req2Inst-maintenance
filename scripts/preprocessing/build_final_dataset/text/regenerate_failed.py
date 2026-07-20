@@ -47,7 +47,7 @@ class TextBatchRepairer:
 
         if not os.path.exists(CHROME_PATH):
             raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
-        print(f" Chrome path validated successfully")
+        print(" Chrome path validated successfully")
 
         try:
             options = webdriver.ChromeOptions()
@@ -70,7 +70,7 @@ class TextBatchRepairer:
             print(" ChromeOptions configuration complete")
             print("Starting ChromeDriver...")
             self.driver = webdriver.Chrome(options=options)
-            print(f" ChromeDriver started successfully")
+            print(" ChromeDriver started successfully")
 
             print(f"\nNavigating to: {GPT_URL}")
             self.driver.get(GPT_URL)
@@ -95,7 +95,7 @@ class TextBatchRepairer:
                 )
                 if element.is_displayed() and element.is_enabled():
                     if debug:
-                        print(f"  Cached selector used successfully")
+                        print("  Cached selector used successfully")
                     return element
                 else:
                     self.cached_input_selector = None
@@ -196,7 +196,7 @@ class TextBatchRepairer:
                 except:
                     continue
 
-            print(f"  No assistant response found; returning 0")
+            print("  No assistant response found; returning 0")
             return 0
 
         except Exception as e:
@@ -205,7 +205,7 @@ class TextBatchRepairer:
 
     def wait_for_response(self, timeout=60):
         """Wait for a browser response."""
-        print(f"\n Waiting for response generation...")
+        print("\n Waiting for response generation...")
         start_time = time.time()
 
         target_count = self.response_count_before_send + 1
@@ -238,7 +238,7 @@ class TextBatchRepairer:
                                     print(f"  Content stable ({stable_count}/{CONTENT_STABLE_CHECKS})", end='\r', flush=True)
 
                                     if stable_count >= CONTENT_STABLE_CHECKS:
-                                        print(f"\n Content is stable")
+                                        print("\n Content is stable")
                                         return current_content
                                 else:
                                     last_content = current_content
@@ -357,7 +357,7 @@ class TextBatchRepairer:
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
-                    print(f"\n Sending prompt...")
+                    print("\n Sending prompt...")
                     self.response_count_before_send = self.get_current_response_count()
                     print(f"  Current page has {self.response_count_before_send} responses")
                 else:
@@ -411,10 +411,10 @@ class TextBatchRepairer:
                 button = self.find_submit_button()
                 if button:
                     self.driver.execute_script("arguments[0].click();", button)
-                    print(f"  Clicked the Send button")
+                    print("  Clicked the Send button")
                 else:
                     input_box.send_keys(Keys.RETURN)
-                    print(f"  Sent with Enter")
+                    print("  Sent with Enter")
 
                 time.sleep(2)
 
@@ -481,7 +481,7 @@ Things to Avoid: ..."""
                 retry_happened = True
 
             if not self.send_prompt(prompt):
-                print(f"  Failed to send prompt")
+                print("  Failed to send prompt")
                 if retry < max_retries - 1:
                     time.sleep(3)
                     continue
@@ -495,7 +495,7 @@ Things to Avoid: ..."""
             response = self.wait_for_response(timeout=WAIT_NEW_RESPONSE_TIMEOUT)
 
             if not response or len(response) < 50:
-                print(f"  Response is empty or too short")
+                print("  Response is empty or too short")
                 if retry < max_retries - 1:
                     time.sleep(3)
                     continue
@@ -506,7 +506,7 @@ Things to Avoid: ..."""
                     })
                     return [None] * len(batch_data), retry_happened
             else:
-                print(f"  Response looks normal; preparing to parse")
+                print("  Response looks normal; preparing to parse")
                 break
 
         instructions = []
@@ -657,7 +657,7 @@ Things to Avoid: ..."""
 
                 error_batches.append((len(error_batches) + 1, i, batch_data))
 
-        print(f"\nScan results:")
+        print("\nScan results:")
         print(f"  Total data items: {total_rows}")
         print(f"  Erroneous data items: {error_count}")
         print(f"  Batches requiring repair: {len(error_batches)}")
@@ -793,7 +793,7 @@ Things to Avoid: ..."""
             print(f"Total repaired: {total_repaired} data items")
 
             if self.error_log:
-                print(f"\nError log:")
+                print("\nError log:")
                 for error in self.error_log:
                     print(f"  - {error['range']}: {error['error']}")
 

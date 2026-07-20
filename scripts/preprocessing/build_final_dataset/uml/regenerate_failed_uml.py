@@ -307,7 +307,7 @@ class UMLBatchRepairer:
 
         if not os.path.exists(CHROME_PATH):
             raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
-        print(f" Chrome path validated successfully")
+        print(" Chrome path validated successfully")
 
         try:
             options = webdriver.ChromeOptions()
@@ -330,7 +330,7 @@ class UMLBatchRepairer:
             print(" ChromeOptions configuration complete")
             print("Starting ChromeDriver...")
             self.driver = webdriver.Chrome(options=options)
-            print(f" ChromeDriver started successfully")
+            print(" ChromeDriver started successfully")
 
             print(f"\nNavigating to: {GPT_URL}")
             self.driver.get(GPT_URL)
@@ -515,7 +515,7 @@ class UMLBatchRepairer:
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
-                    print(f"\n Sending prompt...")
+                    print("\n Sending prompt...")
                     self.response_count_before_send = self.get_current_response_count()
                     print(f"  Current page has {self.response_count_before_send} responses")
                 else:
@@ -569,10 +569,10 @@ class UMLBatchRepairer:
                 button = self.find_submit_button()
                 if button:
                     self.driver.execute_script("arguments[0].click();", button)
-                    print(f"  Clicked the Send button")
+                    print("  Clicked the Send button")
                 else:
                     input_box.send_keys(Keys.RETURN)
-                    print(f"  Sent with Enter")
+                    print("  Sent with Enter")
 
                 time.sleep(2)
 
@@ -626,7 +626,7 @@ class UMLBatchRepairer:
             return True
 
         except Exception as e:
-            print(f"[Validation exception, accepted]", end='', flush=True)
+            print("[Validation exception, accepted]", end='', flush=True)
             return True
 
     def wait_for_response_complete(self, timeout=300):
@@ -647,7 +647,7 @@ class UMLBatchRepairer:
                 current_count = self.get_current_response_count()
 
                 if current_count > self.response_count_before_send:
-                    print(f" [Possible new response detected; validating]", end='', flush=True)
+                    print(" [Possible new response detected; validating]", end='', flush=True)
                     time.sleep(2)
 
                     recheck_count = self.get_current_response_count()
@@ -671,7 +671,7 @@ class UMLBatchRepairer:
 
                             time.sleep(2)
                     else:
-                        print(f" [Count not stable; continuing to wait]", end='', flush=True)
+                        print(" [Count not stable; continuing to wait]", end='', flush=True)
                         consecutive_validation_failures = 0
                         time.sleep(1)
                 else:
@@ -755,9 +755,9 @@ class UMLBatchRepairer:
                     has_avoid = "Avoid" in response_text
 
                     if has_definition or has_emphasis or has_avoid:
-                        print(f"  Content validation passed (contains instruction keywords)")
+                        print("  Content validation passed (contains instruction keywords)")
                     else:
-                        print(f"  Warning: response may not contain the expected format")
+                        print("  Warning: response may not contain the expected format")
 
                     return response_text
                 else:
@@ -1008,7 +1008,7 @@ class UMLBatchRepairer:
 
                 error_batches.append((len(error_batches) + 1, i, batch_data))
 
-        print(f"\nScan results:")
+        print("\nScan results:")
         print(f"  Total data items: {total_rows}")
         print(f"  Erroneous data items: {error_count}")
         print(f"  Batches requiring repair: {len(error_batches)}")
@@ -1100,7 +1100,7 @@ class UMLBatchRepairer:
             if is_error_response:
                 print(f"  Generation error detected: {response[:100]}")
                 if retry_count < max_retries - 1:
-                    print(f"  Will resend in 3 seconds...")
+                    print("  Will resend in 3 seconds...")
                     continue
                 else:
                     print(f"  Maximum retry count reached ({max_retries}),abandoning this batch")
@@ -1110,7 +1110,7 @@ class UMLBatchRepairer:
                     })
                     return [None]
             else:
-                print(f"  Response looks normal; preparing to parse")
+                print("  Response looks normal; preparing to parse")
                 break
 
         instruction = self.parse_uml_instruction(response)
@@ -1118,13 +1118,13 @@ class UMLBatchRepairer:
         if instruction:
             is_valid, errors = self.validate_instruction_format(instruction)
             if is_valid:
-                print(f"  Instruction format validation passed")
+                print("  Instruction format validation passed")
                 return [instruction]
             else:
                 print(f"  Instruction format validation failed: {errors}")
                 return [instruction]
         else:
-            print(f"  Parsing failed")
+            print("  Parsing failed")
             return [None]
 
     def repair_file(self, csv_path):
@@ -1241,7 +1241,7 @@ class UMLBatchRepairer:
             print(f"Total repaired: {total_repaired} data items")
 
             if self.error_log:
-                print(f"\nError log:")
+                print("\nError log:")
                 for error in self.error_log:
                     print(f"  - {error['range']}: {error['error']}")
 
