@@ -196,7 +196,7 @@ class ExpertEvaluator:
 
         logger.info(f"Test samples: {len(test_data)}")
         logger.info(f"Batch size: {batch_size}")
-        logger.info(f"FlowChart dataset: uml_dataset.csv")
+        logger.info("FlowChart dataset: uml_dataset.csv")
 
         self._display_samples(test_data, "FlowChart Expert")
 
@@ -269,7 +269,7 @@ class ExpertEvaluator:
             logger.info(f"Test samples: {len(test_data)} (text: {len(text_test)}, image: {len(image_test)}, FlowChart: {len(uml_test)})")
 
         logger.info(f"Batch size: {batch_size}")
-        logger.info(f"FlowChart dataset: uml_dataset.csv")
+        logger.info("FlowChart dataset: uml_dataset.csv")
 
         self._display_samples(test_data, "General Expert")
 
