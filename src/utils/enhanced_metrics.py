@@ -1,8 +1,6 @@
 """Calculate generation, format, and binary evaluation metrics."""
 
-import re
-from typing import Dict, List, Tuple, Optional, Any
-from collections import defaultdict
+from typing import Dict, List, Optional, Any
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -725,7 +723,7 @@ class EnhancedMetrics:
             print(f"  FP (False Positive): {binary['FP']:4d}  - format correct but semantically inadequate")
             print(f"  FN (False Negative): {binary['FN']:4d}  - format incorrect or semantically inadequate")
             print(f"  TN (True Negative):  {binary['TN']:4d}  - not applicable")
-            print(f"  ---")
+            print("  ---")
             print(f"  Precision:           {binary['precision']:.4f}")
             print(f"  Recall:              {binary['recall']:.4f}")
             print(f"  F1 Score:           {binary['f1_score']:.4f}")

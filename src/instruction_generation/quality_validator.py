@@ -1,7 +1,6 @@
 """Validate the three-part instruction format and basic content quality."""
 
-import re
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
 from src.utils.logger import get_logger
@@ -243,18 +242,18 @@ class QualityValidator:
         print("Instruction Quality Validation Report")
         print("=" * 80)
 
-        print(f"\n[Overall Statistics]")
+        print("\n[Overall Statistics]")
         print(f"  Total:     {summary['total']}")
         print(f"  Passed:    {summary['passed']}")
         print(f"  Failed:    {summary['failed']}")
         print(f"  Pass rate: {summary['pass_rate']:.2%}")
 
-        print(f"\n[Format Scores]")
+        print("\n[Format Scores]")
         print(f"  Average score: {summary['avg_format_score']:.4f}")
         print(f"  Maximum score: {summary['max_format_score']:.4f}")
         print(f"  Minimum score: {summary['min_format_score']:.4f}")
 
-        print(f"\n[Component Statistics]")
+        print("\n[Component Statistics]")
         print(f"  Definition presence rate:   {summary['definition_present_rate']:.2%}")
         print(f"  Definition valid-content rate:   {summary['definition_has_content_rate']:.2%}")
         print(f"  Emphasis presence rate:     {summary['emphasis_present_rate']:.2%}")
@@ -262,17 +261,17 @@ class QualityValidator:
         print(f"  Avoid presence rate:        {summary['avoid_present_rate']:.2%}")
         print(f"  Avoid validity rate:        {summary['avoid_valid_rate']:.2%}")
 
-        print(f"\n[Error and Warning Statistics]")
+        print("\n[Error and Warning Statistics]")
         print(f"  Total errors:   {summary['total_errors']}")
         print(f"  Total warnings:   {summary['total_warnings']}")
 
         if summary['common_errors']:
-            print(f"\n[Top 5 Common Errors]")
+            print("\n[Top 5 Common Errors]")
             for i, (error, count) in enumerate(list(summary['common_errors'].items())[:5], 1):
                 print(f"  {i}. {error}: {count} occurrences")
 
         if show_details and results:
-            print(f"\n[Details]")
+            print("\n[Details]")
             for i, result in enumerate(results[:10], 1):
                 print(f"\nInstruction {i}:")
                 print(f"  Valid: {result.is_valid}")
