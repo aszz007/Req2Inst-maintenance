@@ -5,7 +5,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 from dataclasses import dataclass
 
 from peft import PeftModel
