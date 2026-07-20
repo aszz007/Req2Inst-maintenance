@@ -2,7 +2,6 @@
 
 from typing import Dict, List, Optional, Union
 from pathlib import Path
-import json
 
 from .expert_router import ExpertRouter, RoutingResult
 

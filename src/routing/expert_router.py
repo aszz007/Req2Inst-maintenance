@@ -1,6 +1,5 @@
 """Select a domain expert with rule-based input-type routing."""
 
-import json
 from typing import Dict, List, Optional
 from pathlib import Path
 from dataclasses import dataclass
