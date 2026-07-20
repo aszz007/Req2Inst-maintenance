@@ -54,6 +54,8 @@ def test_image_failure_regeneration_keeps_a_single_repair_entrypoint():
 
     assert "repair_file" in repair_methods
     assert "process_file" not in repair_methods
+    assert "clean_json_data" not in repair_methods
+    assert "parse_instructions" not in repair_methods
     assert "process_file" in generation_methods
 
     run_calls = _self_calls(repair_methods["run"])
