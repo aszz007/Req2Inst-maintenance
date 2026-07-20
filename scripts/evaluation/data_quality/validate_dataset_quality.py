@@ -677,7 +677,7 @@ def main():
     )
 
     start_time = datetime.now()
-    results = validator.validate_dataset()
+    validator.validate_dataset()
     end_time = datetime.now()
 
     df = validator.load_dataset()
@@ -688,7 +688,7 @@ def main():
 
     os.makedirs(os.path.dirname(args.report_output), exist_ok=True)
 
-    summary = validator.generate_report(save_path=args.report_output)
+    validator.generate_report(save_path=args.report_output)
 
     problematic_output_dir = os.path.join(os.path.dirname(args.report_output), 'problematic_instructions')
     validator.save_problematic_instructions(problematic_output_dir, df)
