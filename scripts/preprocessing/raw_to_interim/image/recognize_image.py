@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -55,7 +54,7 @@ def recognize_single_image(image_path: str, version: str = 'qwen3') -> Dict:
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
     print(f"\n{'='*80}")
-    print(f"Single-image recognition")
+    print("Single-image recognition")
     print(f"{'='*80}")
     print(f"Model version: {version.upper()}")
     print(f"Image path: {image_path}")
@@ -67,7 +66,7 @@ def recognize_single_image(image_path: str, version: str = 'qwen3') -> Dict:
     print(f"[Model info] {model_info['model_name']}")
     print(f"[Device] {model_info['device']}\n")
 
-    print(f"[Recognizing] Processing image...")
+    print("[Recognizing] Processing image...")
     result = model.recognize_image(str(image_path))
 
     result['image_path'] = str(image_path)
@@ -75,16 +74,16 @@ def recognize_single_image(image_path: str, version: str = 'qwen3') -> Dict:
     result['model_version'] = version
 
     print(f"\n{'='*80}")
-    print(f"Recognition result")
+    print("Recognition result")
     print(f"{'='*80}")
     if result.get('recognition_status') == 'success':
-        print(f" Recognition succeeded")
+        print(" Recognition succeeded")
         print(f"Confidence: {result.get('confidence', 0):.3f}")
         print(f"\nDescription: {result.get('description', '')}")
 
         details = result.get('details', {})
         if details:
-            print(f"\nDetails:")
+            print("\nDetails:")
             print(f"  Scene: {details.get('scene', 'unknown')}")
             print(f"  Objects: {', '.join(details.get('objects', []))}")
             if details.get('spatial_info'):
@@ -118,7 +117,7 @@ def batch_recognize_images(
     total_images = len(image_files)
 
     print(f"\n{'='*80}")
-    print(f"Batch image recognition")
+    print("Batch image recognition")
     print(f"{'='*80}")
     print(f"Model version: {version.upper()}")
     print(f"Image folder: {image_folder}")
@@ -154,7 +153,7 @@ def batch_recognize_images(
 
             if result.get('recognition_status') == 'success':
                 success_count += 1
-                print(f" Recognition succeeded")
+                print(" Recognition succeeded")
                 print(f"  Confidence: {result.get('confidence', 0):.3f}")
                 print(f"  Description: {result.get('description', '')[:80]}...")
             else:
@@ -187,7 +186,7 @@ def batch_recognize_images(
         json.dump(results, f, ensure_ascii=False, indent=2)
 
     print(f"\n{'='*80}")
-    print(f"Batch recognition completed")
+    print("Batch recognition completed")
     print(f"{'='*80}")
     print(f"Total images: {total_images}")
     print(f"Succeeded: {success_count}")
@@ -204,11 +203,11 @@ def main():
     args = parse_args()
 
     print("=" * 80)
-    print(" " * 25 + f"Image Recognition System")
+    print(" " * 25 + "Image Recognition System")
     print("=" * 80)
     print(f"Model version: {args.version.upper()}")
-    print(f"Function: Recognize image content and generate a structured description")
-    print(f"Output: English JSON result")
+    print("Function: Recognize image content and generate a structured description")
+    print("Output: English JSON result")
     print("=" * 80 + "\n")
 
     try:
@@ -234,7 +233,7 @@ def main():
                 path_cfg = get_path_config()
                 image_folder = path_cfg.COCO_500_DIR
                 print(f"[Info] Using the default input directory: {image_folder}")
-                print(f"[Info] Use --input to specify another directory\n")
+                print("[Info] Use --input to specify another directory\n")
 
             results = batch_recognize_images(
                 image_folder=image_folder,

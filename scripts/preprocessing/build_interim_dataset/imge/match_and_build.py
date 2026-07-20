@@ -288,10 +288,10 @@ def main():
     print("="*80)
     print(" "*20 + "Image Dataset Builder")
     print("="*80)
-    print(f"Purpose: Convert images and JSON results into a CSV dataset")
-    print(f"Output format: Header | Description | Instruction")
-    print(f"Description contents: All image recognition information (description, details, etc.)")
-    print(f"Filtered fields: confidence, recognition_status, image_path, image_name, model_version")
+    print("Purpose: Convert images and JSON results into a CSV dataset")
+    print("Output format: Header | Description | Instruction")
+    print("Description contents: All image recognition information (description, details, etc.)")
+    print("Filtered fields: confidence, recognition_status, image_path, image_name, model_version")
     print("="*80 + "\n")
 
     try:
@@ -305,12 +305,12 @@ def main():
             include_failed=INCLUDE_FAILED
         )
 
-        print(f" Dataset build completed!")
+        print(" Dataset build completed!")
         print(f" Output file: {output_path}")
-        print(f"\nNext steps:")
-        print(f"1. Review the error log for any issues")
-        print(f"2. Populate the 'Instruction' column as needed")
-        print(f"3. Use the dataset for model training or other applications")
+        print("\nNext steps:")
+        print("1. Review the error log for any issues")
+        print("2. Populate the 'Instruction' column as needed")
+        print("3. Use the dataset for model training or other applications")
 
     except Exception as e:
         print(f"\n Dataset build failed: {str(e)}")
