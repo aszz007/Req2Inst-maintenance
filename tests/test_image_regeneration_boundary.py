@@ -197,6 +197,52 @@ def test_response_text_fallbacks_catch_normal_exceptions_only():
         for node in validate_handlers[1].body
     )
 
+def test_csv_encoding_fallback_catches_normal_exceptions_only():
+    methods = _class_methods(REPAIR_SCRIPT, "ImageBatchRepairer")
+    method = methods["repair_file"]
+    handlers = sorted(
+        (
+            node
+            for node in ast.walk(method)
+            if isinstance(node, ast.ExceptHandler)
+        ),
+        key=lambda node: node.lineno,
+    )
+
+    assert len(handlers) == 3
+    assert all(
+        isinstance(handler.type, ast.Name) and handler.type.id == "Exception"
+        for handler in handlers
+    )
+
+    encoding_loop = handlers[0].body[0]
+    assert isinstance(encoding_loop, ast.For)
+    assert isinstance(encoding_loop.target, ast.Name)
+    assert encoding_loop.target.id == "enc"
+    assert ast.literal_eval(encoding_loop.iter) == [
+        "utf-8",
+        "gbk",
+        "gb18030",
+        "latin1",
+    ]
+    assert any(isinstance(node, ast.Break) for node in ast.walk(encoding_loop))
+    assert any(isinstance(node, ast.Continue) for node in handlers[1].body)
+
+    failure_raise = encoding_loop.orelse[0]
+    assert isinstance(failure_raise, ast.Raise)
+    assert isinstance(failure_raise.exc, ast.Call)
+    assert isinstance(failure_raise.exc.func, ast.Name)
+    assert failure_raise.exc.func.id == "Exception"
+    assert ast.literal_eval(failure_raise.exc.args[0]) == "Failed to read the file"
+
+    outer_fallback = next(
+        node
+        for node in handlers[2].body
+        if isinstance(node, ast.Return)
+    )
+    assert isinstance(outer_fallback.value, ast.Constant)
+    assert outer_fallback.value.value == 0
+
 def test_response_count_fallback_catches_normal_exceptions_only():
     methods = _class_methods(REPAIR_SCRIPT, "ImageBatchRepairer")
     method = methods["get_current_response_count"]
