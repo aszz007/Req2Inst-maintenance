@@ -84,21 +84,6 @@ class ImageBatchRepairer:
             print(f"\n Browser initialization failed: {e}")
             raise
 
-    def clean_json_data(self, json_str):
-        """Clean JSON data."""
-        try:
-            data = json.loads(json_str)
-
-            cleaned = {
-                "description": data.get("description", ""),
-                "details": data.get("details", {})
-            }
-
-            return json.dumps(cleaned, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"  JSON cleanup failed: {e}")
-            return json_str
-
     def find_input_box(self, debug=False):
         """Find input box."""
         if debug:
@@ -428,24 +413,6 @@ class ImageBatchRepairer:
         except Exception as e:
             print(f"[Validation exception, accepted]", end='', flush=True)
             return True
-
-    def parse_instructions(self, response_text, expected_count):
-        """Parse instructions."""
-        instructions = []
-
-        pattern = r'【图像\d+】\s*\n(.*?)(?=【图像\d+】|$)'
-        matches = re.findall(pattern, response_text, re.DOTALL)
-
-        if len(matches) == expected_count:
-            for match in matches:
-                instructions.append(match.strip())
-        else:
-            parts = response_text.split('Definition:')
-            for part in parts[1:]:
-                if 'Emphasis & Caution:' in part and 'Things to Avoid:' in part:
-                    instructions.append('Definition:' + part.strip())
-
-        return instructions
 
     def parse_image_instruction(self, response_text):
         """Parse image instruction."""
