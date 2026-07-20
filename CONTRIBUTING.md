@@ -50,7 +50,7 @@ python -m ruff check --select E9 .
 ```
 
 The same lightweight checks run automatically for pull requests targeting
-`main` and for pushes to `main` or `codex/**`.
+`main` and for pushes to `main` or `maintenance/**`.
 
 ## Validation expectations
 
