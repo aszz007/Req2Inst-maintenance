@@ -1,7 +1,6 @@
 """Create a reproducible sample of the text dataset."""
 
 import argparse
-import os
 import sys
 import random
 import pandas as pd
