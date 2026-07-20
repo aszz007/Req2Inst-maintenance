@@ -87,3 +87,49 @@ def test_input_box_fallback_catches_normal_exceptions_only():
     assert cached_selector_reset.value.value is None
 
     assert any(isinstance(node, ast.Continue) for node in handlers[1].body)
+
+
+def test_submit_button_fallback_catches_normal_exceptions_only():
+    methods = _class_methods(REPAIR_SCRIPT, "ImageBatchRepairer")
+    method = methods["find_submit_button"]
+    handlers = sorted(
+        (
+            node
+            for node in ast.walk(method)
+            if isinstance(node, ast.ExceptHandler)
+        ),
+        key=lambda node: node.lineno,
+    )
+
+    assert len(handlers) == 2
+    assert all(
+        isinstance(handler.type, ast.Name) and handler.type.id == "Exception"
+        for handler in handlers
+    )
+
+    cached_selector_reset = handlers[0].body[0]
+    assert isinstance(cached_selector_reset, ast.Assign)
+    assert isinstance(cached_selector_reset.targets[0], ast.Attribute)
+    assert cached_selector_reset.targets[0].attr == "cached_button_selector"
+    assert isinstance(cached_selector_reset.value, ast.Constant)
+    assert cached_selector_reset.value.value is None
+
+    assert any(isinstance(node, ast.Continue) for node in handlers[1].body)
+
+    selectors_assignment = next(
+        node
+        for node in method.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "selectors"
+    )
+    assert ast.literal_eval(selectors_assignment.value) == [
+        "button[data-testid='send-button']",
+        "button[type='submit']",
+        "button:has(svg)",
+        "button[aria-label*='Send']",
+        "button[aria-label*='\u53d1\u9001']",
+    ]
+
+    fallback = method.body[-1]
+    assert isinstance(fallback, ast.Return)
