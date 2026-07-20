@@ -133,3 +133,53 @@ def test_submit_button_fallback_catches_normal_exceptions_only():
 
     fallback = method.body[-1]
     assert isinstance(fallback, ast.Return)
+    assert isinstance(fallback.value, ast.Constant)
+    assert fallback.value.value is None
+
+
+def test_response_count_fallback_catches_normal_exceptions_only():
+    methods = _class_methods(REPAIR_SCRIPT, "ImageBatchRepairer")
+    method = methods["get_current_response_count"]
+    handlers = sorted(
+        (
+            node
+            for node in ast.walk(method)
+            if isinstance(node, ast.ExceptHandler)
+        ),
+        key=lambda node: node.lineno,
+    )
+
+    assert len(handlers) == 3
+    assert all(
+        isinstance(handler.type, ast.Name) and handler.type.id == "Exception"
+        for handler in handlers
+    )
+    assert any(isinstance(node, ast.Continue) for node in handlers[0].body)
+    assert any(isinstance(node, ast.Continue) for node in handlers[1].body)
+
+    outer_fallback = handlers[2].body[0]
+    assert isinstance(outer_fallback, ast.Return)
+    assert isinstance(outer_fallback.value, ast.Constant)
+    assert outer_fallback.value.value == 0
+
+    selectors_assignment = next(
+        node
+        for node in ast.walk(method)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "response_selectors"
+    )
+    assert ast.literal_eval(selectors_assignment.value) == [
+        "div[data-message-author-role='assistant']",
+        "article[data-turn='assistant']",
+        "article[data-testid*='conversation-turn'] div.markdown.prose",
+    ]
+
+    outer_try = next(node for node in method.body if isinstance(node, ast.Try))
+    normal_fallback = next(
+        node
+        for node in outer_try.body
+        if isinstance(node, ast.Return)
+    )
+    assert isinstance(normal_fallback.value, ast.Constant)
+    assert normal_fallback.value.value == 0
