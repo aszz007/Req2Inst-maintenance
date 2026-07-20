@@ -8,11 +8,10 @@ from transformers import (
     BitsAndBytesConfig,
     TextIteratorStreamer
 )
-from peft import PeftModel, PeftConfig
+from peft import PeftModel
 import json
 import re
 import gc
-import threading
 from typing import Dict, Optional, Tuple
 from pathlib import Path
 from threading import Thread

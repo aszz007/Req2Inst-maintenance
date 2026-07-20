@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from datetime import datetime
 
 # Add project root to path
@@ -98,7 +98,7 @@ def recognize_single_file(
         result['model_version'] = version
         result['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        logger.info(f"Recognition completed successfully")
+        logger.info("Recognition completed successfully")
         return result
 
     except Exception as e:
@@ -184,7 +184,7 @@ def recognize_directory(
                 if result.get('success', False):
                     success_count += 1
 
-            logger.info(f"Recognition completed")
+            logger.info("Recognition completed")
 
         except Exception as e:
             logger.error(f"Recognition failed: {e}")
@@ -252,7 +252,7 @@ def main():
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
 
-        logger.info(f"Recognition completed")
+        logger.info("Recognition completed")
         logger.info(f"Total processed: {len(results)}")
         logger.info(f"Results saved to: {output_file}")
 

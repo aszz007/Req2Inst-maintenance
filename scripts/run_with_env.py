@@ -2,7 +2,6 @@
 """Run a command after configuring the project environment."""
 import subprocess
 import sys
-import argparse
 import os
 
 os.environ['PYTHONIOENCODING'] = 'utf-8'

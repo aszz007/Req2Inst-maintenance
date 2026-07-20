@@ -447,10 +447,10 @@ def main():
 
             if result.get('instruction'):
                 success_count += 1
-                logger.info(f"  Status: Success")
+                logger.info("  Status: Success")
                 logger.info(f"  Expert: {result['expert_used']}")
             else:
-                logger.warning(f"  Status: Failed - No instruction generated")
+                logger.warning("  Status: Failed - No instruction generated")
 
         except Exception as e:
             logger.error(f"  Status: Failed - {e}")
@@ -480,7 +480,7 @@ def main():
     elif args.output_format == 'markdown':
         output_file = output_dir / f'instructions_{timestamp}.md'
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(f"# Generated Instructions\n\n")
+            f.write("# Generated Instructions\n\n")
             f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
             f.write(f"Total: {len(results)}\n\n")
             f.write("---\n\n")
@@ -511,7 +511,7 @@ def main():
         json.dump(results, f, ensure_ascii=False, indent=2)
 
     # Print summary
-    logger.info(f"\nResults saved to:")
+    logger.info("\nResults saved to:")
     logger.info(f"  - Main: {output_file}")
     logger.info(f"  - Detailed JSON: {json_file}")
 
