@@ -2,7 +2,6 @@
 
 import sys
 import json
-import argparse
 from pathlib import Path
 from typing import Dict, List
 from datetime import datetime
