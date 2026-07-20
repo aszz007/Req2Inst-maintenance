@@ -3,7 +3,6 @@
 import argparse
 import ast
 import json
-import os
 import sys
 import random
 import pandas as pd
@@ -161,7 +160,7 @@ def run_sampling(n: int = 3, seed: int = None, output: str = None,
     display_samples(samples)
 
     print(f"\nDataset size: {len(df)} rows (framework reference: {DATASET_TOTAL} rows)")
-    print(f"Train/validation/test reference: 800 / 100 / 100")
+    print("Train/validation/test reference: 800 / 100 / 100")
 
     if output:
         save_samples(samples, output)
