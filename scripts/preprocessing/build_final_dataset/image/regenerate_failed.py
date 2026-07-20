@@ -100,7 +100,7 @@ class ImageBatchRepairer:
                     return element
                 else:
                     self.cached_input_selector = None
-            except:
+            except Exception:
                 self.cached_input_selector = None
 
         selectors = [
@@ -127,7 +127,7 @@ class ImageBatchRepairer:
                         print(f"  Succeeded: {selector}")
                     return element
 
-            except:
+            except Exception:
                 continue
 
         raise NoSuchElementException("Unable to locate the input field")

@@ -61,3 +61,29 @@ def test_image_failure_regeneration_keeps_a_single_repair_entrypoint():
     run_calls = _self_calls(repair_methods["run"])
     assert "repair_file" in run_calls
     assert "process_file" not in run_calls
+
+def test_input_box_fallback_catches_normal_exceptions_only():
+    methods = _class_methods(REPAIR_SCRIPT, "ImageBatchRepairer")
+    handlers = sorted(
+        (
+            node
+            for node in ast.walk(methods["find_input_box"])
+            if isinstance(node, ast.ExceptHandler)
+        ),
+        key=lambda node: node.lineno,
+    )
+
+    assert len(handlers) == 2
+    assert all(
+        isinstance(handler.type, ast.Name) and handler.type.id == "Exception"
+        for handler in handlers
+    )
+
+    cached_selector_reset = handlers[0].body[0]
+    assert isinstance(cached_selector_reset, ast.Assign)
+    assert isinstance(cached_selector_reset.targets[0], ast.Attribute)
+    assert cached_selector_reset.targets[0].attr == "cached_input_selector"
+    assert isinstance(cached_selector_reset.value, ast.Constant)
+    assert cached_selector_reset.value.value is None
+
+    assert any(isinstance(node, ast.Continue) for node in handlers[1].body)
