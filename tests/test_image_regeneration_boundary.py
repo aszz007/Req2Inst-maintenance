@@ -137,6 +137,66 @@ def test_submit_button_fallback_catches_normal_exceptions_only():
     assert fallback.value.value is None
 
 
+def test_response_text_fallbacks_catch_normal_exceptions_only():
+    methods = _class_methods(REPAIR_SCRIPT, "ImageBatchRepairer")
+
+    extract_method = methods["extract_response"]
+    extract_handlers = sorted(
+        (
+            node
+            for node in ast.walk(extract_method)
+            if isinstance(node, ast.ExceptHandler)
+        ),
+        key=lambda node: node.lineno,
+    )
+    assert len(extract_handlers) == 2
+    assert all(
+        isinstance(handler.type, ast.Name) and handler.type.id == "Exception"
+        for handler in extract_handlers
+    )
+
+    extract_fallback = extract_handlers[0].body[0]
+    assert isinstance(extract_fallback, ast.Assign)
+    assert isinstance(extract_fallback.targets[0], ast.Name)
+    assert extract_fallback.targets[0].id == "response_text"
+    assert isinstance(extract_fallback.value, ast.Attribute)
+    assert isinstance(extract_fallback.value.value, ast.Name)
+    assert extract_fallback.value.value.id == "last_response"
+    assert extract_fallback.value.attr == "text"
+
+    validate_method = methods["_validate_new_response"]
+    validate_handlers = sorted(
+        (
+            node
+            for node in ast.walk(validate_method)
+            if isinstance(node, ast.ExceptHandler)
+        ),
+        key=lambda node: node.lineno,
+    )
+    assert len(validate_handlers) == 2
+    assert all(
+        isinstance(handler.type, ast.Name) and handler.type.id == "Exception"
+        for handler in validate_handlers
+    )
+
+    validate_fallback = validate_handlers[0].body[0]
+    assert isinstance(validate_fallback, ast.Assign)
+    assert isinstance(validate_fallback.targets[0], ast.Name)
+    assert validate_fallback.targets[0].id == "text"
+    assert isinstance(validate_fallback.value, ast.Call)
+    assert isinstance(validate_fallback.value.func, ast.Attribute)
+    assert validate_fallback.value.func.attr == "strip"
+    assert isinstance(validate_fallback.value.func.value, ast.Attribute)
+    assert validate_fallback.value.func.value.attr == "text"
+    assert isinstance(validate_fallback.value.func.value.value, ast.Name)
+    assert validate_fallback.value.func.value.value.id == "last_response"
+    assert any(
+        isinstance(node, ast.Return)
+        and isinstance(node.value, ast.Constant)
+        and node.value.value is True
+        for node in validate_handlers[1].body
+    )
+
 def test_response_count_fallback_catches_normal_exceptions_only():
     methods = _class_methods(REPAIR_SCRIPT, "ImageBatchRepairer")
     method = methods["get_current_response_count"]
