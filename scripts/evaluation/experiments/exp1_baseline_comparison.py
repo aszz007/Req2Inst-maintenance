@@ -16,7 +16,6 @@ Output: outputs/evaluations/experiments/exp1_baseline_comparison/
 """
 
 import sys
-import json
 import argparse
 import traceback
 from datetime import datetime
@@ -31,7 +30,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from config.settings import get_path_config
-from src.training.data_loader import TextDatasetLoader, split_dataset_for_expert
+from src.training.data_loader import TextDatasetLoader
 from src.baselines.ir_methods import BM25Retriever, LSARetriever
 from src.baselines.template_filling import TemplateFiller
 from src.baselines.zero_shot import ZeroShotGenerator
