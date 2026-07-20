@@ -3,7 +3,6 @@
 import argparse
 import ast
 import json
-import os
 import sys
 import random
 import pandas as pd
@@ -162,8 +161,8 @@ def run_sampling(n: int = 3, seed: int = None, output: str = None,
     display_samples(samples)
 
     print(f"\nDataset size: {len(df)} rows (framework reference: {DATASET_TOTAL} rows)")
-    print(f"Train/validation/test reference: 1200 / 150 / 150")
-    print(f"Used by: FlowChart Expert + General Expert (shared dataset)")
+    print("Train/validation/test reference: 1200 / 150 / 150")
+    print("Used by: FlowChart Expert + General Expert (shared dataset)")
 
     if output:
         save_samples(samples, output)
