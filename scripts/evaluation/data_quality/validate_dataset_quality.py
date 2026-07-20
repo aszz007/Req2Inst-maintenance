@@ -700,7 +700,7 @@ def main():
     warning_count = validator.warning_count
 
     print(f"\n{'=' * 80}")
-    print(f"Validation Summary".center(80))
+    print("Validation Summary".center(80))
     print(f"{'=' * 80}")
     print(f"Total errors: {error_count}")
     print(f"Total warnings: {warning_count}")
@@ -713,14 +713,14 @@ def main():
         print(f"\nError row numbers: {validator.get_error_rows()[:20]}")
         if len(validator.get_error_rows()) > 20:
             print(f"... {len(validator.get_error_rows()) - 20} more rows have errors")
-        print(f"\nTo repair errors, run:")
-        print(f"python scripts/data_preparation/uml_dataset_regenerate.py")
+        print("\nTo repair errors, run:")
+        print("python scripts/data_preparation/uml_dataset_regenerate.py")
 
     if warning_count > 0:
         print(f"\nWarning row numbers: {validator.get_warning_rows()[:20]}")
         if len(validator.get_warning_rows()) > 20:
             print(f"... {len(validator.get_warning_rows()) - 20} more rows have warnings")
-        print(f"\nWarnings may be false positives; review the problematic-instructions file manually or with an LLM")
+        print("\nWarnings may be false positives; review the problematic-instructions file manually or with an LLM")
 
     if error_count == 0 and warning_count == 0:
         print("\nDataset quality is excellent; no issues found.")
