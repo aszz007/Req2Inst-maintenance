@@ -278,11 +278,11 @@ def main():
     """Run the command-line entry point."""
 
 
-    IMAGE_FOLDER = r"D:\MyPyProject\crowdsourcing_instruction_generator\data\raw\uml\plant_uml_all"
+    IMAGE_FOLDER = r"D:\MyPyProject\crowdsourcing_instruction_generator\data\raw\uml\roboflow_uml"
 
     JSON_FILE = r"/outputs/recognition_results/uml/uml_recognition_qwen3_20260210_052354_fixed.json"
 
-    OUTPUT_CSV = r"D:\MyPyProject\crowdsourcing_instruction_generator\outputs\recognition_results\uml\uml_interim_plant_v2.csv"
+    OUTPUT_CSV = r"D:\MyPyProject\crowdsourcing_instruction_generator\outputs\recognition_results\uml\uml_interim.csv"
 
     ERROR_LOG = "uml_dataset_errors.json"
 

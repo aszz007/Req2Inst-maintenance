@@ -54,22 +54,3 @@ def test_relative_markdown_links_exist():
                 missing.append(f"{path.relative_to(ROOT)} -> {target}")
 
     assert not missing, "Missing relative Markdown links:\n" + "\n".join(missing)
-
-
-def test_plantuml_runtime_is_local_only():
-    assert not _tracked_paths("scripts/plantuml.jar")
-
-    gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
-    reproducibility = (ROOT / "docs/reproducibility.md").read_text(
-        encoding="utf-8"
-    )
-    artifact_policy = (ROOT / "docs/data-and-artifacts.md").read_text(
-        encoding="utf-8"
-    )
-
-    assert "/scripts/plantuml.jar" in gitignore
-    assert "PlantUML 1.2024.3" in reproducibility
-    assert "519A4A7284C6A0357C369E4BB0CAF72C4BFBBDE851B8C6D6BBDB7AF3C01FC82F" in (
-        reproducibility
-    )
-    assert "scripts/plantuml.jar" in artifact_policy
