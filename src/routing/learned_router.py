@@ -1,6 +1,5 @@
 """Implement learned expert routing from hidden-state features."""
 
-import gc
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
