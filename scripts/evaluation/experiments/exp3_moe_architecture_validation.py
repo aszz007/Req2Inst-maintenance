@@ -14,7 +14,6 @@ Output: outputs/evaluations/experiments/exp3_moe_architecture/
 """
 
 import sys
-import traceback
 import argparse
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +24,6 @@ sys.path.insert(0, str(project_root))
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 
 from config.settings import get_path_config
