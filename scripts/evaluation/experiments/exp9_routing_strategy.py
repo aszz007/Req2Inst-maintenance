@@ -5,7 +5,6 @@ import sys
 import gc
 import argparse
 import random as random_module
-import traceback
 from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
