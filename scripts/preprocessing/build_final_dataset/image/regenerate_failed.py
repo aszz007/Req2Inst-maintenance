@@ -141,7 +141,7 @@ class ImageBatchRepairer:
                     return button
                 else:
                     self.cached_button_selector = None
-            except:
+            except Exception:
                 self.cached_button_selector = None
 
         selectors = [
@@ -159,7 +159,7 @@ class ImageBatchRepairer:
                     if button.is_displayed() and button.is_enabled():
                         self.cached_button_selector = selector
                         return button
-            except:
+            except Exception:
                 continue
 
         return None
