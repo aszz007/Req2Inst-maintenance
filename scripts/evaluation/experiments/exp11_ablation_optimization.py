@@ -8,7 +8,6 @@ Prerequisites:
 import sys
 import gc
 import json
-import copy
 import argparse
 from datetime import datetime
 from pathlib import Path
@@ -1173,7 +1172,7 @@ def _generate_report(ablation_results, router_results, exp10_p2):
                 if abs(vals[keys_list[i]] - vals[keys_list[j]]) < 0.0001:
                     identical_pairs.append((keys_list[i], keys_list[j]))
         if identical_pairs:
-            lines.append(f"\n**Identical results detected:**")
+            lines.append("\n**Identical results detected:**")
             for (k1, k2) in identical_pairs:
                 lines.append(f"- {k1} ({abl[k1].get('name','')}) = {k2} ({abl[k2].get('name','')}) = {vals[k1]:.4f}")
             lines.append("\nThis occurs because OOD correction and cache redirect operate on the same "
@@ -1186,10 +1185,10 @@ def _generate_report(ablation_results, router_results, exp10_p2):
         a5_v = vals.get('A5', 0)
         a0_v = vals.get('A0', 0)
         if a5_v > 0:
-            lines.append(f"\n**Mechanism contribution ranking (vs A5 Pure Ensemble):**")
+            lines.append("\n**Mechanism contribution ranking (vs A5 Pure Ensemble):**")
             lines.append(f"1. Quality Gate: +{(vals.get('A6',0) - a5_v)*100:.1f}pp (most impactful)")
             lines.append(f"2. Router Weights (vs equal): +{(a0_v - vals.get('A6',0))*100:.1f}pp")
-            lines.append(f"3. OOD Correction + Cache Redirect: ~0pp (redundant on this dataset)")
+            lines.append("3. OOD Correction + Cache Redirect: ~0pp (redundant on this dataset)")
 
     lines.append("\n## Part B: Router优化结果")
     if router_results:

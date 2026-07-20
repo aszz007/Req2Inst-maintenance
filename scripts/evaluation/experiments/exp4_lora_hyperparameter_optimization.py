@@ -474,7 +474,6 @@ def main():
 
 def _delete_caches_for_rerun(rerun_configs_str):
     """Delete inference cache files for the specified config names so they are re-run."""
-    import shutil
     names = [n.strip() for n in rerun_configs_str.split(',') if n.strip()]
     for name in names:
         cache_file = CACHE_DIR / f'{name}_predictions.json'

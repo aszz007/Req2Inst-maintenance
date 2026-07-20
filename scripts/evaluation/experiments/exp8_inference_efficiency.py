@@ -670,7 +670,7 @@ def generate_report(results, results_by_method, test_mode=False):
 
         if 'lora_moe' in results_by_method:
             moe = results_by_method['lora_moe']
-            lines.append(f'\n### Multi-Expert LoRA 效率分析\n')
+            lines.append('\n### Multi-Expert LoRA 效率分析\n')
             lines.append(f'- 加载时间: {moe["load_time_s"]:.2f}s')
             lines.append(f'- 中位延迟: {moe["latency_median_ms"]:.1f}ms '
                          f'(P95={moe["latency_p95_ms"]:.1f}ms, '

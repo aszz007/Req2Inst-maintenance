@@ -9,7 +9,6 @@ import sys
 import gc
 import json
 import argparse
-import traceback
 from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
@@ -2545,9 +2544,9 @@ def _generate_report(phase1_results, phase2_results, exp9_phase1, exp9_phase2):
 
     lines += [
         "\n## Phase 2: 推理结果",
-        f"\n### General域结果对比",
-        f"| 策略 | ROUGE-L | Oracle-Hard Gap缩小率 |",
-        f"|------|---------|----------------------|",
+        "\n### General域结果对比",
+        "| 策略 | ROUGE-L | Oracle-Hard Gap缩小率 |",
+        "|------|---------|----------------------|",
         f"| Hard Routing (基线) | {hard_g:.4f} | 0% |",
     ]
 
@@ -2569,8 +2568,8 @@ def _generate_report(phase1_results, phase2_results, exp9_phase1, exp9_phase2):
         f"{((exp9_phase2 or {}).get('best_rougeL', hard_g)-hard_g)/gap*100:.1f}%",
         f"\n**RQ2**: Learned Router路由准确率（General域）= "
         f"{(phase1_results or {}).get('routing_accuracy', {}).get('general', 0)*100:.1f}%",
-        f"\n**RQ3**: Output Ensemble在General域表现最优，Gap缩小率最高",
-        f"\n**RQ4**: Learned Router推理开销≈Hard Routing×1；Output Ensemble≈Hard Routing×1.5~2",
+        "\n**RQ3**: Output Ensemble在General域表现最优，Gap缩小率最高",
+        "\n**RQ4**: Learned Router推理开销≈Hard Routing×1；Output Ensemble≈Hard Routing×1.5~2",
     ]
 
     report_path = EXP_DIR / 'report.md'
