@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException
 import re
 from datetime import datetime
 import chardet
@@ -410,7 +410,7 @@ class ImageBatchRepairer:
 
             return True
 
-        except Exception as e:
+        except Exception:
             print("[Validation exception, accepted]", end='', flush=True)
             return True
 
