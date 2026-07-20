@@ -2,7 +2,6 @@
 
 import sys
 import argparse
-import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
@@ -27,32 +26,32 @@ def print_config(use_4bit: bool, use_rtx4090: bool):
     lora_cfg = get_lora_config('conservative')
 
     print("Training configuration:")
-    print(f"Expert type: FlowChart Expert")
-    print(f"Dataset: uml_dataset.csv (1,500 samples)")
+    print("Expert type: FlowChart Expert")
+    print("Dataset: uml_dataset.csv (1,500 samples)")
     print(f"Base model: {path_cfg.QWEN3_8B_PATH}")
-    print(f"Output directory: checkpoints/lora_moe/uml_expert/")
+    print("Output directory: checkpoints/lora_moe/uml_expert/")
 
-    print(f"LoRA configuration:")
+    print("LoRA configuration:")
     print(f"  - Rank: {lora_cfg.rank}")
     print(f"  - Alpha: {lora_cfg.alpha}")
     print(f"  - Dropout: {lora_cfg.dropout}")
     print(f"  - Target Modules: {lora_cfg.target_modules}")
 
     if use_rtx4090:
-        print(f"Training parameters (RTX 4090 optimized):")
-        print(f"  - Batch Size: 8 (optimized)")
-        print(f"  - Gradient Accumulation: 2 (optimized)")
-        print(f"  - Effective Batch Size: 16")
+        print("Training parameters (RTX 4090 optimized):")
+        print("  - Batch Size: 8 (optimized)")
+        print("  - Gradient Accumulation: 2 (optimized)")
+        print("  - Effective Batch Size: 16")
         print(f"  - Epochs: {train_cfg.num_epochs}")
         print(f"  - Learning Rate: {train_cfg.learning_rate}")
         print(f"  - Max Seq Length: {train_cfg.max_seq_length}")
         print(f"  - 4-bit quantization: {use_4bit}")
-        print(f"  - BF16 mixed precision: True")
-        print(f"  - TF32 acceleration: True")
-        print(f"  - Fused optimizer: True")
-        print(f"  - Data loader workers: 8")
+        print("  - BF16 mixed precision: True")
+        print("  - TF32 acceleration: True")
+        print("  - Fused optimizer: True")
+        print("  - Data loader workers: 8")
     else:
-        print(f"Training parameters:")
+        print("Training parameters:")
         print(f"  - Batch Size: {train_cfg.batch_size}")
         print(f"  - Gradient Accumulation: {train_cfg.gradient_accumulation_steps}")
         print(f"  - Effective Batch Size: {train_cfg.batch_size * train_cfg.gradient_accumulation_steps}")
@@ -102,7 +101,7 @@ def validate_environment():
 
             is_rtx4090 = 'RTX 4090' in gpu_name or 'RTX 4090D' in gpu_name
             if is_rtx4090:
-                print(f"RTX 4090 detected; enabling optimized configuration")
+                print("RTX 4090 detected; enabling optimized configuration")
 
         else:
             logger.warning("CUDA is unavailable; training will run on CPU and be extremely slow")
@@ -151,7 +150,7 @@ def main():
         logger.error("Environment validation failed; check the required dependencies")
         return 1
 
-    logger.info(f"Creating FlowChart expert trainer...")
+    logger.info("Creating FlowChart expert trainer...")
     try:
         trainer = LoRATrainer(
             expert_type='uml',
@@ -175,10 +174,10 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"Dataset statistics:")
+    print("Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print(f"  - Dataset: uml_dataset.csv (1,500 rows)")
+    print("  - Dataset: uml_dataset.csv (1,500 rows)")
     print("Note: 1,500 samples use the standard 80:10:10 split")
 
     logger.info("Starting training...")

@@ -81,7 +81,7 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"Dataset statistics:")
+    print("Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
 

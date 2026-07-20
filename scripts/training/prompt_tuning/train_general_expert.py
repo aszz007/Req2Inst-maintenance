@@ -117,10 +117,10 @@ def main():
         return 1
 
     status = trainer.get_training_status()
-    print(f"Dataset statistics:")
+    print("Dataset statistics:")
     print(f"  - Training samples: {status['train_samples']}")
     print(f"  - Validation samples: {status['val_samples']}")
-    print(f"  - Data sources: text + image + FlowChart")
+    print("  - Data sources: text + image + FlowChart")
     print("Note: The General Expert uses all text + all images + 1,500 FlowChart samples")
 
     logger.info("Starting training...")
