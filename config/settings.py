@@ -815,18 +815,18 @@ def validate_config() -> tuple:
         messages.append(f" Qwen3-8B模型未找到: {qwen3_8b_path}")
         is_valid = False
     else:
-        print(f" Qwen3-8B model path is valid")
+        print(" Qwen3-8B model path is valid")
 
     vision_path = path_cfg.get_vision_model_path('qwen3')
     if not vision_path.exists():
         messages.append(f" Qwen3-VL-8B 模型未找到: {vision_path}")
-        print(f" Qwen3-VL-8B model not found (ignore if not downloaded yet)")
+        print(" Qwen3-VL-8B model not found (ignore if not downloaded yet)")
     else:
-        print(f" Qwen3-VL-8B vision model path is valid")
+        print(" Qwen3-VL-8B vision model path is valid")
 
     print("\n[2/5] Checking datasets...")
     if path_cfg.IMAGE_DATASET_CSV.exists():
-        print(f" Image dataset found")
+        print(" Image dataset found")
     else:
         messages.append(f" 图像数据集未找到: {path_cfg.IMAGE_DATASET_CSV}")
 
@@ -842,7 +842,7 @@ def validate_config() -> tuple:
     if device_cfg.device != "cuda":
         messages.append(" CUDA不可用，将使用CPU模式（速度极慢）")
     else:
-        print(f" CUDA is available")
+        print(" CUDA is available")
 
     print("\n[4/5] Checking dependencies...")
     required_packages = {
