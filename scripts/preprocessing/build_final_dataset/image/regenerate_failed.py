@@ -189,17 +189,17 @@ class ImageBatchRepairer:
                                     turn_type = parent_article.get_attribute('data-turn')
                                     if turn_type == 'assistant':
                                         valid_count += 1
-                            except:
+                            except Exception:
                                 continue
                         if valid_count > 0:
                             return valid_count
                     else:
                         if elements and len(elements) > 0:
                             return len(elements)
-                except:
+                except Exception:
                     continue
             return 0
-        except:
+        except Exception:
             return 0
 
     def check_response_still_updating(self):
