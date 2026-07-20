@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -84,7 +83,7 @@ def recognize_single_uml(image_path: str, version: str = 'qwen3', streaming: boo
         raise FileNotFoundError(f"Image file not found: {image_path}")
 
     print(f"\n{'='*80}")
-    print(f"Single-image recognition - FlowChart use case diagram")
+    print("Single-image recognition - FlowChart use case diagram")
     print(f"{'='*80}")
     print(f"Model version: {version.upper()}")
     print(f"Image path: {image_path}")
@@ -96,7 +95,7 @@ def recognize_single_uml(image_path: str, version: str = 'qwen3', streaming: boo
     print(f"[Model info] {model_info['model_name']}")
     print(f"[Device] {model_info['device']}\n")
 
-    print(f"[Recognizing] Processing FlowChart diagram...")
+    print("[Recognizing] Processing FlowChart diagram...")
     result = model.recognize_uml(str(image_path), streaming=streaming)
 
     result['image_path'] = str(image_path)
@@ -108,10 +107,10 @@ def recognize_single_uml(image_path: str, version: str = 'qwen3', streaming: boo
     result['complexity'] = metadata['complexity']
 
     print(f"\n{'='*80}")
-    print(f"Recognition result")
+    print("Recognition result")
     print(f"{'='*80}")
     if result.get('success', False):
-        print(f"Recognition succeeded")
+        print("Recognition succeeded")
 
         try:
             desc = json.loads(result['description'])
@@ -156,7 +155,7 @@ def batch_recognize_uml(
     total_images = len(image_files)
 
     print(f"\n{'='*80}")
-    print(f"Batch FlowChart use case diagram recognition")
+    print("Batch FlowChart use case diagram recognition")
     print(f"{'='*80}")
     print(f"Model version: {version.upper()}")
     print(f"Image folder: {image_folder}")
@@ -196,7 +195,7 @@ def batch_recognize_uml(
 
             if result.get('success', False):
                 success_count += 1
-                print(f" Recognition succeeded")
+                print(" Recognition succeeded")
 
                 try:
                     desc = json.loads(result['description'])
@@ -240,7 +239,7 @@ def batch_recognize_uml(
         json.dump(results, f, ensure_ascii=False, indent=2)
 
     print(f"\n{'='*80}")
-    print(f"Statistics report")
+    print("Statistics report")
     print(f"{'='*80}")
 
     domain_stats = {}
@@ -268,7 +267,7 @@ def batch_recognize_uml(
         else:
             domain_stats[domain]['failed'] += 1
 
-    print(f"\nStatistics by domain:")
+    print("\nStatistics by domain:")
     print(f"{'Domain':<25} {'Total':>8} {'Succeeded':>8} {'Failed':>8} {'Success rate':>10}")
     print("-" * 70)
     for domain in sorted(domain_stats.keys()):
@@ -276,14 +275,14 @@ def batch_recognize_uml(
         success_rate = stats['success'] / stats['total'] * 100 if stats['total'] > 0 else 0
         print(f"{domain:<25} {stats['total']:>8} {stats['success']:>8} {stats['failed']:>8} {success_rate:>9.1f}%")
 
-    print(f"\noverall_description completeness check:")
+    print("\noverall_description completeness check:")
     print(f"  Complete: {overall_description_complete}")
     print(f"  Incomplete/missing: {overall_description_incomplete}")
     if overall_description_incomplete > 0:
-        print(f"  [Info] A high incomplete rate may require increasing max_new_tokens")
+        print("  [Info] A high incomplete rate may require increasing max_new_tokens")
 
     print(f"\n{'='*80}")
-    print(f"Batch recognition completed")
+    print("Batch recognition completed")
     print(f"{'='*80}")
     print(f"Total images: {total_images}")
     print(f"Succeeded: {success_count}")
@@ -300,11 +299,11 @@ def main():
     args = parse_args()
 
     print("=" * 80)
-    print(" " * 25 + f"FlowChart Use Case Diagram Recognition System")
+    print(" " * 25 + "FlowChart Use Case Diagram Recognition System")
     print("=" * 80)
     print(f"Model version: {args.version.upper()}")
-    print(f"Function: Recognize elements and logical relationships in use case diagrams")
-    print(f"Output: English JSON result")
+    print("Function: Recognize elements and logical relationships in use case diagrams")
+    print("Output: English JSON result")
     print("=" * 80 + "\n")
 
     try:
@@ -330,7 +329,7 @@ def main():
                 path_cfg = get_path_config()
                 image_folder = path_cfg.ROBOFLOW_UML_DIR
                 print(f"[Info] Using the default input directory: {image_folder}")
-                print(f"[Info] Use --input to specify another directory\n")
+                print("[Info] Use --input to specify another directory\n")
 
             results = batch_recognize_uml(
                 image_folder=image_folder,
