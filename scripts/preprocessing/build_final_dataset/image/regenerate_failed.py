@@ -352,7 +352,7 @@ class ImageBatchRepairer:
                         "div.markdown.prose"
                     )
                     response_text = markdown_div.text
-                except:
+                except Exception:
                     response_text = last_response.text
 
                 if response_text and len(response_text) > 10:
@@ -395,7 +395,7 @@ class ImageBatchRepairer:
                     "div.markdown.prose"
                 )
                 text = markdown_div.text.strip()
-            except:
+            except Exception:
                 text = last_response.text.strip()
 
             if len(text) < 5:
