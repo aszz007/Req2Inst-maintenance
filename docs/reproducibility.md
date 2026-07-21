@@ -31,6 +31,30 @@ python -m pip install -e .
 For GPU workstations, install the matching PyTorch/CUDA wheel before the full
 requirements file if the default package index is unsuitable.
 
+## Read-only environment preflight
+
+Run the unified diagnostic before starting a model-backed workflow:
+
+```bash
+python scripts/diagnostics/check_environment.py
+```
+
+The default `all` profile checks the current Python environment, declared
+runtime dependencies, CUDA/GPU visibility, base-model directories, datasets,
+method checkpoints, key entry points, writable runtime targets, and available
+disk space. Narrow checks and machine-readable output are also available:
+
+```bash
+python scripts/diagnostics/check_environment.py --profile inference
+python scripts/diagnostics/check_environment.py --profile training
+python scripts/diagnostics/check_environment.py --profile evaluation --json
+```
+
+Exit status 0 means that no required static preflight check failed; exit status
+1 lists missing or incompatible requirements. The diagnostic is deliberately
+read-only and does not download packages, create directories, load model
+weights, or prove that a full training or inference run succeeds.
+
 ## Local model layout
 
 The central configuration expects:

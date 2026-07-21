@@ -85,6 +85,7 @@ scripts/
   training/             Training entry points for each method and expert
   inference/            End-to-end recognition and generation entry points
   evaluation/           Metrics and experiments 1-11
+  diagnostics/          Read-only environment readiness checks
 data/                   Local datasets; not tracked
 base_models/            Local base model weights; not tracked
 checkpoints/            Local training checkpoints; not tracked
@@ -128,6 +129,16 @@ original environment lock was not preserved.
 
 5. Place datasets and expert checkpoints under `data/` and `checkpoints/` as
    described in [the reproducibility guide](docs/reproducibility.md).
+
+6. Run the read-only environment preflight.
+
+   ```bash
+   python scripts/diagnostics/check_environment.py
+   ```
+
+   The command exits with status 1 when required dependencies or local assets
+   are missing. It does not create directories, download packages, load model
+   weights, or start a training/inference run.
 
 ## Inference
 

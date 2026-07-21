@@ -6,15 +6,12 @@ from .settings import (
     TrainingConfig,
     DeviceConfig,
     VisionModelConfig,
-
     get_path_config,
     get_lora_config,
     get_training_config,
     get_device_config,
     get_vision_model_config,
     set_vision_model_version,
-
-    validate_config,
 )
 
 __all__ = [
@@ -23,13 +20,10 @@ __all__ = [
     'TrainingConfig',
     'DeviceConfig',
     'VisionModelConfig',
-
     'get_path_config',
     'get_lora_config',
     'get_training_config',
     'get_device_config',
     'get_vision_model_config',
     'set_vision_model_version',
-
-    'validate_config',
 ]
