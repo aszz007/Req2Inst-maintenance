@@ -625,7 +625,7 @@ class UMLBatchRepairer:
 
             return True
 
-        except Exception as e:
+        except Exception:
             print("[Validation exception, accepted]", end='', flush=True)
             return True
 
