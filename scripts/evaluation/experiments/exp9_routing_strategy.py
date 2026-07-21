@@ -648,7 +648,6 @@ def run_phase3(args, phase1_results=None, phase2_results=None):
                 phase2_results = json.load(f)
 
     strategies = phase1_results.get('strategies', {})
-    score_matrix = phase1_results.get('score_matrix', {})
     oracle_selections = phase1_results.get('oracle_selections', {})
 
     _plot_contribution_band(strategies, phase2_results)
