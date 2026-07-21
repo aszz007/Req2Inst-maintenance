@@ -31,7 +31,7 @@ def main():
 
     print_header()
 
-    path_cfg = get_path_config()
+    get_path_config()
 
     print("Training strategy: conservative, high-quality configuration")
     print("Configuration:")
