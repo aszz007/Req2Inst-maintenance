@@ -213,7 +213,6 @@ class BaseTrainer(ABC):
         else:
             self.output_dir = self.path_cfg.PROJECT_ROOT / 'checkpoints' / method_name / f"{expert_type}_expert"
 
-        checkpoint_name = f"{method_name}_{expert_type}_expert"
         self.checkpoint_dir = self.output_dir / 'training_checkpoints'
 
         self.model = None
