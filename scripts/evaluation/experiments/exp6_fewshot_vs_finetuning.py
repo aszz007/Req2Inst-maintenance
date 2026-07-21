@@ -213,7 +213,7 @@ def plot_bar_with_errorbars(shot_summary, lora_rougeL, exp_dir, test_mode=False)
     colors = ['#ff7f0e'] * (len(n_shot_labels) - 1) + ['#1f77b4']
 
     fig, ax = plt.subplots(figsize=(9, 5))
-    bars = ax.bar(x, means, yerr=stds, capsize=5, color=colors, alpha=0.85)
+    ax.bar(x, means, yerr=stds, capsize=5, color=colors, alpha=0.85)
     ax.set_xticks(x)
     ax.set_xticklabels(n_shot_labels)
     ax.set_ylabel('ROUGE-L')
