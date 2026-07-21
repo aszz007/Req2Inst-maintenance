@@ -1083,7 +1083,7 @@ def _plot_confusion_compare(router_results):
     palette = ['#2E75B6', '#27AE60', '#E67E22', '#8E44AD']
     for idx, (cfg_name, row) in enumerate(zip(config_names, data_matrix)):
         offset = (idx - len(config_names)/2 + 0.5) * width
-        bars = ax2.bar(x + offset, row, width, label=cfg_name, color=palette[idx % len(palette)])
+        ax2.bar(x + offset, row, width, label=cfg_name, color=palette[idx % len(palette)])
     ax2.set_xticks(x)
     ax2.set_xticklabels(class_names, fontsize=10)
     ax2.set_ylabel('F1 Score')

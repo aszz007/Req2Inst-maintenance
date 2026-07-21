@@ -2224,7 +2224,7 @@ def _plot_routing_accuracy(phase1_results, exp9_phase1):
 
     fig, ax = plt.subplots(figsize=(10, 6))
     b1 = ax.bar(x - width/2, router_accs, width, label='Learned Router Accuracy', color='#3498db', alpha=0.85)
-    b2 = ax.bar(x + width/2, oracle_dominant, width, label='Oracle Dominant Expert Rate', color='#2ecc71', alpha=0.85)
+    ax.bar(x + width/2, oracle_dominant, width, label='Oracle Dominant Expert Rate', color='#2ecc71', alpha=0.85)
     ax.axhline(y=25, color='red', linestyle='--', linewidth=1.5, label='Random Baseline (25%)')
 
     ax.set_xlabel('Domain', fontsize=12)
