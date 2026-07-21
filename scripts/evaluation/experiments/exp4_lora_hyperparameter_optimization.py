@@ -209,8 +209,6 @@ def plot_heatmap_dropout_alpha(config_results, exp_dir, fixed_rank=16):
     plots_dir = exp_dir / 'plots'
     plots_dir.mkdir(parents=True, exist_ok=True)
 
-    alphas = sorted(set(a for _, a, _ in CONFIGS if _ == 0.05 or True))
-    dropouts = sorted(set(d for _, _, d in CONFIGS))
     # Filter to rank=fixed_rank configs
     rank_configs = {(a, d): m for (r, a, d), m in config_results.items() if r == fixed_rank}
     if not rank_configs:

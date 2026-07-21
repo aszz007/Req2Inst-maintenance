@@ -853,7 +853,6 @@ def _run_output_ensemble(router, features, general_test, args):
     n_raw_high_conf = sum(1 for (_, _, _, _, _, w1r, _) in sample_meta if w1r >= 0.85)
     n_post_ood_redirected = len(cache_results) - n_raw_high_conf
 
-    n_cache = len(cache_results)
     n_ensemble = sum(len(v) for v in ensemble_groups.values())
     for (e1, e2), items in sorted(ensemble_groups.items(), key=lambda x: -len(x[1])):
         avg_w1 = np.mean([w1 for (_, _, w1, _) in items])
@@ -2113,8 +2112,6 @@ def run_phase3(args, phase1_results, phase2_results, exp9_phase1, exp9_phase2):
 
     hard_rougeL = exp9_strategies.get('Hard Routing', {}).get('per_domain', {}).get('general', 0.0)
     oracle_rougeL = exp9_strategies.get('Oracle Routing', {}).get('per_domain', {}).get('general', 0.0)
-    gap = oracle_rougeL - hard_rougeL
-
     router_rougeL = (phase2_results or {}).get('learned_router', {}).get('rougeL', 0.0)
     ensemble_rougeL = (phase2_results or {}).get('output_ensemble', {}).get('rougeL', 0.0)
 
@@ -2459,8 +2456,6 @@ def _plot_summary_table(exp9_strategies, soft_rougeL, router_rougeL, ensemble_ro
 
     hard_avg = exp9_strategies.get('Hard Routing', {}).get('average', 0)
     oracle_avg = exp9_strategies.get('Oracle Routing', {}).get('average', 0)
-    gap_avg = oracle_avg - hard_avg
-
     router_acc = phase1_results.get('overall_accuracy', 0) if phase1_results else 0
 
     rows = [

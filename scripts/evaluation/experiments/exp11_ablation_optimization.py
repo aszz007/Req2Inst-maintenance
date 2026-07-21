@@ -788,7 +788,6 @@ def run_phase3(args, ablation_results=None, router_results=None):
 
     hard_rougeL = exp10_p2.get('hard_baseline_rougeL', 0.5515)
     oracle_rougeL = exp10_p2.get('oracle_rougeL', 0.6339)
-    gap = oracle_rougeL - hard_rougeL
 
     _plot_ablation_waterfall(ablation_results, hard_rougeL, oracle_rougeL)
 
