@@ -426,14 +426,56 @@ class VisionModel:
 
         return response
 
-    def _generate_streaming(self, inputs, task_type: str = 'uml') -> str:
-        """Generate streaming."""
-        import time
+    def _consume_streamer(self, streamer, thread, thread_error) -> str:
+        """Collect streamed text while monitoring the generation worker."""
         import queue
 
-        gen_config = self.uml_gen_config if task_type == 'uml' else self.image_gen_config
+        chunks = []
+        iteration_count = 0
 
+        while True:
+            try:
+                new_text = next(streamer)
+            except StopIteration:
+                break
+            except queue.Empty:
+                if thread.is_alive():
+                    continue
+
+                error = thread_error.get('error')
+                if error:
+                    raise RuntimeError(error)
+                raise RuntimeError(
+                    "Streaming generation stopped before signaling completion"
+                )
+
+            iteration_count += 1
+            logger.debug(
+                f"[Streaming generation - iteration] Iteration {iteration_count}; "
+                f"received text length: {len(new_text) if new_text else 0}"
+            )
+
+            if new_text:
+                print(new_text, end='', flush=True)
+                chunks.append(new_text)
+
+        thread.join()
+
+        error = thread_error.get('error')
+        if error:
+            raise RuntimeError(error)
+
+        generated_text = ''.join(chunks)
+        if not generated_text.strip():
+            raise ValueError("Streaming generation produced no output")
+
+        return generated_text
+
+    def _generate_streaming(self, inputs, task_type: str = 'uml') -> str:
+        """Generate text with real-time console output and a safe fallback."""
+        gen_config = self.uml_gen_config if task_type == 'uml' else self.image_gen_config
         thread_error = {'error': None}
+        thread = None
 
         try:
             streamer = TextIteratorStreamer(
@@ -442,87 +484,67 @@ class VisionModel:
                 skip_special_tokens=True,
                 timeout=5.0
             )
-
-            gen_kwargs = self._build_gen_kwargs(gen_config, extra_kwargs={'streamer': streamer})
-            generation_kwargs = {**inputs, **gen_kwargs}
+            gen_kwargs = self._build_gen_kwargs(
+                gen_config,
+                extra_kwargs={'streamer': streamer}
+            )
 
             def generate_with_error_capture():
                 try:
-                    with torch.no_grad():
-                        result = self.model.generate(**generation_kwargs)
+                    self._model_generate_vision(inputs, gen_kwargs)
                 except Exception as e:
                     import traceback
-                    error_msg = f"Exception in generation thread: {str(e)}\n{traceback.format_exc()}"
+                    error_msg = (
+                        f"Exception in generation thread: {str(e)}\n"
+                        f"{traceback.format_exc()}"
+                    )
                     logger.error(f"[Streaming generation - thread] {error_msg}")
                     thread_error['error'] = error_msg
 
-            thread = Thread(target=generate_with_error_capture)
-            thread.daemon = False
+            thread = Thread(
+                target=generate_with_error_capture,
+                daemon=True
+            )
             thread.start()
-
-            time.sleep(0.5)
 
             print("\n" + "="*80)
             print("Streaming generated content:")
             print("="*80)
             print("", flush=True)
 
-            generated_text = ""
-            last_output_time = time.time()
-            chunk_count = 0
-            iteration_count = 0
-
-            try:
-                for new_text in streamer:
-                    iteration_count += 1
-                    logger.debug(f"[Streaming generation - iteration] Iteration {iteration_count}; received text length: {len(new_text) if new_text else 0}")
-
-                    if new_text:
-                        print(new_text, end='', flush=True)
-                        generated_text += new_text
-                        last_output_time = time.time()
-                        chunk_count += 1
-
-            except queue.Empty as e:
-                logger.error(f"[Streaming generation] Streamer timeout exception: {str(e)}")
-                logger.error(f"[Streaming generation] Iterations completed: {iteration_count}, characters generated: {len(generated_text)}")
-                logger.error(f"[Streaming generation] Thread alive: {thread.is_alive()}")
-
-                if thread_error['error']:
-                    logger.error(f"[Streaming generation] Exception detected in generation thread:\n{thread_error['error']}")
-
-                raise
-
+            generated_text = self._consume_streamer(
+                streamer,
+                thread,
+                thread_error
+            )
             print("\n" + "="*80)
-
-            thread.join(timeout=10.0)
-
-            if thread_error['error']:
-                logger.error(f"[Streaming generation] Generation thread failed:\n{thread_error['error']}")
-                raise RuntimeError(thread_error['error'])
-
-            if not generated_text.strip():
-                logger.error("[Streaming generation] No content was generated")
-                raise ValueError("Streaming generation produced no output")
-
             return generated_text
-
-        except queue.Empty:
-            logger.error("[Streaming generation] Streamer timed out")
-            logger.info("[Streaming generation] Falling back to standard generation")
-            return self._generate_standard(inputs, task_type)
 
         except Exception as e:
             import traceback
+
+            if thread is not None and thread.is_alive():
+                logger.warning(
+                    "[Streaming generation] Waiting for the active generation "
+                    "worker before using the standard fallback"
+                )
+                thread.join()
+
             logger.error(f"[Streaming generation] Failed: {str(e)}")
-            logger.error(f"[Streaming generation] Exception details:\n{traceback.format_exc()}")
+            logger.error(
+                f"[Streaming generation] Exception details:\n"
+                f"{traceback.format_exc()}"
+            )
             logger.info("[Streaming generation] Falling back to standard generation")
 
             try:
                 return self._generate_standard(inputs, task_type)
             except Exception as fallback_error:
                 logger.error(f"[Standard generation] Fallback failed: {str(fallback_error)}")
-                raise RuntimeError(f"Both streaming and standard generation failed: streaming={str(e)}, standard={str(fallback_error)}")
+                raise RuntimeError(
+                    "Both streaming and standard generation failed: "
+                    f"streaming={str(e)}, standard={str(fallback_error)}"
+                )
 
     def _generate_with_confidence(self, inputs) -> Tuple[str, float]:
         """Generate with confidence."""

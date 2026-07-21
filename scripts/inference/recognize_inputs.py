@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime
 
 # Add project root to path
@@ -54,13 +54,21 @@ def parse_args():
         help='Output JSON file path (optional, auto-generated if not specified)'
     )
 
+    parser.add_argument(
+        '--streaming',
+        action='store_true',
+        default=None,
+        help='Show FlowChart recognition output in real time'
+    )
+
     return parser.parse_args()
 
 
 def recognize_single_file(
         file_path: str,
         rec_type: str,
-        version: str
+        version: str,
+        streaming: Optional[bool] = None
 ) -> Dict:
     """
     Recognize a single image file
@@ -69,6 +77,7 @@ def recognize_single_file(
         file_path: Path to image file
         rec_type: Recognition type ('image' or 'uml')
         version: Model version
+        streaming: True enables streaming; None uses the configured default
 
     Returns:
         dict: Recognition result
@@ -89,7 +98,10 @@ def recognize_single_file(
         if rec_type == 'image':
             result = model.recognize_image(str(file_path))
         else:  # uml
-            result = model.recognize_uml(str(file_path))
+            result = model.recognize_uml(
+                str(file_path),
+                streaming=streaming
+            )
 
         # Add metadata
         result['file_path'] = str(file_path)
@@ -117,7 +129,8 @@ def recognize_single_file(
 def recognize_directory(
         dir_path: str,
         rec_type: str,
-        version: str
+        version: str,
+        streaming: Optional[bool] = None
 ) -> List[Dict]:
     """
     Recognize all images in a directory
@@ -126,6 +139,7 @@ def recognize_directory(
         dir_path: Directory path
         rec_type: Recognition type
         version: Model version
+        streaming: True enables streaming; None uses the configured default
 
     Returns:
         list: List of recognition results
@@ -165,7 +179,10 @@ def recognize_directory(
             if rec_type == 'image':
                 result = model.recognize_image(str(image_path))
             else:  # uml
-                result = model.recognize_uml(str(image_path))
+                result = model.recognize_uml(
+                    str(image_path),
+                    streaming=streaming
+                )
 
             # Add metadata
             result['file_path'] = str(image_path)
@@ -211,6 +228,7 @@ def main():
     logger.info(f"Recognition Type: {args.type.upper()}")
     logger.info(f"Input: {args.input}")
 
+
     try:
         input_path = Path(args.input)
 
@@ -220,7 +238,8 @@ def main():
             result = recognize_single_file(
                 file_path=str(input_path),
                 rec_type=args.type,
-                version=args.version
+                version=args.version,
+                streaming=args.streaming
             )
             results = [result]
 
@@ -229,7 +248,8 @@ def main():
             results = recognize_directory(
                 dir_path=str(input_path),
                 rec_type=args.type,
-                version=args.version
+                version=args.version,
+                streaming=args.streaming
             )
         else:
             raise ValueError(f"Input path does not exist: {input_path}")

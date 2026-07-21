@@ -146,8 +146,11 @@ python scripts/inference/generate_instructions.py --output-format json
 ```
 
 Useful options include `--input-dir`, `--vision-version qwen3`,
-`--expert-variant`, and `--no-recognition`. Generated files are written under
-`outputs/generated_instructions/` and are intentionally excluded from Git.
+`--expert-variant`, `--no-recognition`, and `--streaming`. The streaming flag
+shows FlowChart recognition as it is generated. Without the flag, the vision
+model uses `DeviceConfig.enable_streaming`, whose tracked default is `False`.
+Generated files are written under `outputs/generated_instructions/` and are
+intentionally excluded from Git.
 
 ## Training
 

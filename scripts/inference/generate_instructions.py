@@ -77,6 +77,12 @@ Examples:
         help='Skip automatic recognition, only process existing JSON files'
     )
 
+    parser.add_argument(
+        '--streaming',
+        action='store_true',
+        help='Show FlowChart recognition output in real time'
+    )
+
     return parser.parse_args()
 
 
@@ -136,7 +142,8 @@ def scan_input_directory(input_dir: Path) -> Dict[str, List[Path]]:
 def recognize_images(
         image_files: List[Path],
         rec_type: str,
-        vision_version: str
+        vision_version: str,
+        streaming: bool = False
 ) -> Optional[Path]:
     """
     Recognize images by calling recognize_inputs.py as subprocess
@@ -145,6 +152,7 @@ def recognize_images(
         image_files: List of image file paths
         rec_type: Recognition type ('image' or 'uml')
         vision_version: Vision model version
+        streaming: Whether to stream FlowChart recognition to the console
 
     Returns:
         Path: Path to recognition results JSON file, or None if failed
@@ -172,6 +180,8 @@ def recognize_images(
         '--type', rec_type,
         '--version', vision_version
     ]
+    if streaming and rec_type == 'uml':
+        cmd.append('--streaming')
 
     logger.info(f"Executing recognition command: {' '.join(cmd)}")
 
@@ -395,7 +405,8 @@ def main():
         json_file = recognize_images(
             categorized_files['uml'],
             'uml',
-            args.vision_version
+            args.vision_version,
+            streaming=args.streaming
         )
         if json_file and json_file.exists():
             recognized_inputs = load_recognition_results(json_file, 'uml')
