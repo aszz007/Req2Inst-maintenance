@@ -114,7 +114,7 @@ def run_training_task(method, expert, script_path):
         print("-" * 80)
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Completed: {method}/{expert}")
         print(f"Elapsed: {format_time(elapsed)}")
-        print(f"Status: succeeded")
+        print("Status: succeeded")
 
         return True
 
@@ -123,7 +123,7 @@ def run_training_task(method, expert, script_path):
         print("-" * 80)
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Failed: {method}/{expert}")
         print(f"Elapsed: {format_time(elapsed)}")
-        print(f"Status: failed")
+        print("Status: failed")
         print(f"Exit code: {e.returncode}")
 
         return False
@@ -133,7 +133,7 @@ def run_training_task(method, expert, script_path):
         print("\n" + "-" * 80)
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Interrupted: {method}/{expert}")
         print(f"Elapsed: {format_time(elapsed)}")
-        print(f"Status: interrupted by user")
+        print("Status: interrupted by user")
 
         raise
 
