@@ -548,13 +548,6 @@ class LanguageModel:
 
         MAX_DO_NOT = 6
 
-        SECTION_PAT = (
-            r'(?P<def>Definition:.*?)'
-            r'(?P<emph>Emphasis\s*(?:&|and)\s*Caution:.*?)'
-            r'(?P<avoid>Things to Avoid:\s*(?P<avoid_body>.*))'
-            r'$'
-        )
-
         def _limit_do_not(content: str) -> str:
             """Limit the ?Things to Avoid? section."""
             sentences = re.split(r'(?<=[.!?])\s+', content.strip())
