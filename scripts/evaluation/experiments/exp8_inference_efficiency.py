@@ -338,8 +338,8 @@ def plot_latency_comparison(results_by_method, test_mode=False):
 
     y = np.arange(len(methods))
     fig, ax = plt.subplots(figsize=(10, max(5, len(methods) * 0.7)))
-    bars = ax.barh(y, medians, color=colors, edgecolor='gray', height=0.55,
-                   label='Median')
+    ax.barh(y, medians, color=colors, edgecolor='gray', height=0.55,
+            label='Median')
     ax.scatter(p95s, y, marker='|', color='red', s=120, zorder=5, label='P95')
     for i, (med, p95) in enumerate(zip(medians, p95s)):
         offset = max(max(medians), 0.1) * 0.02
