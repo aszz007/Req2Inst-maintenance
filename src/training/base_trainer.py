@@ -516,7 +516,6 @@ class BaseTrainer(ABC):
                         logger.info(f"Cleared GPU cache before training the {self.expert_type} expert to maximize available memory")
 
                 allocated = torch.cuda.memory_allocated() / 1024**3
-                reserved = torch.cuda.memory_reserved() / 1024**3
                 total = torch.cuda.get_device_properties(0).total_memory / 1024**3
                 free = total - allocated
                 logger.info(f"[Before training] GPU memory: allocated={allocated:.2f} GB, available≈{free:.2f} GB, total={total:.2f} GB")
