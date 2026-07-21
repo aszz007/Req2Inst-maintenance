@@ -102,7 +102,7 @@ def run_training_task(method, expert, script_path):
     env['PYTHONPATH'] = str(PROJECT_ROOT)
 
     try:
-        result = subprocess.run(
+        subprocess.run(
             [sys.executable, str(full_path)],
             cwd=str(PROJECT_ROOT),
             env=env,
