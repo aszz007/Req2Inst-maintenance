@@ -20,7 +20,7 @@ def detect_rtx4090() -> bool:
         if torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
             return 'RTX 4090' in gpu_name or 'RTX 4090D' in gpu_name
-    except:
+    except Exception:
         pass
     return False
 
