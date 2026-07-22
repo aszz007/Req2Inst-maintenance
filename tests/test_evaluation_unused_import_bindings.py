@@ -13,7 +13,7 @@ SPECS = [
     pytest.param(
         "scripts/evaluation/experiments/exp8_inference_efficiency.py",
         {"group_split_by_input"},
-        "6fa7b838d63a45d902f4be68833e2daefb67206b91b66c8c015366a879a3110a",
+        "27c747b1ac33b69f1bff0f1abfe914aae55648edafe3edb435364a6b1cdf60c0",
         id="exp8-group-split-binding",
     ),
     pytest.param(
