@@ -75,7 +75,6 @@ def _entropy(prob_tensor):
 
 def _jaccard_topk(prob1, prob2, k=10):
     """Calculate top-k Jaccard similarity."""
-    import torch
     topk1 = prob1.topk(k, dim=-1).indices  # (B, k)
     topk2 = prob2.topk(k, dim=-1).indices  # (B, k)
     B = prob1.shape[0]
@@ -460,7 +459,6 @@ def _train_router(router, train_X, train_y, val_X, val_y, args):
     """Train router."""
     import torch
     import torch.nn as nn
-    import torch.nn.functional as F
     from torch.utils.data import DataLoader, TensorDataset
     from sklearn.metrics import f1_score
 
@@ -723,7 +721,6 @@ def _run_output_ensemble(router, features, general_test, args):
         _DEBUG_ENSEMBLE_STATS['enabled'] = True
         logger.info("  [v13] Diagnostic mode enabled; collecting D1-D5 metrics")
 
-    import torch
     from peft import PeftModel
     from models.language_model import LanguageModel
 
@@ -2014,7 +2011,6 @@ def _logit_ensemble_generate(model_with_adapters, tokenizer,
 
 def _decode_from_logits(tokenizer, logits_list):
     """Decode from logits."""
-    import torch
     stop_ids = {tokenizer.eos_token_id, tokenizer.pad_token_id}
     tokens = []
     for l in logits_list:

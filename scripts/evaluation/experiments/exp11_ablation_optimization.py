@@ -263,7 +263,6 @@ def run_phase1(args):
     else:
         config_keys = list(ABLATION_CONFIGS.keys())
 
-    import torch
     from peft import PeftModel
     from models.language_model import LanguageModel
 
