@@ -133,7 +133,7 @@ def parse_int_list(s):
 def main():
     """Run the command-line entry point."""
     parser = argparse.ArgumentParser(
-        description='Run all comparison experiments (exp1–exp11)',
+        description='Run all comparison experiments (exp1-exp11)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
