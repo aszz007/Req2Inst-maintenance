@@ -11,16 +11,16 @@ ROOT = Path(__file__).resolve().parents[1]
 FULL_FINETUNING_DIR = ROOT / "scripts" / "training" / "full_finetuning"
 ENTRYPOINT_BODY_HASHES = {
     FULL_FINETUNING_DIR / "train_text_expert.py": (
-        "6b9efc3411333f6f997f42a6dae70bf5971466b559d54a0738ce8ad76adeb976"
+        "10e676436745e9e58988a3d00f5c7943af1bc974eefe6926fc9b8220e164fa43"
     ),
     FULL_FINETUNING_DIR / "train_image_expert.py": (
-        "b4605590a4e4d51105bd125381188dcf522717881a92865e734238af95f613e9"
+        "3f424300f4e8501e95878d8d3b80f9bb65e22e3385293318f2ecaacdb107e724"
     ),
     FULL_FINETUNING_DIR / "train_uml_expert.py": (
-        "386ade5bbab71f00debb8f0f455b9f9cdb95577f7f7799e3bd309af51f871201"
+        "796f99339c50c36b6f115435ff0d48a57785b9723da2fff469d9352a4980b4f7"
     ),
     FULL_FINETUNING_DIR / "train_general_expert.py": (
-        "6feda915359d7453cdd38eb11cfa0f9dfeb0e2db3ac22c79f5320850f26879a3"
+        "33a2416ec8b26b467649dc2b34f5bc0501d3edf69dea0c0b9deee83203d8de66"
     ),
 }
 EXPECTED_ENTRYPOINT_IMPORTS = [
@@ -53,6 +53,14 @@ def _non_import_body_hash(path):
             node
             for node in tree.body
             if not isinstance(node, (ast.Import, ast.ImportFrom))
+            and not (
+                isinstance(node, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name)
+                    and target.id == "PROJECT_ROOT"
+                    for target in node.targets
+                )
+            )
         ],
         type_ignores=[],
     )

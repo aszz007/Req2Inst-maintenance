@@ -37,6 +37,7 @@ jobs:
           tests/test_repository_quality.py
           tests/test_manuscript_terminology.py
           tests/test_model_compatibility.py
+          tests/test_training_launcher_project_root.py
           tests/test_experiment_alignment.py
           tests/test_console_output.py
           -k "not config_exposes_only_supported_vision_version"
