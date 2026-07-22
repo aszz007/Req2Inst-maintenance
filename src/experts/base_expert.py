@@ -1,16 +1,16 @@
 """Define the common interface and model lifecycle for domain experts."""
 
 import os
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Optional, Dict, Any
+
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "true")
 
 import torch
 _cpu_count = os.cpu_count() or 25
 torch.set_num_threads(min(16, _cpu_count))
 torch.set_num_interop_threads(min(8, _cpu_count // 3))
-from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Optional, Dict, Any
-import torch
 
 from models.language_model import LanguageModel
 from src.utils.logger import get_logger
