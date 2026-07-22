@@ -24,7 +24,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('experiments.run_all')
 

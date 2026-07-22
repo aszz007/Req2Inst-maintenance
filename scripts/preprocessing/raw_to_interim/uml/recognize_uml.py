@@ -11,8 +11,8 @@ current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from models.vision_model import VisionModel
-from config.settings import get_path_config
+from models.vision_model import VisionModel  # noqa: E402
+from config.settings import get_path_config  # noqa: E402
 
 
 def extract_metadata_from_path(image_path: Path) -> dict:
