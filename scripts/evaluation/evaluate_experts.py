@@ -12,18 +12,18 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from config.settings import get_path_config
-from src.utils.enhanced_metrics import EnhancedMetrics
-from src.instruction_generation.quality_validator import QualityValidator
-from src.training.data_loader import (
+from config.settings import get_path_config  # noqa: E402
+from src.utils.enhanced_metrics import EnhancedMetrics  # noqa: E402
+from src.instruction_generation.quality_validator import QualityValidator  # noqa: E402
+from src.training.data_loader import (  # noqa: E402
     TextDatasetLoader,
     ImageDatasetLoader,
     UMLDatasetLoader,
     split_dataset_for_expert
 )
-from src.experts import TextExpert, ImageExpert, UMLExpert, GeneralExpert
-from src.utils.logger import get_logger
-import traceback
+from src.experts import TextExpert, ImageExpert, UMLExpert, GeneralExpert  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
+import traceback  # noqa: E402
 
 logger = get_logger('evaluation.evaluate_experts')
 
