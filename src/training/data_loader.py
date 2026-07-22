@@ -1,6 +1,7 @@
 """Load, normalize, split, tokenize, and batch the project datasets."""
 
 import os
+from src.csv_encoding import detect_csv_encoding as resolve_csv_encoding
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "true")
 import json
 import pandas as pd
@@ -38,27 +39,7 @@ def normalize_column_name(col_name: str) -> str:
 
 def detect_csv_encoding(filepath: Path) -> str:
     """Detect CSV encoding."""
-    encodings = [
-        'utf-8-sig',
-        'utf-8',
-        'cp1252',
-        'gbk',
-        'gb2312',
-        'gb18030',
-        'utf-16',
-        'utf-16-le',       # UTF-16 Little Endian
-        'utf-16-be',       # UTF-16 Big Endian
-        'latin-1'
-    ]
-
-    for encoding in encodings:
-        try:
-            pd.read_csv(filepath, encoding=encoding, nrows=100)
-            return encoding
-        except:
-            continue
-
-    return 'latin-1'
+    return resolve_csv_encoding(filepath)
 
 
 class InstructionDataset(Dataset):

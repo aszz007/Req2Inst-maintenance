@@ -4,56 +4,50 @@ import os
 import sys
 import json
 import pandas as pd
-import chardet
 import re
 from datetime import datetime
-from typing import Dict, List, Tuple, Any
+from pathlib import Path
+from typing import Dict, List, Tuple, Any, Optional
+
+from src.csv_encoding import detect_csv_encoding
 
 
 class UMLDatasetValidator:
     """Validate FlowChart dataset records and instructions."""
 
-    def __init__(self, dataset_path: str, enable_period_check: bool = False):
+    def __init__(
+        self,
+        dataset_path: str,
+        enable_period_check: bool = False,
+        encoding: Optional[str] = None,
+    ):
         """Initialize the instance."""
         self.dataset_path = dataset_path
         self.enable_period_check = enable_period_check
+        self.encoding = encoding
         self.validation_results = []
         self.error_count = 0
         self.warning_count = 0
 
     def detect_encoding(self, filepath: str) -> str:
         """Detect encoding."""
-        try:
-            with open(filepath, 'rb') as f:
-                raw_data = f.read(100000)
-                result = chardet.detect(raw_data)
-                return result['encoding']
-        except Exception as e:
-            print(f"Encoding detection error: {e}")
-            return 'utf-8'
+        return detect_csv_encoding(
+            Path(filepath),
+            preferred_encoding=self.encoding,
+        )
 
     def load_dataset(self) -> pd.DataFrame:
         """Load dataset."""
         print(f"\nLoading dataset: {os.path.basename(self.dataset_path)}")
 
-        encoding = self.detect_encoding(self.dataset_path)
-        print(f"Detected encoding: {encoding}")
-
         try:
+            encoding = self.detect_encoding(self.dataset_path)
+            print(f"Detected encoding: {encoding}")
             df = pd.read_csv(self.dataset_path, encoding=encoding)
             print(f"Successfully loaded {len(df)} rows\n")
             return df
         except Exception as e:
-            print(f"Failed to load with {encoding}; trying other encodings...")
-            for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
-                try:
-                    df = pd.read_csv(self.dataset_path, encoding=enc)
-                    print(f"Successfully loaded with {enc} encoding")
-                    print(f"Loaded {len(df)} rows\n")
-                    return df
-                except:
-                    continue
-            raise Exception(f"Failed to load dataset: {e}")
+            raise RuntimeError(f"Failed to load dataset: {e}") from e
 
     def validate_json_description(self, description: str, row_num: int) -> Tuple[bool, List[str]]:
         """Validate JSON description."""
@@ -665,6 +659,8 @@ def main():
                        help='Path to the dataset CSV file')
     parser.add_argument('--enable-period-check', action='store_true',
                        help='Enable sentence-ending period checks')
+    parser.add_argument('--encoding', type=str, default=None,
+                       help='Explicit CSV encoding; automatic detection is used by default')
     parser.add_argument('--report-output', type=str,
                        default=None,
                        help='Output path for the validation report CSV')
@@ -673,7 +669,8 @@ def main():
 
     validator = UMLDatasetValidator(
         dataset_path=args.dataset,
-        enable_period_check=args.enable_period_check
+        enable_period_check=args.enable_period_check,
+        encoding=args.encoding,
     )
 
     start_time = datetime.now()
