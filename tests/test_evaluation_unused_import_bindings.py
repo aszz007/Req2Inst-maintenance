@@ -23,9 +23,10 @@ SPECS = [
             "TextDatasetLoader",
             "ImageDatasetLoader",
             "UMLDatasetLoader",
+            "sns",
         },
-        "449fafbd290cc21a8b1b8ce1cb56da6c18fd9fa83e25b1208b96337b9f07da3f",
-        id="exp11-router-and-loader-bindings",
+        "66ad0c684d0b2d6b30bdbab8a352ee8f32e4b7a9897da8d9ce4d21f1c2610154",
+        id="exp11-unused-bindings",
     ),
 ]
 

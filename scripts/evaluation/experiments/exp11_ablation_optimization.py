@@ -21,7 +21,6 @@ sys.path.insert(0, str(project_root))
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 from config.settings import get_path_config
 from src.training.data_loader import (
