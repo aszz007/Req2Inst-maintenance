@@ -13,7 +13,7 @@ SPECS = [
     pytest.param(
         "scripts/evaluation/experiments/exp8_inference_efficiency.py",
         {"group_split_by_input"},
-        "f3b4e2510c1e83538a40c1b9f87a50f343b37d725f1a07f2730dfddfc8b2b560",
+        "6fa7b838d63a45d902f4be68833e2daefb67206b91b66c8c015366a879a3110a",
         id="exp8-group-split-binding",
     ),
     pytest.param(
@@ -24,7 +24,7 @@ SPECS = [
             "ImageDatasetLoader",
             "UMLDatasetLoader",
         },
-        "b27155d49d1da931158021fb98f7eb1f983ef914362b85911092de6a132204fa",
+        "449fafbd290cc21a8b1b8ce1cb56da6c18fd9fa83e25b1208b96337b9f07da3f",
         id="exp11-router-and-loader-bindings",
     ),
 ]

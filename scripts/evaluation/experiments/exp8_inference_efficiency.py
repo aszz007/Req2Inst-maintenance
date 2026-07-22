@@ -240,8 +240,6 @@ def _infer_batch(gen_obj, inputs, method, batch_size):
 
 def _benchmark_gpu_method(method, test_inputs, n_warmup, n_latency, n_throughput):
     """Benchmark a GPU method."""
-    import torch
-
     use_4bit = False
     batch_size = THROUGHPUT_BATCH.get(method, 4)
 

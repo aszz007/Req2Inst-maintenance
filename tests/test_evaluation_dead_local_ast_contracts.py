@@ -29,7 +29,7 @@ SPECS = [
         "scripts/evaluation/experiments/exp10_advanced_routing.py",
         "_run_output_ensemble",
         ("n_cache",),
-        "0601af290a97f782b0f158b2799dcb056d1fba2512cb5bd8d8735f99232fa882",
+        "5006811165adda12705fafdc5e699d05e60f0d606fcd3e18fd674a63ff81f1d6",
         id="exp10-cache-count",
     ),
     pytest.param(
