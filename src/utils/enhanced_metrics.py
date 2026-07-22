@@ -441,7 +441,7 @@ class EnhancedMetrics:
                 f"Prediction and reference counts do not match: {len(predictions)} vs {len(references)}"
             )
 
-        format_results = self.calculate_format_metrics(predictions)
+        self.calculate_format_metrics(predictions)
 
         self._lazy_load_metrics()
         try:
