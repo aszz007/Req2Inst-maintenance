@@ -9,7 +9,7 @@ import sys
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('utils.replot_training_curves')
 

@@ -12,8 +12,8 @@ _cpu_count = os.cpu_count() or 25
 torch.set_num_threads(min(16, _cpu_count))
 torch.set_num_interop_threads(min(8, _cpu_count // 3))
 
-from models.language_model import LanguageModel
-from src.utils.logger import get_logger
+from models.language_model import LanguageModel  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('experts.base')
 

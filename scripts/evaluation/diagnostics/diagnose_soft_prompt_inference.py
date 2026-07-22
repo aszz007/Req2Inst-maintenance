@@ -23,8 +23,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from config.settings import get_path_config
-from src.utils.logger import get_logger
+from config.settings import get_path_config  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('diagnose.soft_prompt')
 

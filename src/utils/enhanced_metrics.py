@@ -5,7 +5,7 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('metrics.enhanced')
 

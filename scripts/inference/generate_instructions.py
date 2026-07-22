@@ -13,9 +13,9 @@ import re
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.instruction_generation import InstructionGenerator
-from config.settings import get_path_config
-from src.utils.logger import get_logger
+from src.instruction_generation import InstructionGenerator  # noqa: E402
+from config.settings import get_path_config  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('inference.generate_instructions')
 
