@@ -4,12 +4,12 @@ import sys
 import argparse
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.training.p_tuning_trainer import PTuningTrainer
-from config.settings import get_path_config, get_ptuning_config
-from src.utils.logger import get_logger
+from src.training.p_tuning_trainer import PTuningTrainer  # noqa: E402
+from config.settings import get_path_config, get_ptuning_config  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('training.p_tuning.general_expert')
 
