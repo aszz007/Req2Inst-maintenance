@@ -32,14 +32,14 @@ SPECS = [
         EXP10,
         "_run_output_ensemble",
         "torch",
-        "5006811165adda12705fafdc5e699d05e60f0d606fcd3e18fd674a63ff81f1d6",
+        "3f0b7fab466f4275194e4e8a34079b7a2bfc29cebbc688eb33eebf0ae214da3a",
         id="exp10-output-ensemble",
     ),
     pytest.param(
         EXP10,
         "_decode_from_logits",
         "torch",
-        "a83c99b83df7736d1074b3fee3b3765cc82fe4e316a8430dccbf2b43f09ed305",
+        "8fdde30468843ead482a9ee129f1a1ff993fbeb9a62be7f2e13eb6d0fa463efc",
         id="exp10-decode",
     ),
     pytest.param(

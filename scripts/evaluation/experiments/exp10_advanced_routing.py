@@ -1093,7 +1093,7 @@ def _run_output_ensemble(router, features, general_test, args):
             f"  [DEBUG][FlowChart-ensemble] ensemble outputs={len(uml_ensemble_samples)}, "
             f"avg_ROUGE-L={np.mean(uml_ens_rouges):.4f}, "
             f"avg_chars={np.mean(uml_ens_lens):.0f}, "
-            f"long outputs (>700 characters)={sum(1 for l in uml_ens_lens if l > 700)}"
+            f"long outputs (>700 characters)={sum(1 for length in uml_ens_lens if length > 700)}"
         )
     if uml_cache_samples:
         logger.info(
@@ -2013,8 +2013,8 @@ def _decode_from_logits(tokenizer, logits_list):
     """Decode from logits."""
     stop_ids = {tokenizer.eos_token_id, tokenizer.pad_token_id}
     tokens = []
-    for l in logits_list:
-        token = l.argmax(dim=-1).item()
+    for logits in logits_list:
+        token = logits.argmax(dim=-1).item()
         if token in stop_ids:
             break
         tokens.append(token)
