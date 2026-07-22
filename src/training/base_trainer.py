@@ -80,7 +80,7 @@ def _should_use_eval_strategy():
     try:
         major, minor = _get_transformers_version()
         return (major > 4) or (major == 4 and minor >= 46)
-    except:
+    except Exception:
         return False
 
 
