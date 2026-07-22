@@ -10,7 +10,8 @@ an environment lock produced on the final verification machine.
 ## Recommended host
 
 - Python 3.10 in a Conda environment named `instruction_generator`.
-- NVIDIA GPU and a CUDA-compatible PyTorch 2.7.1 build.
+- NVIDIA GPU and the PyTorch 2.7.1 CUDA 12.8 build used by the current
+  RTX 4060/RTX 5090 compatibility target.
 - Sufficient local storage for two 8B base models, multiple adapters,
   checkpoints, datasets, and caches.
 - 24 GB-class VRAM for the configurations designed around RTX 4090; lower-memory
@@ -22,20 +23,28 @@ for full training or multimodal inference.
 ## Install
 
 ```bash
-conda create -n instruction_generator python=3.10 -y
+conda create --override-channels -c conda-forge -n instruction_generator python=3.10 pip -y
 conda activate instruction_generator
+python -m pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-For GPU workstations, install the matching PyTorch/CUDA wheel before the full
-requirements file if the default package index is unsuitable.
+The same logical Python and package versions are used on Windows and Linux,
+but pip installs the wheel built for the current operating system. The
+reconstructed environment has passed dependency imports and a CUDA tensor
+smoke test on an RTX 4060 Laptop GPU. The CUDA 12.8 wheel also targets the
+RTX 5090 architecture, but a model-backed server run is still required before
+publishing a final environment lock. The 8 GB local GPU is not treated as a
+replacement for the documented 24 GB-class experimental baseline.
 
 ## Read-only environment preflight
 
 Run the unified diagnostic before starting a model-backed workflow:
 
 ```bash
+python -m pip check
+python -c 'import torch; print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name(0), torch.cuda.get_device_capability(0))'
 python scripts/diagnostics/check_environment.py
 ```
 

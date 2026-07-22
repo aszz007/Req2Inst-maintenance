@@ -8,8 +8,9 @@
 #
 # The original environment lock was not preserved. These constraints are a
 # compatibility specification, not a byte-for-byte environment export.
-# Install a CUDA-compatible PyTorch build for the target workstation when the
-# default PyPI wheel is not appropriate.
+# Install the NVIDIA CUDA 12.8 wheel before this file when GPU execution is
+# required:
+# python -m pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 
 # Core model stack
 torch==2.7.1
