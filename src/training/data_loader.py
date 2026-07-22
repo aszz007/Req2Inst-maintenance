@@ -308,7 +308,7 @@ class TextDatasetLoader:
                             'output': instruction,
                             'source': csv_file.stem
                         })
-                except:
+                except Exception:
                     continue
 
             logger.info(f"Loaded {csv_file.name}: {len(df)} records")
@@ -384,7 +384,7 @@ class ImageDatasetLoader:
                         'source': 'image_dataset'
                     })
 
-            except:
+            except Exception:
                 continue
 
         logger.info(f"Image dataset loaded: {len(all_data)} records")
