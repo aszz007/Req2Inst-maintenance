@@ -105,13 +105,19 @@ original environment lock was not preserved.
 1. Create and activate an isolated environment.
 
    ```bash
-   conda create -n instruction_generator python=3.10 -y
+   conda create --override-channels -c conda-forge -n instruction_generator python=3.10 pip -y
    conda activate instruction_generator
    ```
 
-2. Install a PyTorch 2.7.1 build compatible with the local CUDA driver. The
-   plain packages are also listed in `requirements.txt`, but GPU workstations
-   may need the platform-specific PyTorch index.
+2. Install the CUDA 12.8 PyTorch build before the remaining dependencies.
+
+   ```bash
+   python -m pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+   ```
+
+   This package set targets both the local RTX 4060 and the RTX 5090 server.
+   Windows and Linux download different platform wheels from the same index;
+   do not copy an installed environment directory between operating systems.
 
 3. Install the project dependencies and package.
 
