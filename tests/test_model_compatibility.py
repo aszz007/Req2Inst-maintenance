@@ -2,7 +2,6 @@
 
 import ast
 import importlib.util
-import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -65,20 +64,8 @@ class ModelCompatibilityTests(unittest.TestCase):
                 version_choices.append(ast.literal_eval(choices))
             self.assertEqual(version_choices, [["qwen3"]], str(path))
 
-    def test_environment_wrapper_has_no_qwen25_alias(self):
-        path = ROOT / "scripts/run_with_env.py"
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        env_map = None
-        for node in tree.body:
-            if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id == "ENV_MAP":
-                        env_map = ast.literal_eval(node.value)
-        self.assertIsNotNone(env_map)
-        self.assertNotIn("image_qwen2.5", env_map)
-        self.assertNotIn("uml_qwen2.5", env_map)
-        self.assertEqual(env_map["image_qwen3"], "qwen_vision3")
-        self.assertEqual(env_map["uml_qwen3"], "qwen_vision3")
+    def test_obsolete_multi_environment_wrapper_is_removed(self):
+        self.assertFalse((ROOT / "scripts/run_with_env.py").exists())
 
     def test_vision_wrapper_uses_requested_version_for_path_resolution(self):
         path = ROOT / "models/vision_model.py"
@@ -91,25 +78,6 @@ class ModelCompatibilityTests(unittest.TestCase):
             "configured_model_path = path_cfg.get_vision_model_path(self.version)",
             source,
         )
-
-    def test_run_with_env_rejects_removed_qwen25_environment(self):
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(ROOT / "scripts/run_with_env.py"),
-                "--env",
-                "image_qwen2.5",
-                "--script",
-                "placeholder.py",
-            ],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("Invalid environment type", result.stdout)
-
 
     def test_expert_registry_uses_current_text_model_version(self):
         module_path = ROOT / "src/routing/expert_router.py"
