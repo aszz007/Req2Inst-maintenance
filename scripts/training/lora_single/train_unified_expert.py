@@ -9,11 +9,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.training.lora_trainer import LoRATrainer
-from config.settings import (
+from src.training.lora_trainer import LoRATrainer  # noqa: E402
+from config.settings import (  # noqa: E402
     get_path_config
 )
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('training.lora_single.unified_expert')
 

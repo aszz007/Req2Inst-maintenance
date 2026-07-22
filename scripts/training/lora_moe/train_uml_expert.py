@@ -7,9 +7,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.training.lora_trainer import LoRATrainer
-from config.settings import get_path_config, get_training_config, get_lora_config
-from src.utils.logger import get_logger
+from src.training.lora_trainer import LoRATrainer  # noqa: E402
+from config.settings import get_path_config, get_training_config, get_lora_config  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('training.train_uml_expert')
 
