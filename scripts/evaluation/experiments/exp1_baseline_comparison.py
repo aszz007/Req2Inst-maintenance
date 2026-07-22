@@ -24,24 +24,24 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import matplotlib
+import matplotlib  # noqa: E402
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
 
-from config.settings import get_path_config
-from src.training.data_loader import TextDatasetLoader
-from src.baselines.ir_methods import BM25Retriever, LSARetriever
-from src.baselines.template_filling import TemplateFiller
-from src.baselines.zero_shot import ZeroShotGenerator
-from src.baselines.inference_utils import (
+from config.settings import get_path_config  # noqa: E402
+from src.training.data_loader import TextDatasetLoader  # noqa: E402
+from src.baselines.ir_methods import BM25Retriever, LSARetriever  # noqa: E402
+from src.baselines.template_filling import TemplateFiller  # noqa: E402
+from src.baselines.zero_shot import ZeroShotGenerator  # noqa: E402
+from src.baselines.inference_utils import (  # noqa: E402
     save_predictions_cache,
     load_predictions_cache,
     compute_all_metrics,
     save_experiment_results,
 )
-from src.utils.logger import get_logger
-from src.utils.group_split import group_split_by_input
+from src.utils.logger import get_logger  # noqa: E402
+from src.utils.group_split import group_split_by_input  # noqa: E402
 
 logger = get_logger('experiments.exp1')
 

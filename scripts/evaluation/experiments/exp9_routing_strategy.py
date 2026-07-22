@@ -12,22 +12,22 @@ from collections import defaultdict
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import matplotlib
+import matplotlib  # noqa: E402
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
+import matplotlib.pyplot as plt  # noqa: E402
+import seaborn as sns  # noqa: E402
+import numpy as np  # noqa: E402
 
-from config.settings import get_path_config
-from src.training.data_loader import (
+from config.settings import get_path_config  # noqa: E402
+from src.training.data_loader import (  # noqa: E402
     TextDatasetLoader, ImageDatasetLoader, UMLDatasetLoader,
     GeneralDatasetLoader, split_dataset_for_expert,
 )
-from src.baselines.inference_utils import (
+from src.baselines.inference_utils import (  # noqa: E402
     save_predictions_cache, load_predictions_cache,
     compute_all_metrics, save_experiment_results,
 )
-from src.utils.logger import get_logger
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('experiments.exp9')
 
