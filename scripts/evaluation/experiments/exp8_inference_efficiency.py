@@ -186,17 +186,29 @@ def _benchmark_cpu_method(method, train_data, test_inputs, n_warmup, n_latency, 
     if method == 'bm25':
         obj = BM25Retriever()
         obj.build_index(train_data)
-        predict_one = lambda inp: obj.batch_retrieve([inp])[0]
-        predict_batch = lambda inps: obj.batch_retrieve(inps)
+
+        def predict_one(inp):
+            return obj.batch_retrieve([inp])[0]
+
+        def predict_batch(inps):
+            return obj.batch_retrieve(inps)
     elif method == 'lsa':
         obj = LSARetriever(n_components=100)
         obj.build_index(train_data)
-        predict_one = lambda inp: obj.batch_retrieve([inp])[0]
-        predict_batch = lambda inps: obj.batch_retrieve(inps)
+
+        def predict_one(inp):
+            return obj.batch_retrieve([inp])[0]
+
+        def predict_batch(inps):
+            return obj.batch_retrieve(inps)
     else:  # template
         obj = TemplateFiller()
-        predict_one = lambda inp: obj.batch_fill([inp])[0]
-        predict_batch = lambda inps: obj.batch_fill(inps)
+
+        def predict_one(inp):
+            return obj.batch_fill([inp])[0]
+
+        def predict_batch(inps):
+            return obj.batch_fill(inps)
     load_time = time.perf_counter() - t0
 
     for inp in test_inputs[:n_warmup]:
