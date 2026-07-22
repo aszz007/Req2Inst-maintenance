@@ -48,8 +48,13 @@ def test_main_preserves_validation_and_report_side_effect_calls(
     loaded_dataset = object()
 
     class FakeValidator:
-        def __init__(self, dataset_path, enable_period_check=False):
-            calls.append(("init", dataset_path, enable_period_check))
+        def __init__(
+            self,
+            dataset_path,
+            enable_period_check=False,
+            encoding=None,
+        ):
+            calls.append(("init", dataset_path, enable_period_check, encoding))
             self.error_count = 0
             self.warning_count = 0
 
@@ -82,6 +87,8 @@ def test_main_preserves_validation_and_report_side_effect_calls(
             "--dataset",
             "fixture.csv",
             "--enable-period-check",
+            "--encoding",
+            "gb18030",
             "--report-output",
             str(report_path),
         ],
@@ -90,7 +97,7 @@ def test_main_preserves_validation_and_report_side_effect_calls(
     module.main()
 
     assert calls == [
-        ("init", "fixture.csv", True),
+        ("init", "fixture.csv", True, "gb18030"),
         ("validate_dataset",),
         ("load_dataset",),
         ("generate_report", str(report_path)),
