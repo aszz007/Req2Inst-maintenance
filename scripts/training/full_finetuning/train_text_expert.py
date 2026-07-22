@@ -7,9 +7,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config.settings import get_path_config
-from src.training.full_finetuning_trainer import FullFineTuningTrainer
-from src.utils.logger import get_logger
+from config.settings import get_path_config  # noqa: E402
+from src.training.full_finetuning_trainer import FullFineTuningTrainer  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('training.full_finetuning.text_expert')
 
