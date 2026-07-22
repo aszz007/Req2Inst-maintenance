@@ -23,8 +23,8 @@ import tempfile
 import shutil
 warnings.filterwarnings('ignore')
 
-from config.settings import get_path_config, get_device_config, get_model_config, get_inference_config
-from src.utils.logger import get_logger
+from config.settings import get_path_config, get_device_config, get_model_config, get_inference_config  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 

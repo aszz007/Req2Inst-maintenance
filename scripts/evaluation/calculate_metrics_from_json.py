@@ -9,8 +9,8 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.utils.enhanced_metrics import EnhancedMetrics, EvaluationThresholds
-from src.utils.logger import get_logger
+from src.utils.enhanced_metrics import EnhancedMetrics, EvaluationThresholds  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('evaluation.calculate_metrics_from_json')
 

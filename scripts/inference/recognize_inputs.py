@@ -11,9 +11,9 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from models.vision_model import VisionModel
-from config.settings import get_path_config
-from src.utils.logger import get_logger
+from models.vision_model import VisionModel  # noqa: E402
+from config.settings import get_path_config  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('inference.recognize_inputs')
 

@@ -15,13 +15,13 @@ import torch
 warnings.filterwarnings('ignore')
 pd.options.mode.chained_assignment = None
 
-from config.settings import get_path_config, get_training_config
-from src.utils.logger import get_logger
+from config.settings import get_path_config, get_training_config  # noqa: E402
+from src.utils.logger import get_logger  # noqa: E402
 
-from models.prompt_templates.text_template import TextInstructionTemplate
-from models.prompt_templates.image_template import ImageInstructionTemplate
-from models.prompt_templates.uml_template import UMLInstructionTemplate
-from models.prompt_templates.general_template import GeneralInstructionTemplate
+from models.prompt_templates.text_template import TextInstructionTemplate  # noqa: E402
+from models.prompt_templates.image_template import ImageInstructionTemplate  # noqa: E402
+from models.prompt_templates.uml_template import UMLInstructionTemplate  # noqa: E402
+from models.prompt_templates.general_template import GeneralInstructionTemplate  # noqa: E402
 
 logger = get_logger('training.data_loader')
 
