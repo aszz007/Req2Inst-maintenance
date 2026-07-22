@@ -22,7 +22,6 @@ from config.settings import get_path_config
 from src.training.data_loader import TextDatasetLoader, split_dataset_for_expert
 from src.baselines.inference_utils import save_experiment_results
 from src.utils.logger import get_logger
-from src.utils.group_split import group_split_by_input
 
 logger = get_logger('experiments.exp8')
 

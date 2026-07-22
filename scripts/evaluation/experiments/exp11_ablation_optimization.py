@@ -33,7 +33,7 @@ from src.baselines.inference_utils import (
 )
 from src.utils.logger import get_logger
 from src.routing.learned_router import (
-    RouterMLP, HiddenStateExtractor,
+    RouterMLP,
     EXPERT_TO_IDX, IDX_TO_EXPERT,
 )
 
@@ -509,10 +509,6 @@ def run_phase2(args):
     logger.info("Phase 2: Router optimization")
 
     EXP11_ROUTER_DIR.mkdir(parents=True, exist_ok=True)
-
-    from src.training.data_loader import (
-        TextDatasetLoader, ImageDatasetLoader, UMLDatasetLoader,
-    )
 
     all_features = {}
     all_labels = {}
