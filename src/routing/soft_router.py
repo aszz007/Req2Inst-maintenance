@@ -1,6 +1,5 @@
 """Implement weighted LoRA-adapter routing for routing experiments."""
 
-import torch
 import json
 import shutil
 import tempfile

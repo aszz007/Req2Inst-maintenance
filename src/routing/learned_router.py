@@ -266,8 +266,6 @@ class HiddenStateExtractor:
         normalize: bool = True,
     ) -> np.ndarray:
         """Extract routing features."""
-        import torch
-
         self.model.eval()
         all_features = []
         total = len(inputs)
