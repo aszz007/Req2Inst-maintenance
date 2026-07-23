@@ -291,6 +291,75 @@ def check_python() -> list[CheckResult]:
     ]
 
 
+def _check_required_package(
+    package: str,
+    declared: dict[str, object],
+) -> CheckResult:
+    requirement = declared.get(_canonical_name(package))
+    if requirement is None:
+        return CheckResult(
+            "Dependencies",
+            package,
+            "FAIL",
+            "Referenced by the profile but absent from requirements.txt",
+        )
+
+    name = _requirement_name(requirement)
+    try:
+        installed = metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return CheckResult(
+            "Dependencies",
+            name,
+            "FAIL",
+            f"Missing; declared: {_requirement_label(requirement)}",
+        )
+
+    matches = _version_satisfies(requirement, installed)
+    if matches is False:
+        status = "FAIL"
+        detail = f"Installed {installed}; expected {_requirement_label(requirement)}"
+    elif matches is None:
+        status = "WARN"
+        detail = f"Installed {installed}; packaging unavailable, constraint not checked"
+    else:
+        status = "PASS"
+        detail = f"Installed {installed}"
+    return CheckResult("Dependencies", name, status, detail)
+
+
+def _check_pip_consistency(root: Path) -> CheckResult:
+    try:
+        pip_check = subprocess.run(
+            [sys.executable, "-m", "pip", "check"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return CheckResult("Dependency consistency", "pip check", "WARN", str(exc))
+
+    output = (pip_check.stdout or pip_check.stderr).strip()
+    return CheckResult(
+        "Dependency consistency",
+        "pip check",
+        "PASS" if pip_check.returncode == 0 else "FAIL",
+        output or f"Exited with code {pip_check.returncode}",
+    )
+
+
+def _check_optional_package(package: str, purpose: str) -> CheckResult:
+    try:
+        installed = metadata.version(package)
+    except metadata.PackageNotFoundError:
+        status, detail = "WARN", f"Missing; only needed for {purpose}"
+    else:
+        status, detail = "PASS", f"Installed {installed}; used for {purpose}"
+    return CheckResult("Optional dependencies", package, status, detail)
+
+
 def check_dependencies(profile: str, root: Path) -> list[CheckResult]:
     requirements_path = root / "requirements.txt"
     if not requirements_path.is_file():
@@ -304,77 +373,17 @@ def check_dependencies(profile: str, root: Path) -> list[CheckResult]:
         ]
 
     declared = _load_requirements(requirements_path)
-    results = []
-    for package in sorted(_selected_packages(profile)):
-        requirement = declared.get(_canonical_name(package))
-        if requirement is None:
-            results.append(
-                CheckResult(
-                    "Dependencies",
-                    package,
-                    "FAIL",
-                    "Referenced by the profile but absent from requirements.txt",
-                )
-            )
-            continue
-        name = _requirement_name(requirement)
-        try:
-            installed = metadata.version(name)
-        except metadata.PackageNotFoundError:
-            results.append(
-                CheckResult(
-                    "Dependencies",
-                    name,
-                    "FAIL",
-                    f"Missing; declared: {_requirement_label(requirement)}",
-                )
-            )
-            continue
-
-        matches = _version_satisfies(requirement, installed)
-        if matches is False:
-            status = "FAIL"
-            detail = f"Installed {installed}; expected {_requirement_label(requirement)}"
-        elif matches is None:
-            status = "WARN"
-            detail = f"Installed {installed}; packaging unavailable, constraint not checked"
-        else:
-            status = "PASS"
-            detail = f"Installed {installed}"
-        results.append(CheckResult("Dependencies", name, status, detail))
-
-    try:
-        pip_check = subprocess.run(
-            [sys.executable, "-m", "pip", "check"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-        output = (pip_check.stdout or pip_check.stderr).strip()
-        results.append(
-            CheckResult(
-                "Dependency consistency",
-                "pip check",
-                "PASS" if pip_check.returncode == 0 else "FAIL",
-                output or f"Exited with code {pip_check.returncode}",
-            )
-        )
-    except (OSError, subprocess.SubprocessError) as exc:
-        results.append(
-            CheckResult("Dependency consistency", "pip check", "WARN", str(exc))
-        )
+    results = [
+        _check_required_package(package, declared)
+        for package in sorted(_selected_packages(profile))
+    ]
+    results.append(_check_pip_consistency(root))
 
     if profile == "all":
-        for package, purpose in OPTIONAL_PACKAGES.items():
-            try:
-                installed = metadata.version(package)
-            except metadata.PackageNotFoundError:
-                status, detail = "WARN", f"Missing; only needed for {purpose}"
-            else:
-                status, detail = "PASS", f"Installed {installed}; used for {purpose}"
-            results.append(CheckResult("Optional dependencies", package, status, detail))
+        results.extend(
+            _check_optional_package(package, purpose)
+            for package, purpose in OPTIONAL_PACKAGES.items()
+        )
     return results
 
 
