@@ -34,3 +34,19 @@ regression verification.
 - **Historical**: retained from earlier experiments but not the current default.
 - **Local-only**: required for execution but intentionally excluded from Git.
 - **Release-blocking**: must be resolved before making the repository public.
+
+## Code statistics
+
+Use the cloc-based diagnostic when a code-size report is explicitly needed:
+
+```bash
+python scripts/diagnostics/code_stats.py
+```
+
+The wrapper uses an existing `cloc` executable (including an ignored
+`cloc.exe` placed at the project root) and does not implement its own line
+counter. It reports the main code roots (`config/`, `models/`, `src/`, and
+`scripts/`) separately from `tests/`, then shows their combined total. It does
+not count documentation, datasets, model files, checkpoints, logs, or routine
+outputs. Pass `--json` for machine-readable output or `--cloc-command PATH` to
+select a specific cloc executable.
