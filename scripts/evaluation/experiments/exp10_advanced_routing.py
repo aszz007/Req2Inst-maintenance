@@ -285,7 +285,6 @@ def run_phase1(args, exp9_phase1):
     val_X = np.concatenate(val_parts_X, axis=0)
     val_y = np.concatenate(val_parts_y, axis=0)
     test_X = general_features[n_val_end:]
-    test_y = np.array(general_labels[n_val_end:])
 
     logger.info(f"  Training set: {len(train_X)} samples (first 80% of specialized domains + first 40% of general)")
     logger.info(f"  Validation set: {len(val_X)} samples (last 20% of specialized domains + 40%-80% of general; mixed domains)")
