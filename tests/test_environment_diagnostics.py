@@ -48,6 +48,186 @@ def test_exact_pins_accept_local_cuda_build_versions():
     assert DIAGNOSTIC._version_satisfies(requirement, "2.13.0+cpu") is False
 
 
+def test_missing_requirements_short_circuits_dependency_checks(
+    tmp_path,
+    monkeypatch,
+):
+    def unexpected_pip_check(*_args, **_kwargs):
+        pytest.fail("pip check must not run without requirements.txt")
+
+    monkeypatch.setattr(DIAGNOSTIC.subprocess, "run", unexpected_pip_check)
+
+    assert DIAGNOSTIC.check_dependencies("training", tmp_path) == [
+        DIAGNOSTIC.CheckResult(
+            "Dependencies",
+            "requirements.txt",
+            "FAIL",
+            f"Missing: {tmp_path / 'requirements.txt'}",
+        )
+    ]
+
+
+def test_dependency_check_preserves_package_and_pip_outcomes(
+    tmp_path,
+    monkeypatch,
+):
+    if DIAGNOSTIC.Requirement is None:
+        pytest.skip("packaging is unavailable")
+
+    (tmp_path / "requirements.txt").write_text("fixture\n", encoding="utf-8")
+    requirements = {
+        "demo-mismatch": DIAGNOSTIC.Requirement("demo-mismatch>=2"),
+        "demo-missing": DIAGNOSTIC.Requirement("demo-missing"),
+        "demo-present": DIAGNOSTIC.Requirement("demo-present>=1"),
+    }
+    monkeypatch.setattr(
+        DIAGNOSTIC,
+        "_selected_packages",
+        lambda _profile: {
+            "demo-mismatch",
+            "demo-missing",
+            "demo-present",
+            "undeclared",
+        },
+    )
+    monkeypatch.setattr(
+        DIAGNOSTIC,
+        "_load_requirements",
+        lambda _path: requirements,
+    )
+
+    def fake_version(name):
+        if name == "demo-missing":
+            raise DIAGNOSTIC.metadata.PackageNotFoundError
+        return {
+            "demo-mismatch": "1.0",
+            "demo-present": "1.5",
+        }[name]
+
+    monkeypatch.setattr(DIAGNOSTIC.metadata, "version", fake_version)
+    monkeypatch.setattr(
+        DIAGNOSTIC.subprocess,
+        "run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout="No broken requirements found.\n",
+            stderr="",
+        ),
+    )
+
+    assert DIAGNOSTIC.check_dependencies("training", tmp_path) == [
+        DIAGNOSTIC.CheckResult(
+            "Dependencies",
+            "demo-mismatch",
+            "FAIL",
+            "Installed 1.0; expected demo-mismatch>=2",
+        ),
+        DIAGNOSTIC.CheckResult(
+            "Dependencies",
+            "demo-missing",
+            "FAIL",
+            "Missing; declared: demo-missing",
+        ),
+        DIAGNOSTIC.CheckResult(
+            "Dependencies",
+            "demo-present",
+            "PASS",
+            "Installed 1.5",
+        ),
+        DIAGNOSTIC.CheckResult(
+            "Dependencies",
+            "undeclared",
+            "FAIL",
+            "Referenced by the profile but absent from requirements.txt",
+        ),
+        DIAGNOSTIC.CheckResult(
+            "Dependency consistency",
+            "pip check",
+            "PASS",
+            "No broken requirements found.",
+        ),
+    ]
+
+
+def test_dependency_check_preserves_pip_failure_fallback(
+    tmp_path,
+    monkeypatch,
+):
+    (tmp_path / "requirements.txt").write_text("fixture\n", encoding="utf-8")
+    monkeypatch.setattr(DIAGNOSTIC, "_selected_packages", lambda _profile: set())
+    monkeypatch.setattr(DIAGNOSTIC, "_load_requirements", lambda _path: {})
+
+    def fail_pip_check(*_args, **_kwargs):
+        raise OSError("pip unavailable")
+
+    monkeypatch.setattr(DIAGNOSTIC.subprocess, "run", fail_pip_check)
+
+    assert DIAGNOSTIC.check_dependencies("training", tmp_path) == [
+        DIAGNOSTIC.CheckResult(
+            "Dependency consistency",
+            "pip check",
+            "WARN",
+            "pip unavailable",
+        )
+    ]
+
+
+def test_all_profile_preserves_optional_dependency_results(
+    tmp_path,
+    monkeypatch,
+):
+    (tmp_path / "requirements.txt").write_text("fixture\n", encoding="utf-8")
+    monkeypatch.setattr(DIAGNOSTIC, "_selected_packages", lambda _profile: set())
+    monkeypatch.setattr(DIAGNOSTIC, "_load_requirements", lambda _path: {})
+    monkeypatch.setattr(
+        DIAGNOSTIC,
+        "OPTIONAL_PACKAGES",
+        {
+            "optional-present": "present fixture",
+            "optional-missing": "missing fixture",
+        },
+    )
+    monkeypatch.setattr(
+        DIAGNOSTIC.subprocess,
+        "run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout="",
+            stderr="",
+        ),
+    )
+
+    def fake_version(name):
+        if name == "optional-missing":
+            raise DIAGNOSTIC.metadata.PackageNotFoundError
+        return "4.0"
+
+    monkeypatch.setattr(DIAGNOSTIC.metadata, "version", fake_version)
+
+    assert DIAGNOSTIC.check_dependencies("all", tmp_path) == [
+        DIAGNOSTIC.CheckResult(
+            "Dependency consistency",
+            "pip check",
+            "PASS",
+            "Exited with code 0",
+        ),
+        DIAGNOSTIC.CheckResult(
+            "Optional dependencies",
+            "optional-present",
+            "PASS",
+            "Installed 4.0; used for present fixture",
+        ),
+        DIAGNOSTIC.CheckResult(
+            "Optional dependencies",
+            "optional-missing",
+            "WARN",
+            "Missing; only needed for missing fixture",
+        ),
+    ]
+
+
 def _directory_rule(name, relative_path, required_groups):
     return DIAGNOSTIC.AssetRule(
         "Test assets",
