@@ -18,22 +18,22 @@ import numpy as np
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import matplotlib
+import matplotlib  # noqa: E402
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
+import matplotlib.pyplot as plt  # noqa: E402
+import seaborn as sns  # noqa: E402
 
-from config.settings import get_path_config
-from src.training.data_loader import (
+from config.settings import get_path_config  # noqa: E402
+from src.training.data_loader import (  # noqa: E402
     TextDatasetLoader, ImageDatasetLoader, UMLDatasetLoader,
     GeneralDatasetLoader, split_dataset_for_expert,
 )
-from src.baselines.inference_utils import (
+from src.baselines.inference_utils import (  # noqa: E402
     save_predictions_cache, load_predictions_cache,
     compute_all_metrics, save_experiment_results,
 )
-from src.utils.logger import get_logger
-from src.routing.learned_router import (
+from src.utils.logger import get_logger  # noqa: E402
+from src.routing.learned_router import (  # noqa: E402
     RouterMLP, HiddenStateExtractor,
     EXPERT_TO_IDX, IDX_TO_EXPERT,
 )
@@ -285,7 +285,6 @@ def run_phase1(args, exp9_phase1):
     val_X = np.concatenate(val_parts_X, axis=0)
     val_y = np.concatenate(val_parts_y, axis=0)
     test_X = general_features[n_val_end:]
-    test_y = np.array(general_labels[n_val_end:])
 
     logger.info(f"  Training set: {len(train_X)} samples (first 80% of specialized domains + first 40% of general)")
     logger.info(f"  Validation set: {len(val_X)} samples (last 20% of specialized domains + 40%-80% of general; mixed domains)")

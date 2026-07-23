@@ -34,6 +34,13 @@ SPECS = [
     ),
     pytest.param(
         "scripts/evaluation/experiments/exp10_advanced_routing.py",
+        "run_phase1",
+        ("test_y",),
+        "63256ca2b13e2ac41a390cafa8f71f446586a661e54f72528797d85fac1aaf19",
+        id="exp10-unused-test-labels",
+    ),
+    pytest.param(
+        "scripts/evaluation/experiments/exp10_advanced_routing.py",
         "run_phase3",
         ("gap",),
         "63d6fe829678e35d156185af29f2cc0e3d8ac4d226fd518fda08a32f2380d497",
