@@ -1138,13 +1138,13 @@ class UMLBatchRepairer:
 
             try:
                 df = pd.read_csv(csv_path, encoding=encoding)
-            except:
+            except Exception:
                 for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                     try:
                         df = pd.read_csv(csv_path, encoding=enc)
                         print(f"  Using {enc} encoding")
                         break
-                    except:
+                    except Exception:
                         continue
                 else:
                     raise Exception("Failed to read the file")
