@@ -123,7 +123,7 @@ def recognize_single_uml(image_path: str, version: str = 'qwen3', streaming: boo
             if desc.get('use_cases'):
                 use_cases = [uc.get('name', '') for uc in desc.get('use_cases', [])]
                 print(f"Use cases: {', '.join(use_cases[:3])}{'...' if len(use_cases) > 3 else ''}")
-        except:
+        except Exception:
             print(f"\nDescription: {result.get('description', '')[:200]}...")
     else:
         print(f"Recognition failed: {result.get('error', 'Unknown error')}")
@@ -202,7 +202,7 @@ def batch_recognize_uml(
                     print(f"  Actor count: {len(desc.get('actors', []))}")
                     print(f"  Use case count: {len(desc.get('use_cases', []))}")
                     print(f"  Relationship count: {len(desc.get('relationships', []))}")
-                except:
+                except Exception:
                     pass
             else:
                 fail_count += 1
@@ -262,7 +262,7 @@ def batch_recognize_uml(
                 else:
                     overall_description_incomplete += 1
                     print(f"[Warning] {result['image_name']} - overall_description is missing or empty")
-            except:
+            except Exception:
                 overall_description_incomplete += 1
         else:
             domain_stats[domain]['failed'] += 1
