@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException
 import re
 from datetime import datetime
 import chardet
@@ -91,7 +91,7 @@ class GPTAutomator:
 
         if not os.path.exists(CHROME_PATH):
             raise FileNotFoundError(f"Chrome executable not found at: {CHROME_PATH}")
-        print(f" Chrome path validated successfully")
+        print(" Chrome path validated successfully")
 
         try:
             options = webdriver.ChromeOptions()
@@ -114,7 +114,7 @@ class GPTAutomator:
             print(" ChromeOptions configuration complete")
             print("Starting ChromeDriver...")
             self.driver = webdriver.Chrome(options=options)
-            print(f" ChromeDriver started successfully")
+            print(" ChromeDriver started successfully")
 
             print(f"\nNavigating to: {GPT_URL}")
             self.driver.get(GPT_URL)
@@ -139,11 +139,11 @@ class GPTAutomator:
                 )
                 if element.is_displayed() and element.is_enabled():
                     if debug:
-                        print(f"  Cached selector used successfully")
+                        print("  Cached selector used successfully")
                     return element
                 else:
                     self.cached_input_selector = None
-            except:
+            except Exception:
                 self.cached_input_selector = None
 
         selectors = [
@@ -170,7 +170,7 @@ class GPTAutomator:
                         print(f"  Succeeded: {selector}")
                     return element
 
-            except:
+            except Exception:
                 continue
 
         raise NoSuchElementException("Unable to locate the input field")
@@ -184,7 +184,7 @@ class GPTAutomator:
                     return button
                 else:
                     self.cached_button_selector = None
-            except:
+            except Exception:
                 self.cached_button_selector = None
 
         selectors = [
@@ -202,7 +202,7 @@ class GPTAutomator:
                     if button.is_displayed() and button.is_enabled():
                         self.cached_button_selector = selector
                         return button
-            except:
+            except Exception:
                 continue
 
         return None
@@ -222,10 +222,10 @@ class GPTAutomator:
                     elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
                     if elements and len(elements) > 0:
                         return len(elements)
-                except:
+                except Exception:
                     continue
             return 0
-        except:
+        except Exception:
             return 0
 
     def check_response_still_updating(self):
@@ -262,11 +262,11 @@ class GPTAutomator:
                             if second_len > first_len:
                                 return True
                             return False
-                except:
+                except Exception:
                     continue
 
             return False
-        except:
+        except Exception:
             return False
 
     def wait_for_response_complete(self, timeout=300):
@@ -285,7 +285,7 @@ class GPTAutomator:
                     response_appeared = True
                     print(" ", end='', flush=True)
                     break
-            except:
+            except Exception:
                 pass
             time.sleep(0.5)
 
@@ -319,8 +319,8 @@ class GPTAutomator:
 
                 time.sleep(0.5)
 
-            except Exception as e:
-                print(f" ", end='', flush=True)
+            except Exception:
+                print(" ", end='', flush=True)
                 time.sleep(1)
 
         print("  Timed out")
@@ -346,11 +346,11 @@ class GPTAutomator:
                         if last_response and len(last_response) > 10:
                             print(f"  Extracted response ({len(last_response)} characters)")
                             return last_response
-                except:
+                except Exception:
                     continue
 
             body_text = self.driver.find_element(By.TAG_NAME, "body").text
-            print(f"  Using body text")
+            print("  Using body text")
             return body_text
 
         except Exception as e:
@@ -443,7 +443,7 @@ class GPTAutomator:
         for attempt in range(max_retries):
             try:
                 if attempt == 0:
-                    print(f"\n Sending prompt...")
+                    print("\n Sending prompt...")
                     self.response_count_before_send = self.get_current_response_count()
                     print(f"  Current page has {self.response_count_before_send} responses")
                 else:
@@ -497,10 +497,10 @@ class GPTAutomator:
                 button = self.find_submit_button()
                 if button:
                     self.driver.execute_script("arguments[0].click();", button)
-                    print(f"  Clicked the Send button")
+                    print("  Clicked the Send button")
                 else:
                     input_box.send_keys(Keys.RETURN)
-                    print(f"  Sent with Enter")
+                    print("  Sent with Enter")
 
                 time.sleep(2)
 
@@ -582,7 +582,7 @@ class GPTAutomator:
             if is_error_response:
                 print(f"  Generation error detected: {response[:100]}")
                 if retry_count < max_retries - 1:
-                    print(f"  Will resend in 3 seconds...")
+                    print("  Will resend in 3 seconds...")
                     continue
                 else:
                     print(f"  Maximum retry count reached ({max_retries}),abandoning this batch")
@@ -592,7 +592,7 @@ class GPTAutomator:
                     })
                     return [None] * len(requirements_batch)
             else:
-                print(f"  Response looks normal; preparing to parse")
+                print("  Response looks normal; preparing to parse")
                 break
 
         instructions = self.parse_instructions(response, len(requirements_batch))
@@ -646,13 +646,13 @@ class GPTAutomator:
 
             try:
                 df = pd.read_csv(csv_path, encoding=encoding)
-            except:
+            except Exception:
                 for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                     try:
                         df = pd.read_csv(csv_path, encoding=enc)
                         print(f"  Using {enc} encoding")
                         break
-                    except:
+                    except Exception:
                         continue
                 else:
                     raise Exception("Failed to read the file")
@@ -742,7 +742,7 @@ class GPTAutomator:
             print(f"Failed: {len(self.error_log)} items")
 
             if self.error_log:
-                print(f"\nError log:")
+                print("\nError log:")
                 for error in self.error_log:
                     print(f"  - {error['range']}: {error['error']}")
 

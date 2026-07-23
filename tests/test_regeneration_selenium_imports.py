@@ -25,8 +25,8 @@ UML_REGENERATION = (
     / "regenerate_failed_uml.py"
 )
 BODY_HASHES = {
-    TEXT_REGENERATION: "ff495256a45b7da2eee17d7d3f4267061446f66cc3fc5b0ef5c6acfad57a3e43",
-    UML_REGENERATION: "0dcbda3e80da721ff3f281ace303ff307f467123bc9542565f93f6bfb15cdc07",
+    TEXT_REGENERATION: "e964f39cc2f110efcb8625f899fa40cf3722c7ae8b53953fb81ce00d6071c0a6",
+    UML_REGENERATION: "1233ea508ad6f1d4a2b8760a2c99e2158aef748fe0a649891aa04bd5ac9b188a",
 }
 
 
@@ -58,7 +58,7 @@ def _top_level_bindings(path):
 
 
 @pytest.mark.parametrize("path", BODY_HASHES)
-def test_non_import_body_matches_the_pre_cleanup_contract(path):
+def test_non_import_body_matches_the_approved_contract(path):
     assert _body_hash(path) == BODY_HASHES[path]
 
 

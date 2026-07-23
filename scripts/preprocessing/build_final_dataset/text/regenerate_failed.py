@@ -99,7 +99,7 @@ class TextBatchRepairer:
                     return element
                 else:
                     self.cached_input_selector = None
-            except:
+            except Exception:
                 self.cached_input_selector = None
 
         selectors = [
@@ -126,7 +126,7 @@ class TextBatchRepairer:
                         print(f"  Succeeded: {selector}")
                     return element
 
-            except:
+            except Exception:
                 continue
 
         raise NoSuchElementException("Unable to locate the input field")
@@ -140,7 +140,7 @@ class TextBatchRepairer:
                     return button
                 else:
                     self.cached_button_selector = None
-            except:
+            except Exception:
                 self.cached_button_selector = None
 
         selectors = [
@@ -158,7 +158,7 @@ class TextBatchRepairer:
                     if button.is_displayed() and button.is_enabled():
                         self.cached_button_selector = selector
                         return button
-            except:
+            except Exception:
                 continue
 
         return None
@@ -185,7 +185,7 @@ class TextBatchRepairer:
                                     turn_attr = parent.get_attribute("data-turn")
                                     if turn_attr == "assistant":
                                         valid_count += 1
-                            except:
+                            except Exception:
                                 continue
                         if valid_count > 0:
                             return valid_count
@@ -193,7 +193,7 @@ class TextBatchRepairer:
                         if len(elements) > 0:
                             return len(elements)
 
-                except:
+                except Exception:
                     continue
 
             print("  No assistant response found; returning 0")
@@ -246,7 +246,7 @@ class TextBatchRepairer:
 
                                 time.sleep(1)
                                 break
-                        except:
+                        except Exception:
                             continue
 
                 time.sleep(2)
@@ -694,13 +694,13 @@ Things to Avoid: ..."""
 
             try:
                 df = pd.read_csv(csv_path, encoding=encoding)
-            except:
+            except Exception:
                 for enc in ['utf-8', 'gbk', 'gb18030', 'latin1']:
                     try:
                         df = pd.read_csv(csv_path, encoding=enc)
                         print(f"  Using {enc} encoding")
                         break
-                    except:
+                    except Exception:
                         continue
                 else:
                     raise Exception("Failed to read the file")
