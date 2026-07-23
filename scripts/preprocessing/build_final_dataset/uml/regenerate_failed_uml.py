@@ -348,7 +348,7 @@ class UMLBatchRepairer:
                     return input_box
                 else:
                     self.cached_input_selector = None
-            except:
+            except Exception:
                 self.cached_input_selector = None
 
         selectors = [
@@ -370,7 +370,7 @@ class UMLBatchRepairer:
                         if debug:
                             print(f"  Input field located successfully: {selector}")
                         return elem
-            except:
+            except Exception:
                 continue
 
         if debug:
@@ -386,7 +386,7 @@ class UMLBatchRepairer:
                     return button
                 else:
                     self.cached_button_selector = None
-            except:
+            except Exception:
                 self.cached_button_selector = None
 
         selectors = [
@@ -404,7 +404,7 @@ class UMLBatchRepairer:
                     if button.is_displayed() and button.is_enabled():
                         self.cached_button_selector = selector
                         return button
-            except:
+            except Exception:
                 continue
 
         return None
@@ -434,17 +434,17 @@ class UMLBatchRepairer:
                                     turn_type = parent_article.get_attribute('data-turn')
                                     if turn_type == 'assistant':
                                         valid_count += 1
-                            except:
+                            except Exception:
                                 continue
                         if valid_count > 0:
                             return valid_count
                     else:
                         if elements and len(elements) > 0:
                             return len(elements)
-                except:
+                except Exception:
                     continue
             return 0
-        except:
+        except Exception:
             return 0
 
     def check_response_still_updating(self):
@@ -606,7 +606,7 @@ class UMLBatchRepairer:
                     "div.markdown.prose"
                 )
                 text = markdown_div.text.strip()
-            except:
+            except Exception:
                 text = last_response.text.strip()
 
             if len(text) < 5:
@@ -740,7 +740,7 @@ class UMLBatchRepairer:
                         "div.markdown.prose"
                     )
                     response_text = markdown_div.text
-                except:
+                except Exception:
                     response_text = last_response.text
 
                 if response_text and len(response_text) > 10:
