@@ -58,6 +58,48 @@ def sample_dataset(df: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
     return df.sample(n=n, random_state=seed).reset_index(drop=True)
 
 
+def _display_primary_fields(row: pd.Series) -> None:
+    if DESCRIPTION_FIELD in row:
+        raw = str(row[DESCRIPTION_FIELD]).strip()
+        description = extract_description(raw)
+        if description:
+            print(f"[Description (training input, extracted from JSON)]\n{description}")
+        else:
+            print(f"[{DESCRIPTION_FIELD} (raw)]\n{raw}")
+    elif TRAIN_INPUT_FIELD in row:
+        val = str(row[TRAIN_INPUT_FIELD]).strip()
+        if val and val != "nan":
+            print(f"[{TRAIN_INPUT_FIELD}]\n{val}")
+
+    if TRAIN_INPUT_FIELD in row and DESCRIPTION_FIELD in row:
+        val = str(row.get(TRAIN_INPUT_FIELD, "")).strip()
+        if val and val != "nan":
+            print(f"\n[{TRAIN_INPUT_FIELD}]\n{val}")
+
+    if OUTPUT_FIELD in row:
+        instr = str(row[OUTPUT_FIELD]).strip()
+        if instr and instr != "nan":
+            print(f"\n[{OUTPUT_FIELD}]\n{instr}")
+
+    high = str(row.get("High_Requirements", "")).strip()
+    if high and high != "nan":
+        print(f"\n[High_Requirements (display only; not used for training)]\n{high}")
+
+
+def _display_extra_fields(row: pd.Series) -> None:
+    skip_cols = {
+        DESCRIPTION_FIELD,
+        TRAIN_INPUT_FIELD,
+        OUTPUT_FIELD,
+        "High_Requirements",
+    }
+    for col in row.index:
+        if col not in skip_cols:
+            val = str(row[col]).strip()
+            if val and val != "nan":
+                print(f"\n[{col}]: {val}")
+
+
 def display_samples(samples: pd.DataFrame) -> None:
     """Display representative samples."""
     print("=" * 70)
@@ -69,39 +111,8 @@ def display_samples(samples: pd.DataFrame) -> None:
         print(f"\n[Sample {idx + 1}]")
         print("-" * 50)
 
-        if DESCRIPTION_FIELD in row:
-            raw = str(row[DESCRIPTION_FIELD]).strip()
-            description = extract_description(raw)
-            if description:
-                print(f"[Description (training input, extracted from JSON)]\n{description}")
-            else:
-                print(f"[{DESCRIPTION_FIELD} (raw)]\n{raw}")
-        elif TRAIN_INPUT_FIELD in row:
-            val = str(row[TRAIN_INPUT_FIELD]).strip()
-            if val and val != "nan":
-                print(f"[{TRAIN_INPUT_FIELD}]\n{val}")
-
-        if TRAIN_INPUT_FIELD in row and DESCRIPTION_FIELD in row:
-            val = str(row.get(TRAIN_INPUT_FIELD, "")).strip()
-            if val and val != "nan":
-                print(f"\n[{TRAIN_INPUT_FIELD}]\n{val}")
-
-        if OUTPUT_FIELD in row:
-            instr = str(row[OUTPUT_FIELD]).strip()
-            if instr and instr != "nan":
-                print(f"\n[{OUTPUT_FIELD}]\n{instr}")
-
-        high = str(row.get("High_Requirements", "")).strip()
-        if high and high != "nan":
-            print(f"\n[High_Requirements (display only; not used for training)]\n{high}")
-
-        skip_cols = {DESCRIPTION_FIELD, TRAIN_INPUT_FIELD, OUTPUT_FIELD, "High_Requirements"}
-        for col in row.index:
-            if col not in skip_cols:
-                val = str(row[col]).strip()
-                if val and val != "nan":
-                    print(f"\n[{col}]: {val}")
-
+        _display_primary_fields(row)
+        _display_extra_fields(row)
         print("-" * 50)
 
 
