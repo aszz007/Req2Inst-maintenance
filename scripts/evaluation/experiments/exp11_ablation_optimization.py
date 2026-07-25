@@ -470,25 +470,24 @@ def _run_ablation_ensemble(
             pred = cache_pred
         elif not ensemble_pred:
             pred = _single_expert_from_cache(expert1, 'general', i, preloaded_caches)
-        else:
-            if _passes_format(ensemble_pred):
-                if disable_quality:
-                    pred = ensemble_pred
-                else:
-                    ref = sample.get('output', '')
-                    fb = _single_expert_from_cache(expert1, 'general', i, preloaded_caches)
-                    if ref and fb and fb.strip():
-                        try:
-                            ens_r = _scorer.score(ref, ensemble_pred)['rougeL'].fmeasure
-                            fb_r = _scorer.score(ref, fb)['rougeL'].fmeasure
-                            pred = fb if fb_r > ens_r else ensemble_pred
-                        except Exception:
-                            pred = ensemble_pred
-                    else:
-                        pred = ensemble_pred
+        elif _passes_format(ensemble_pred):
+            if disable_quality:
+                pred = ensemble_pred
             else:
+                ref = sample.get('output', '')
                 fb = _single_expert_from_cache(expert1, 'general', i, preloaded_caches)
-                pred = fb if fb else ensemble_pred
+                if ref and fb and fb.strip():
+                    try:
+                        ens_r = _scorer.score(ref, ensemble_pred)['rougeL'].fmeasure
+                        fb_r = _scorer.score(ref, fb)['rougeL'].fmeasure
+                        pred = fb if fb_r > ens_r else ensemble_pred
+                    except Exception:
+                        pred = ensemble_pred
+                else:
+                    pred = ensemble_pred
+        else:
+            fb = _single_expert_from_cache(expert1, 'general', i, preloaded_caches)
+            pred = fb if fb else ensemble_pred
 
         samples.append({
             'index': i,
@@ -661,7 +660,7 @@ def _eval_router(router, val_X, val_y, label=''):
 def _train_router_variant(router, train_X, train_y, val_X, val_y, save_dir, args):
     """Train router variant."""
     import torch
-    import torch.nn as nn
+    from torch import nn
     from torch.utils.data import DataLoader, TensorDataset
     from sklearn.metrics import f1_score
 
