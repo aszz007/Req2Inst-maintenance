@@ -5,7 +5,7 @@ and generated outputs are described in their own result files and are not
 individually listed in this changelog.
 
 The project follows the spirit of Keep a Changelog. A formal semantic-versioning
-policy will be adopted before the first public release.
+policy will be adopted before the first versioned release.
 
 ## [Unreleased]
 
@@ -13,7 +13,8 @@ policy will be adopted before the first public release.
 
 - Public-facing English README and documentation.
 - Architecture, reproducibility, experiment, artifact, and release guides.
-- Contribution, conduct, support, security, citation, and interim license files.
+- Contribution, conduct, support, security, citation, and Apache-2.0 license
+  files.
 - Reconstructed runtime and development requirements.
 - GitHub issue and pull-request templates.
 
@@ -23,6 +24,9 @@ policy will be adopted before the first public release.
   artifacts rather than source-controlled files.
 - Current Qwen3-8B/Qwen3-VL-8B model policy is documented without changing
   historical code metadata.
+- The public maintenance repository is identified as the continuously
+  maintained implementation that will replace the paper-facing snapshot after
+  stabilization and release-boundary review.
 - Source comments, docstrings, and 1,492 safe diagnostic messages are
   standardized in English without changing prompts, result labels, generated
   outputs, log levels, or control flow.

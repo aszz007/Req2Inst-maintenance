@@ -2,9 +2,9 @@
 
 ## Supported versions
 
-Req2Inst has not yet made a public software release. Security fixes are applied
-to the current private `main` development line. A public supported-version
-table will be added when versioned releases begin.
+Req2Inst has not yet made a versioned software release. Security fixes are
+applied to the current public `main` development line. A supported-version table
+will be added when versioned releases begin.
 
 ## Reporting a vulnerability
 

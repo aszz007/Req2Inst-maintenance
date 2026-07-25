@@ -40,7 +40,7 @@ Routine training curves, metric dumps, recognition results, validation lists,
 prediction caches, and test outputs are reproducible working artifacts. They
 must not accumulate in Git history.
 
-For a public release, a curated result should instead include:
+For a versioned or curated result release, the selected artifact should include:
 
 - The commit and command that generated it.
 - Model/checkpoint and dataset identifiers.
@@ -51,7 +51,7 @@ For a public release, a curated result should instead include:
 Historical root-level PDFs, `evaluation_report.json`, and validation dumps are
 local research snapshots rather than canonical paper results. They are removed
 from the current tracked snapshot but remain recoverable from Git history and
-the private pre-cleanup backup repository.
+the commits that precede repository cleanup.
 
 ## Third-party assets
 

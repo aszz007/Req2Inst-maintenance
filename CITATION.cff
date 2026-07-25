@@ -1,13 +1,23 @@
 cff-version: 1.2.0
-message: >-
-  This software accompanies a paper under review. Please check this file again
-  after the public release for the final author list, paper title, and DOI.
+message: If you use Req2Inst in your work, please cite the preferred citation below.
 title: Req2Inst
 type: software
-version: 0.1.0
 authors:
-  - name: Req2Inst Authors
-repository-code: https://github.com/aszz007/Req2Inst
-abstract: >-
-  A multimodal crowdsourcing instruction generation research prototype using
-  Qwen3 models, domain LoRA experts, and routing strategies.
+  - family-names: Hong
+    given-names: Shuai
+  - family-names: He
+    given-names: Yilin
+  - family-names: Chen
+    given-names: Rong
+repository-code: https://github.com/aszz007/Req2Inst-maintenance
+license: Apache-2.0
+preferred-citation:
+  type: article
+  title: 'Req2Inst: Toward Task Instruction Generation for Crowdsourcing from Multimodal Software Requirements'
+  authors:
+    - family-names: Hong
+      given-names: Shuai
+    - family-names: He
+      given-names: Yilin
+    - family-names: Chen
+      given-names: Rong

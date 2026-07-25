@@ -1,19 +1,21 @@
-# Public release checklist
+# Release readiness checklist
 
-Complete this checklist before changing the repository from private to public.
+Use this checklist before promoting the continuously maintained repository to
+the primary Req2Inst implementation or publishing a versioned release.
 
 ## Paper and identity
 
-- [ ] Confirm the final project name and repository URL.
-- [ ] Replace provisional `CITATION.cff` authors with the complete author list.
-- [ ] Add the final paper title, venue/status, DOI or preprint URL, and preferred
-      citation only when disclosure is permitted.
+- [x] Confirm the project name and maintenance repository URL.
+- [x] Record the current manuscript title and complete author list in
+      `CITATION.cff`.
+- [ ] Add the final venue/status, DOI or preprint URL, and publication metadata
+      when available.
 - [ ] Confirm acknowledgements and funding statements.
 
 ## License and third-party notices
 
-- [ ] Select an explicit open-source license with all copyright holders.
-- [ ] Replace the interim `LICENSE` notice.
+- [x] Select Apache-2.0 for the project source code.
+- [x] Replace the interim `LICENSE` notice with the standard license text.
 - [ ] Inventory code copied or adapted from third parties.
 - [ ] Verify model, dataset, image, font, JAR, and other binary licenses.
 - [ ] Add required attribution and notice files.
