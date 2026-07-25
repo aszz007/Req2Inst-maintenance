@@ -416,6 +416,7 @@ def check_accelerator(profile: str) -> list[CheckResult]:
 
     name = torch.cuda.get_device_name(0)
     memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024**3
+    memory_pass_threshold_gb = 20.0
     return [
         CheckResult(
             "Accelerator",
@@ -426,7 +427,7 @@ def check_accelerator(profile: str) -> list[CheckResult]:
         CheckResult(
             "Accelerator",
             "GPU memory tier",
-            "PASS" if memory_gb >= 20.0 else "WARN",
+            "PASS" if memory_gb >= memory_pass_threshold_gb else "WARN",
             f"{memory_gb:.2f} GB detected; documented baseline: 24 GB-class",
         ),
     ]

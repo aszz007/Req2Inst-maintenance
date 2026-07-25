@@ -318,10 +318,12 @@ def get_file_size(filepath: Union[str, Path], human_readable: bool = True) -> Un
     if not human_readable:
         return size_bytes
 
+    unit_scale = 1024.0
+
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if size_bytes < 1024.0:
+        if size_bytes < unit_scale:
             return f"{size_bytes:.2f} {unit}"
-        size_bytes /= 1024.0
+        size_bytes /= unit_scale
 
     return f"{size_bytes:.2f} PB"
 
