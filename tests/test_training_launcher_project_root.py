@@ -102,6 +102,6 @@ def test_training_launcher_inserts_root_before_project_imports(relative_path):
     )
 
     assert assignment.lineno < insert_call.lineno < first_project_import.lineno
-    assert len(insert_call.args) == 2
+    assert len(insert_call.args) == 2  # noqa: PLR2004 - exact insert-call arity
     assert isinstance(insert_call.args[0], ast.Constant)
     assert insert_call.args[0].value == 0

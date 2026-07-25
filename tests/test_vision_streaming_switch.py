@@ -96,7 +96,7 @@ def test_stream_consumer_waits_for_a_live_worker_and_preserves_text(capsys):
     assert result == "FlowChart"
     assert capsys.readouterr().out == "FlowChart"
     assert thread.joined is True
-    assert logger.debug.call_count == 2
+    assert logger.debug.call_count == 2  # noqa: PLR2004 - one call per streamed chunk
 
 
 def test_stream_consumer_surfaces_a_stopped_worker_error():
