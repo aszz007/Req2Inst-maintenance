@@ -1,8 +1,10 @@
 # Contributing to Req2Inst
 
-Req2Inst is currently a private research repository associated with a paper
-under review. Public contributions are not yet accepted, but maintainers should
-follow these rules so that the future release has a reviewable history.
+Req2Inst-maintenance is the public, continuously maintained implementation
+associated with the Req2Inst paper. It will replace the current paper-facing
+snapshot after stabilization and release-boundary review. External
+contributions are not yet actively solicited, but all changes should follow
+these rules so that the maintained history remains reviewable.
 
 ## Scope boundaries
 
@@ -74,7 +76,7 @@ A pull request should include:
 
 Generated artifacts should not be committed merely as proof that a command ran.
 Attach or summarize them separately unless maintainers explicitly approve a
-small curated result for the public release.
+small curated result for a versioned or evidence release.
 
 ## Data and licensing
 

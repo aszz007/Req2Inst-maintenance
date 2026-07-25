@@ -1,6 +1,6 @@
 # Req2Inst
 
-[![Repository quality](https://github.com/aszz007/Req2Inst/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/aszz007/Req2Inst/actions/workflows/quality.yml)
+[![Repository quality](https://github.com/aszz007/Req2Inst-maintenance/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/aszz007/Req2Inst-maintenance/actions/workflows/quality.yml)
 
 > Multimodal crowdsourcing instruction generation with Qwen3,
 > specialized LoRA experts,
@@ -11,14 +11,18 @@
 
 ## Project status
 
-Req2Inst is a research prototype accompanying a paper that is currently under
-review. The repository is private and is **not yet distributed under an
-open-source license**. Code, data, model weights, and paper metadata will be
-reviewed separately before the public release.
+This repository is the continuously maintained implementation of Req2Inst. The
+paper-facing snapshot remains available in the
+[`aszz007/Req2Inst`](https://github.com/aszz007/Req2Inst) repository. After the
+current stability, documentation, and compatibility work is complete and the
+release boundary is revalidated, this repository will replace that snapshot as
+the primary Req2Inst implementation.
 
-The implementation has completed an end-to-end research run. Repository
-cleanup and documentation are ongoing; behavior-preserving maintenance is kept
-separate from later code refactoring.
+The accompanying paper is currently under review. The implementation has
+completed an end-to-end research run, while repository cleanup and
+behavior-preserving maintenance continue in scoped branches. The source code is
+distributed under the Apache License 2.0; datasets, model weights, checkpoints,
+inputs, and generated artifacts remain subject to their own terms.
 
 ## What Req2Inst does
 
@@ -209,24 +213,26 @@ review. See [Data and artifact policy](docs/data-and-artifacts.md).
 - [Reproducibility guide](docs/reproducibility.md)
 - [Experiment index](docs/experiments.md)
 - [Data and artifact policy](docs/data-and-artifacts.md)
-- [Public release checklist](docs/public-release-checklist.md)
+- [Release readiness checklist](docs/public-release-checklist.md)
 - [Changelog](CHANGELOG.md)
 
 ## Contributing and support
 
-The repository is not accepting public contributions while the paper is under
-review. Maintainers can still follow [CONTRIBUTING.md](CONTRIBUTING.md) so that
+The repository is public, but external contributions are not yet actively
+solicited while the paper is under review and the maintained implementation is
+being stabilized. Follow [CONTRIBUTING.md](CONTRIBUTING.md) so that
 documentation, maintenance, and behavior-changing work remain separated. See
 [SUPPORT.md](SUPPORT.md) and [SECURITY.md](SECURITY.md) for reporting guidance.
 
 ## Citation
 
-Citation metadata is intentionally provisional during peer review. See
-[`CITATION.cff`](CITATION.cff) and the public-release checklist; replace the
-placeholder author entry with the final paper metadata before publication.
+See [`CITATION.cff`](CITATION.cff) for the current authors and preferred paper
+citation. DOI, venue, volume, issue, and publication-date fields remain omitted
+until final publication metadata is available.
 
 ## License
 
-Copyright is currently reserved by the Req2Inst authors. The current
-[`LICENSE`](LICENSE) is an interim notice, not an open-source license. A public
-release must replace it with the license explicitly chosen by the authors.
+Req2Inst source code is distributed under the
+[Apache License 2.0](LICENSE). Third-party dependencies, models, datasets,
+checkpoints, inputs, and generated artifacts remain subject to their own
+licenses and terms.

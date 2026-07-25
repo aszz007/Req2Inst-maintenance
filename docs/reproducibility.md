@@ -4,8 +4,8 @@
 
 The project completed an end-to-end research run, but the exact original Conda
 environment export was not retained. `requirements.txt` is therefore a
-reconstructed compatibility specification. A future public release should add
-an environment lock produced on the final verification machine.
+reconstructed compatibility specification. A future versioned release should
+add an environment lock produced on the final verification machine.
 
 ## Recommended host
 
@@ -75,7 +75,8 @@ base_models/
 ```
 
 Model weights are not included in the repository. Record upstream model IDs,
-revisions, licenses, checksums, and download dates before the public release.
+revisions, licenses, checksums, and download dates before publishing a versioned
+environment or model-backed release.
 
 ## Local dataset layout
 

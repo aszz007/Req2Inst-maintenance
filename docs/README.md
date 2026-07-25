@@ -1,8 +1,11 @@
 # Req2Inst documentation
 
-This directory is the maintained documentation entry point for Req2Inst. The
-paper is under review, so citation, license, dataset, and release metadata are
-provisional.
+This directory is the maintained documentation entry point for Req2Inst. This
+repository is the continuously maintained implementation and will replace the
+paper-facing [`aszz007/Req2Inst`](https://github.com/aszz007/Req2Inst) snapshot
+after the maintenance and release boundaries are revalidated. The paper remains
+under review, so final venue, DOI, and publication-date metadata are not yet
+available. The source code is licensed under Apache-2.0.
 
 ## Guides
 
@@ -10,7 +13,7 @@ provisional.
 - [Reproducibility](reproducibility.md)
 - [Experiment index](experiments.md)
 - [Data and artifact policy](data-and-artifacts.md)
-- [Public release checklist](public-release-checklist.md)
+- [Release readiness checklist](public-release-checklist.md)
 
 ## Documentation source of truth
 
@@ -33,7 +36,8 @@ regression verification.
 - **Current**: represented by central configuration and active entry points.
 - **Historical**: retained from earlier experiments but not the current default.
 - **Local-only**: required for execution but intentionally excluded from Git.
-- **Release-blocking**: must be resolved before making the repository public.
+- **Promotion-blocking**: must be resolved before this repository replaces the
+  paper-facing snapshot or before a versioned release is published.
 
 ## Code statistics
 

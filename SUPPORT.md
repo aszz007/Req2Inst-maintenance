@@ -1,13 +1,13 @@
 # Support
 
-Req2Inst is currently a private research prototype, not a hosted service.
+Req2Inst-maintenance is a public research codebase, not a hosted service.
 
 Before requesting help, read:
 
 - `README.md`
 - `docs/reproducibility.md`
 - `docs/data-and-artifacts.md`
-- Existing issues, once the repository becomes public
+- Existing issues
 
 For a reproducible technical report, include:
 
