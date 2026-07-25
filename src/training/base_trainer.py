@@ -643,13 +643,12 @@ class BaseTrainer(ABC):
 
                 if getattr(self, 'reduced_workers', False) or self.method_name == 'full_finetuning':
                     logger.info(f"Using fewer DataLoader workers: {num_workers} (GPU-memory optimization)")
-            else:
-                if torch.cuda.is_available():
-                    training_args_dict['fp16'] = True
-                    # Same precision consistency fix for fp16 mode
-                    if self.method_name in ['p_tuning', 'prompt_tuning']:
-                        training_args_dict['fp16_full_eval'] = True
-                        logger.info(f"{self.method_name}: enabled fp16_full_eval=True to match evaluation and training precision and prevent NaN validation loss")
+            elif torch.cuda.is_available():
+                training_args_dict['fp16'] = True
+                # Same precision consistency fix for fp16 mode
+                if self.method_name in ['p_tuning', 'prompt_tuning']:
+                    training_args_dict['fp16_full_eval'] = True
+                    logger.info(f"{self.method_name}: enabled fp16_full_eval=True to match evaluation and training precision and prevent NaN validation loss")
 
             training_args = TrainingArguments(**training_args_dict)
 
