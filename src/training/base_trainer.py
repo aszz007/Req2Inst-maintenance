@@ -434,7 +434,7 @@ class BaseTrainer(ABC):
 
     def _get_early_stopping_patience(self) -> int:
         """Return early stopping patience."""
-        if self.expert_type == 'text' or self.expert_type == 'general':
+        if self.expert_type in ('text', 'general'):
             return 3
         elif self.expert_type == 'image':
             return 4
