@@ -121,4 +121,4 @@ def test_fallback_read_does_not_swallow_keyboard_interrupt(path):
             "detected",
         )
 
-    assert calls == 2
+    assert calls == 2  # noqa: PLR2004 - exact fallback attempt count

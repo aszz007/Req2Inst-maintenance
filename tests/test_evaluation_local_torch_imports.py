@@ -202,7 +202,7 @@ def test_jaccard_topk_preserves_tensor_protocol_behavior():
             self.shape = (len(rows),)
 
         def topk(self, k, dim):
-            assert k == 2
+            assert k == 2  # noqa: PLR2004 - top-2 routing contract
             assert dim == -1
             return SimpleNamespace(indices=_Indices(self.rows))
 
