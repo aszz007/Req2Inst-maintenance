@@ -73,7 +73,7 @@ def calculate_lengths_from_df(df, tokenizer, expert_type, source_name=""):
     if expert_type == 'text':
         input_col = next((c for c in df.columns if c.lower() in ['low_requirements', 'input', 'lowrequirements']), None)
         output_col = next((c for c in df.columns if c.lower() in ['instruction', 'output', 'instructions']), None)
-    elif expert_type == 'image' or expert_type == 'uml':
+    elif expert_type in ('image', 'uml'):
         input_col = next((c for c in df.columns if c.lower() in ['description', 'input']), None)
         output_col = next((c for c in df.columns if c.lower() in ['instruction', 'output']), None)
 
