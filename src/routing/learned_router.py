@@ -60,7 +60,7 @@ class RouterMLP:
     ):
         try:
             import torch
-            import torch.nn as nn
+            from torch import nn
         except ImportError:
             raise RuntimeError("RouterMLP requires PyTorch")
 

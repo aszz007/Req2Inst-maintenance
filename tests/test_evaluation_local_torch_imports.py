@@ -25,7 +25,7 @@ SPECS = [
         EXP10,
         "_train_router",
         "F",
-        "85965aca428de6b96b75e40cef4b46b3c7bb8228b49a00e5daa29a1218e1d49c",
+        "20f63d8ccf41e2e6d85b8a1eaefac8f4129b8c107aa77a81a8c64fc0cefc21a3",
         id="exp10-train-router",
     ),
     pytest.param(

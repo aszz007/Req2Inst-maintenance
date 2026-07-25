@@ -257,7 +257,6 @@ def run_phase1(args, exp9_phase1):
 
     logger.info("\n--- Step 3: Assembling training data ---")
 
-    #
     val_parts_X, val_parts_y = [], []
     train_parts_X, train_parts_y = [], []
 
@@ -457,7 +456,7 @@ def _rebuild_general_labels(test_data, args):
 def _train_router(router, train_X, train_y, val_X, val_y, args):
     """Train router."""
     import torch
-    import torch.nn as nn
+    from torch import nn
     from torch.utils.data import DataLoader, TensorDataset
     from sklearn.metrics import f1_score
 
@@ -1520,9 +1519,6 @@ def _process_minibatch(
     ws1 = [w1 for (_, _, w1, _) in batch_items]
     ws2 = [w2 for (_, _, _, w2) in batch_items]
 
-    #
-    #
-    #
     _TEMPLATE_OOD_FACTORS = {
         'uml': 0.05,
         'image': 0.4,
@@ -1570,7 +1566,6 @@ def _process_minibatch(
            if _is_uml_involved else "")
     )
 
-    #
     _EXPERT_MAX_LENGTH = {'text': 512, 'image': 768, 'uml': 2048, 'general': 768}
     tokenize_max_length = max(
         _EXPERT_MAX_LENGTH.get(expert1, 768),

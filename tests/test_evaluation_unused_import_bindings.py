@@ -25,7 +25,7 @@ SPECS = [
             "UMLDatasetLoader",
             "sns",
         },
-        "66ad0c684d0b2d6b30bdbab8a352ee8f32e4b7a9897da8d9ce4d21f1c2610154",
+        "69089fdfb496c8625610632098a3635efe39993d5dfca46a576f23b652ffd0de",
         id="exp11-unused-bindings",
     ),
 ]
