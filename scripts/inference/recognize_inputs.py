@@ -197,9 +197,8 @@ def recognize_directory(
             if rec_type == 'image':
                 if result.get('recognition_status') == 'success':
                     success_count += 1
-            else:  # uml
-                if result.get('success', False):
-                    success_count += 1
+            elif result.get('success', False):
+                success_count += 1
 
             logger.info("Recognition completed")
 

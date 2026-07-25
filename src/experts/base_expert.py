@@ -313,11 +313,10 @@ class BaseExpert(ABC):
                     # logger.info(extracted_text)
                     # logger.info("=" * 80)
                     return extracted_text
+                elif has_invalid_keyword:
+                    logger.warning(f"[Extraction] Duplicate label detected; Definition content is invalid: {def_content}")
                 else:
-                    if has_invalid_keyword:
-                        logger.warning(f"[Extraction] Duplicate label detected; Definition content is invalid: {def_content}")
-                    else:
-                        logger.warning("[Extraction] Extracted Definition content is empty; attempting heuristic segmentation")
+                    logger.warning("[Extraction] Extracted Definition content is empty; attempting heuristic segmentation")
             else:
                 logger.warning(f"[Extraction] Label lines are out of order: {definition_line}, {emphasis_line}, {avoid_line}")
         else:

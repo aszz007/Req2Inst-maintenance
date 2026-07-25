@@ -259,17 +259,16 @@ def load_json_input(file_path: Path) -> Dict:
     elif parent_dir == 'uml':
         input_type = 'uml'
         content = data.get('Description', '')
+    # Try to infer from content
+    elif 'actors' in str(data) or 'use_cases' in str(data):
+        input_type = 'uml'
+        content = data.get('Description', '')
+    elif 'Description' in data:
+        input_type = 'image'
+        content = data.get('Description', '')
     else:
-        # Try to infer from content
-        if 'actors' in str(data) or 'use_cases' in str(data):
-            input_type = 'uml'
-            content = data.get('Description', '')
-        elif 'Description' in data:
-            input_type = 'image'
-            content = data.get('Description', '')
-        else:
-            input_type = 'general'
-            content = json.dumps(data)
+        input_type = 'general'
+        content = json.dumps(data)
 
     return {
         'type': input_type,

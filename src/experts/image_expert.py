@@ -135,10 +135,9 @@ class ImageExpert(BaseExpert):
 
             if self.validate_output(instruction):
                 logger.info("Instruction generated successfully and passed format validation")
-            else:
-                if show_debug:
-                    logger.warning("Instruction failed format validation; returning the model output directly")
-                    logger.warning(f"Instruction that failed validation:\n{instruction}")
+            elif show_debug:
+                logger.warning("Instruction failed format validation; returning the model output directly")
+                logger.warning(f"Instruction that failed validation:\n{instruction}")
             return instruction
 
         except Exception as e:

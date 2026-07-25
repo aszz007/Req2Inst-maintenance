@@ -100,11 +100,10 @@ class QualityValidator:
                     result['emphasis_is_valid'] = True
                 else:
                     errors.append("Emphasis & Caution必须有实际内容(严格模式)")
-            else:
-                if content:
-                    result['emphasis_is_valid'] = True
-                    if content == '-':
-                        warnings.append("Emphasis & Caution为'-',建议提供具体内容")
+            elif content:
+                result['emphasis_is_valid'] = True
+                if content == '-':
+                    warnings.append("Emphasis & Caution为'-',建议提供具体内容")
         else:
             errors.append("缺少Emphasis & Caution部分")
 
@@ -116,11 +115,10 @@ class QualityValidator:
                     result['avoid_is_valid'] = True
                 else:
                     errors.append("Things to Avoid必须有实际内容(严格模式)")
-            else:
-                if content:
-                    result['avoid_is_valid'] = True
-                    if content == '-':
-                        warnings.append("Things to Avoid为'-',建议提供具体内容")
+            elif content:
+                result['avoid_is_valid'] = True
+                if content == '-':
+                    warnings.append("Things to Avoid为'-',建议提供具体内容")
         else:
             errors.append("缺少Things to Avoid部分")
 
