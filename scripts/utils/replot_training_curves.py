@@ -14,6 +14,198 @@ from src.utils.logger import get_logger  # noqa: E402
 logger = get_logger('utils.replot_training_curves')
 
 
+SHORT_HISTORY_THRESHOLD = 10
+SPARSE_CURVE_POINT_THRESHOLD = 3
+
+
+def _is_valid_metric(value):
+    return value is not None and not (
+        isinstance(value, float) and math.isnan(value)
+    )
+
+
+def _collect_training_curve_data(training_history):
+    curves = {
+        'loss': ([], []),
+        'eval_loss': ([], []),
+        'grad_norm': ([], []),
+        'learning_rate': ([], []),
+    }
+
+    for entry in training_history:
+        step = entry.get('step', 0)
+
+        if 'loss' in entry:
+            loss_val = entry['loss']
+            if _is_valid_metric(loss_val):
+                curves['loss'][0].append(step)
+                curves['loss'][1].append(loss_val)
+
+        if 'eval_loss' in entry:
+            eval_val = entry['eval_loss']
+            if _is_valid_metric(eval_val):
+                curves['eval_loss'][0].append(step)
+                curves['eval_loss'][1].append(eval_val)
+
+        if 'grad_norm' in entry:
+            grad_val = entry['grad_norm']
+            if _is_valid_metric(grad_val):
+                curves['grad_norm'][0].append(step)
+                curves['grad_norm'][1].append(grad_val)
+
+        if 'learning_rate' in entry:
+            lr_val = entry['learning_rate']
+            if _is_valid_metric(lr_val):
+                curves['learning_rate'][0].append(step)
+                curves['learning_rate'][1].append(lr_val)
+
+    nan_eval_count = sum(
+        1
+        for entry in training_history
+        if 'eval_loss' in entry
+        and not _is_valid_metric(entry['eval_loss'])
+    )
+    return curves, nan_eval_count
+
+
+def _log_curve_data_quality(training_history, curves, nan_eval_count):
+    total_entries = len(training_history)
+    losses = curves['loss'][1]
+    eval_losses = curves['eval_loss'][1]
+
+    if total_entries < SHORT_HISTORY_THRESHOLD:
+        logger.warning(
+            f"Training history has only {total_entries} entries, possibly due to early stopping"
+        )
+
+    if len(losses) < SPARSE_CURVE_POINT_THRESHOLD:
+        logger.warning(f"Training loss has only {len(losses)} data points")
+    if not eval_losses:
+        if nan_eval_count > 0:
+            logger.warning(
+                f"All {nan_eval_count} validation loss values are NaN and were filtered; the validation curve cannot be plotted"
+            )
+            logger.warning("This may indicate unstable training; consider:")
+            logger.warning("  1. Reducing the learning rate, which may be too high")
+            logger.warning(
+                "  2. Adjusting the parameter-efficient fine-tuning configuration"
+            )
+            logger.warning("  3. Checking dataset quality and preprocessing")
+        else:
+            logger.warning("No validation loss data found")
+    elif len(eval_losses) < SPARSE_CURVE_POINT_THRESHOLD:
+        if nan_eval_count > 0:
+            logger.warning(
+                f"Validation loss has only {len(eval_losses)} valid data points; {nan_eval_count} NaN values were filtered"
+            )
+        else:
+            logger.warning(
+                f"Validation loss has only {len(eval_losses)} data points"
+            )
+    elif nan_eval_count > 0:
+        logger.info(
+            f"Filtered {nan_eval_count} NaN validation loss values; {len(eval_losses)} valid values remain"
+        )
+
+
+def _plot_training_loss(axis, loss_steps, losses):
+    if losses:
+        axis.plot(loss_steps, losses, 'b-', linewidth=1.5, alpha=0.7)
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Loss')
+        axis.set_title('Training Loss')
+        axis.grid(True, alpha=0.3)
+    else:
+        axis.text(
+            0.5,
+            0.5,
+            'No training loss data',
+            ha='center',
+            va='center',
+            transform=axis.transAxes,
+        )
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Loss')
+        axis.set_title('Training Loss')
+
+
+def _plot_eval_loss(axis, eval_steps, eval_losses):
+    if eval_losses:
+        axis.plot(
+            eval_steps,
+            eval_losses,
+            'r-',
+            linewidth=2,
+            marker='o',
+            markersize=4,
+        )
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Eval Loss')
+        axis.set_title('Validation Loss')
+        axis.grid(True, alpha=0.3)
+    else:
+        axis.text(
+            0.5,
+            0.5,
+            'No validation loss data',
+            ha='center',
+            va='center',
+            transform=axis.transAxes,
+        )
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Eval Loss')
+        axis.set_title('Validation Loss')
+
+
+def _plot_grad_norm(axis, grad_norm_steps, grad_norms):
+    if grad_norms:
+        axis.plot(
+            grad_norm_steps,
+            grad_norms,
+            'g-',
+            linewidth=1,
+            alpha=0.6,
+        )
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Gradient Norm')
+        axis.set_title('Gradient Norm')
+        axis.grid(True, alpha=0.3)
+    else:
+        axis.text(
+            0.5,
+            0.5,
+            'No gradient norm data',
+            ha='center',
+            va='center',
+            transform=axis.transAxes,
+        )
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Gradient Norm')
+        axis.set_title('Gradient Norm')
+
+
+def _plot_learning_rate(axis, lr_steps, learning_rates):
+    if learning_rates:
+        axis.plot(lr_steps, learning_rates, 'm-', linewidth=1.5)
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Learning Rate')
+        axis.set_title('Learning Rate Schedule')
+        axis.grid(True, alpha=0.3)
+        axis.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+    else:
+        axis.text(
+            0.5,
+            0.5,
+            'No learning rate data',
+            ha='center',
+            va='center',
+            transform=axis.transAxes,
+        )
+        axis.set_xlabel('Step')
+        axis.set_ylabel('Learning Rate')
+        axis.set_title('Learning Rate Schedule')
+
+
 def plot_training_curves(training_history, expert_type, method_name, output_path):
     """Plot training curves."""
     try:
@@ -24,136 +216,34 @@ def plot_training_curves(training_history, expert_type, method_name, output_path
         logger.error("matplotlib is not installed; visualizations cannot be generated")
         return False
 
-    loss_steps = []
-    losses = []
-    eval_steps = []
-    eval_losses = []
-    grad_norm_steps = []
-    grad_norms = []
-    lr_steps = []
-    learning_rates = []
-
-    for entry in training_history:
-        step = entry.get('step', 0)
-
-        if 'loss' in entry:
-            loss_val = entry['loss']
-            if loss_val is not None and not (isinstance(loss_val, float) and math.isnan(loss_val)):
-                loss_steps.append(step)
-                losses.append(loss_val)
-
-        if 'eval_loss' in entry:
-            eval_val = entry['eval_loss']
-            if eval_val is not None and not (isinstance(eval_val, float) and math.isnan(eval_val)):
-                eval_steps.append(step)
-                eval_losses.append(eval_val)
-
-        if 'grad_norm' in entry:
-            grad_val = entry['grad_norm']
-            if grad_val is not None and not (isinstance(grad_val, float) and math.isnan(grad_val)):
-                grad_norm_steps.append(step)
-                grad_norms.append(grad_val)
-
-        if 'learning_rate' in entry:
-            lr_val = entry['learning_rate']
-            if lr_val is not None and not (isinstance(lr_val, float) and math.isnan(lr_val)):
-                lr_steps.append(step)
-                learning_rates.append(lr_val)
-
-    total_entries = len(training_history)
-    nan_eval_count = sum(1 for e in training_history if 'eval_loss' in e and
-                        (e['eval_loss'] is None or (isinstance(e['eval_loss'], float) and math.isnan(e['eval_loss']))))
-
-    if total_entries < 10:
-        logger.warning(f"Training history has only {total_entries} entries, possibly due to early stopping")
-
-    if len(losses) < 3:
-        logger.warning(f"Training loss has only {len(losses)} data points")
-    if len(eval_losses) == 0:
-        if nan_eval_count > 0:
-            logger.warning(f"All {nan_eval_count} validation loss values are NaN and were filtered; the validation curve cannot be plotted")
-            logger.warning("This may indicate unstable training; consider:")
-            logger.warning("  1. Reducing the learning rate, which may be too high")
-            logger.warning("  2. Adjusting the parameter-efficient fine-tuning configuration")
-            logger.warning("  3. Checking dataset quality and preprocessing")
-        else:
-            logger.warning("No validation loss data found")
-    elif len(eval_losses) < 3:
-        if nan_eval_count > 0:
-            logger.warning(f"Validation loss has only {len(eval_losses)} valid data points; {nan_eval_count} NaN values were filtered")
-        else:
-            logger.warning(f"Validation loss has only {len(eval_losses)} data points")
-    elif nan_eval_count > 0:
-        logger.info(f"Filtered {nan_eval_count} NaN validation loss values; {len(eval_losses)} valid values remain")
+    curves, nan_eval_count = _collect_training_curve_data(training_history)
+    _log_curve_data_quality(training_history, curves, nan_eval_count)
 
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-    fig.suptitle(f'Training Curves - {expert_type.upper()} Expert ({method_name})',
-                 fontsize=16, fontweight='bold')
+    fig.suptitle(
+        f'Training Curves - {expert_type.upper()} Expert ({method_name})',
+        fontsize=16,
+        fontweight='bold',
+    )
 
-    # 1. Training Loss
-    if losses:
-        axes[0, 0].plot(loss_steps, losses, 'b-', linewidth=1.5, alpha=0.7)
-        axes[0, 0].set_xlabel('Step')
-        axes[0, 0].set_ylabel('Loss')
-        axes[0, 0].set_title('Training Loss')
-        axes[0, 0].grid(True, alpha=0.3)
-    else:
-        axes[0, 0].text(0.5, 0.5, 'No training loss data',
-                       ha='center', va='center', transform=axes[0, 0].transAxes)
-        axes[0, 0].set_xlabel('Step')
-        axes[0, 0].set_ylabel('Loss')
-        axes[0, 0].set_title('Training Loss')
-
-    # 2. Eval Loss
-    if eval_losses:
-        axes[0, 1].plot(eval_steps, eval_losses, 'r-', linewidth=2, marker='o', markersize=4)
-        axes[0, 1].set_xlabel('Step')
-        axes[0, 1].set_ylabel('Eval Loss')
-        axes[0, 1].set_title('Validation Loss')
-        axes[0, 1].grid(True, alpha=0.3)
-    else:
-        axes[0, 1].text(0.5, 0.5, 'No validation loss data',
-                       ha='center', va='center', transform=axes[0, 1].transAxes)
-        axes[0, 1].set_xlabel('Step')
-        axes[0, 1].set_ylabel('Eval Loss')
-        axes[0, 1].set_title('Validation Loss')
-
-    # 3. Gradient Norm
-    if grad_norms:
-        axes[1, 0].plot(grad_norm_steps, grad_norms, 'g-', linewidth=1, alpha=0.6)
-        axes[1, 0].set_xlabel('Step')
-        axes[1, 0].set_ylabel('Gradient Norm')
-        axes[1, 0].set_title('Gradient Norm')
-        axes[1, 0].grid(True, alpha=0.3)
-    else:
-        axes[1, 0].text(0.5, 0.5, 'No gradient norm data',
-                       ha='center', va='center', transform=axes[1, 0].transAxes)
-        axes[1, 0].set_xlabel('Step')
-        axes[1, 0].set_ylabel('Gradient Norm')
-        axes[1, 0].set_title('Gradient Norm')
-
-    # 4. Learning Rate
-    if learning_rates:
-        axes[1, 1].plot(lr_steps, learning_rates, 'm-', linewidth=1.5)
-        axes[1, 1].set_xlabel('Step')
-        axes[1, 1].set_ylabel('Learning Rate')
-        axes[1, 1].set_title('Learning Rate Schedule')
-        axes[1, 1].grid(True, alpha=0.3)
-        axes[1, 1].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-    else:
-        axes[1, 1].text(0.5, 0.5, 'No learning rate data',
-                       ha='center', va='center', transform=axes[1, 1].transAxes)
-        axes[1, 1].set_xlabel('Step')
-        axes[1, 1].set_ylabel('Learning Rate')
-        axes[1, 1].set_title('Learning Rate Schedule')
+    _plot_training_loss(axes[0, 0], *curves['loss'])
+    _plot_eval_loss(axes[0, 1], *curves['eval_loss'])
+    _plot_grad_norm(axes[1, 0], *curves['grad_norm'])
+    _plot_learning_rate(axes[1, 1], *curves['learning_rate'])
 
     plt.tight_layout()
 
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
 
+    losses = curves['loss'][1]
+    eval_losses = curves['eval_loss'][1]
+    grad_norms = curves['grad_norm'][1]
+    learning_rates = curves['learning_rate'][1]
     logger.info(f"Training curves saved to: {output_path}")
-    logger.info(f"Data summary: Loss={len(losses)} points, EvalLoss={len(eval_losses)} points, GradNorm={len(grad_norms)} points, LR={len(learning_rates)} points")
+    logger.info(
+        f"Data summary: Loss={len(losses)} points, EvalLoss={len(eval_losses)} points, GradNorm={len(grad_norms)} points, LR={len(learning_rates)} points"
+    )
     return True
 
 

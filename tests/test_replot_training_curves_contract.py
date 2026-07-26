@@ -7,8 +7,6 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock, call
 
-import matplotlib
-import matplotlib.pyplot as plt
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,12 +75,18 @@ def _install_plot_spy(monkeypatch):
         warning=MagicMock(name="warning"),
         info=MagicMock(name="info"),
     )
+    matplotlib_module = ModuleType("matplotlib")
+    matplotlib_module.__path__ = []
+    pyplot_module = ModuleType("matplotlib.pyplot")
+    matplotlib_module.use = backend
+    matplotlib_module.pyplot = pyplot_module
+    pyplot_module.subplots = subplots
+    pyplot_module.tight_layout = tight_layout
+    pyplot_module.savefig = savefig
+    pyplot_module.close = close
 
-    monkeypatch.setattr(matplotlib, "use", backend)
-    monkeypatch.setattr(plt, "subplots", subplots)
-    monkeypatch.setattr(plt, "tight_layout", tight_layout)
-    monkeypatch.setattr(plt, "savefig", savefig)
-    monkeypatch.setattr(plt, "close", close)
+    monkeypatch.setitem(sys.modules, "matplotlib", matplotlib_module)
+    monkeypatch.setitem(sys.modules, "matplotlib.pyplot", pyplot_module)
     monkeypatch.setattr(REPLOT, "logger", logger)
 
     return SimpleNamespace(
