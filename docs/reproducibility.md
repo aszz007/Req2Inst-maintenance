@@ -135,10 +135,10 @@ Run end-to-end inference:
 python scripts/inference/generate_instructions.py --output-format json
 ```
 
-Train selected components:
+Train an individual Multi-Expert LoRA component:
 
 ```bash
-python scripts/training/train_all_experts.py --method lora_moe --expert text
+python scripts/training/lora_moe/train_text_expert.py
 ```
 
 Train the manuscript-aligned LoRA (Unified) comparison model. By default, all
@@ -156,14 +156,14 @@ python scripts/training/lora_single/train_unified_expert.py \
   --use_domain_templates
 ```
 
-Run selected or cached experiments:
+Run individual experiments directly:
 
 ```bash
-python scripts/evaluation/experiments/run_all_experiments.py \
-  --experiments 1,2,3 --test-mode --skip-failed
+python scripts/evaluation/experiments/exp1_baseline_comparison.py \
+  --from-cache --test-mode
 
-python scripts/evaluation/experiments/run_all_experiments.py \
-  --from-cache --test-mode --skip-failed
+python scripts/evaluation/experiments/exp2_compare_finetuning_methods.py \
+  --from-cache --test-mode
 ```
 
 ## Reproducibility controls

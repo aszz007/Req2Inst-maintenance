@@ -73,9 +73,7 @@ PROFILE_PACKAGES = {
         "seaborn",
     },
 }
-OPTIONAL_PACKAGES = {
-    "selenium": "browser-assisted historical dataset construction",
-}
+OPTIONAL_PACKAGES = {}
 
 ENTRYPOINTS = {
     "inference": (
@@ -88,13 +86,13 @@ ENTRYPOINTS = {
     ),
     "training": (
         "config/settings.py",
-        "scripts/training/train_all_experts.py",
+        "scripts/training/lora_moe/train_text_expert.py",
         "src/training/base_trainer.py",
         "src/training/data_loader.py",
     ),
     "evaluation": (
         "config/settings.py",
-        "scripts/evaluation/experiments/run_all_experiments.py",
+        "scripts/evaluation/experiments/exp1_baseline_comparison.py",
         "src/utils/enhanced_metrics.py",
     ),
 }
