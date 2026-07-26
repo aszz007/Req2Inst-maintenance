@@ -14,10 +14,10 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from importlib import metadata
 from pathlib import Path
-from typing import Sequence
 
 try:
     from packaging.requirements import Requirement
