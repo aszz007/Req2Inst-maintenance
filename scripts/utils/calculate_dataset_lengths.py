@@ -62,11 +62,8 @@ def read_csv_safely(file_path):
     return None, None
 
 
-def calculate_lengths_from_df(df, tokenizer, expert_type, source_name=""):
-    """Calculate lengths from df."""
-    lengths = []
-    desc = f"Processing {source_name}" if source_name else f"Processing {expert_type}"
-
+def _select_columns(df, expert_type):
+    """Return the input and output columns for an expert type."""
     input_col = None
     output_col = None
 
@@ -76,6 +73,16 @@ def calculate_lengths_from_df(df, tokenizer, expert_type, source_name=""):
     elif expert_type in ('image', 'uml'):
         input_col = next((c for c in df.columns if c.lower() in ['description', 'input']), None)
         output_col = next((c for c in df.columns if c.lower() in ['instruction', 'output']), None)
+
+    return input_col, output_col
+
+
+def calculate_lengths_from_df(df, tokenizer, expert_type, source_name=""):
+    """Calculate lengths from df."""
+    lengths = []
+    desc = f"Processing {source_name}" if source_name else f"Processing {expert_type}"
+
+    input_col, output_col = _select_columns(df, expert_type)
 
     if not input_col or not output_col:
         return []
@@ -129,15 +136,8 @@ def print_stats(name, lengths):
 
 
 
-def main():
-    """Run the command-line entry point."""
-    tokenizer = get_tokenizer()
-    if not tokenizer:
-        return
-
-    print("\nComputing dataset lengths for all experts (including content previews)...\n")
-
-    # 1. Text Expert
+def _process_text_dataset(tokenizer):
+    """Process all text dataset files."""
     text_dir = Path(path_cfg.TEXT_DATASET_DIR)
 
     if text_dir.exists():
@@ -165,7 +165,9 @@ def main():
     else:
         print(f"[Text] Directory not found: {text_dir}")
 
-    # 2. Image Expert
+
+def _process_image_dataset(tokenizer):
+    """Process the image dataset."""
     image_path = Path(path_cfg.IMAGE_DATASET_CSV)
     if image_path.exists():
         df, enc = read_csv_safely(image_path)
@@ -176,7 +178,9 @@ def main():
     else:
         print(f"[Image] File not found: {image_path}")
 
-    # 3. FlowChart Expert
+
+def _process_uml_dataset(tokenizer):
+    """Process the FlowChart dataset."""
     uml_path = Path(path_cfg.UML_DATASET_CSV)
     if uml_path.exists():
         df, enc = read_csv_safely(uml_path)
@@ -186,6 +190,19 @@ def main():
             print_stats("FlowChart Expert", lengths)
     else:
         print(f"[FlowChart] File not found: {uml_path}")
+
+
+def main():
+    """Run the command-line entry point."""
+    tokenizer = get_tokenizer()
+    if not tokenizer:
+        return
+
+    print("\nComputing dataset lengths for all experts (including content previews)...\n")
+
+    _process_text_dataset(tokenizer)
+    _process_image_dataset(tokenizer)
+    _process_uml_dataset(tokenizer)
 
 
 if __name__ == "__main__":
