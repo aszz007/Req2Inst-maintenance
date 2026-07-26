@@ -1,10 +1,11 @@
 """Calculate evaluation metrics from saved JSON predictions."""
 
-import sys
+import argparse
 import json
-from pathlib import Path
-from typing import Dict, List
+import sys
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Sequence
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -142,12 +143,8 @@ def save_results(results: Dict, expert_name: str, save_dir: str):
     logger.info(f"Evaluation results saved to: {filepath}")
 
 
-def main_single(args):
-    """
-    Original single-file metric computation logic.
-    Accepts a pre-parsed args namespace so it can be called from the unified
-    __main__ entry point without re-parsing sys.argv.
-    """
+def main_single(args: argparse.Namespace):
+    """Evaluate one cached-prediction JSON file from parsed CLI arguments."""
     try:
         data = load_predictions_json(args.input)
     except Exception as e:
@@ -181,57 +178,6 @@ def main_single(args):
     logger.info("Completed")
 
 
-def main():
-    """
-    Original entry point — kept for backward compatibility.
-    Parses its own args and delegates to main_single().
-    """
-    import argparse as _argparse
-    parser = _argparse.ArgumentParser(
-        description='Quickly recompute evaluation metrics from prediction JSON',
-        formatter_class=_argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Use default thresholds
-  python calculate_metrics_from_json.py --input predictions.json
-
-  # Adjust the ROUGE threshold
-  python calculate_metrics_from_json.py --input predictions.json --rouge-threshold 0.6
-
-  # Use OR logic
-  python calculate_metrics_from_json.py --input predictions.json --use-or
-
-  # Disable BERTScore for faster computation
-  python calculate_metrics_from_json.py --input predictions.json --no-bertscore
-        """
-    )
-    parser.add_argument('--input', '-i', type=str, required=True,
-                        help='Path to the prediction data JSON file')
-    parser.add_argument('--save-dir', '-o', type=str, default='outputs/evaluations/metrics',
-                        help='Output directory')
-    parser.add_argument('--rouge-threshold', type=float, default=None,
-                        help=f'ROUGE-L threshold (default: {EvaluationThresholds.ROUGE_L_THRESHOLD})')
-    parser.add_argument('--bertscore-threshold', type=float, default=None,
-                        help=f'BERTScore F1 threshold (default: {EvaluationThresholds.BERTSCORE_F1_THRESHOLD})')
-    parser.add_argument('--format-threshold', type=float, default=None,
-                        help=f'Format score threshold (default: {EvaluationThresholds.FORMAT_SCORE_THRESHOLD})')
-    logic_group = parser.add_mutually_exclusive_group()
-    logic_group.add_argument('--use-and', dest='use_and_logic', action='store_true',
-                             help='Combine ROUGE and BERTScore with AND logic (default)')
-    logic_group.add_argument('--use-or', dest='use_and_logic', action='store_false',
-                             help='Combine ROUGE and BERTScore with OR logic')
-    parser.set_defaults(use_and_logic=None)
-    parser.add_argument('--use-bertscore', action='store_true', default=True,
-                        help='Enable BERTScore (enabled by default)')
-    parser.add_argument('--no-bertscore', dest='use_bertscore', action='store_false',
-                        help='Disable BERTScore (faster computation)')
-    args = parser.parse_args()
-    main_single(args)
-
-
-# Batch mode extensions (Phase 2 addition)
-# Do NOT modify anything above this line.
-
 def scan_cache_files(cache_dir: Path) -> List[Path]:
     """
     Recursively find all *_predictions.json files under cache_dir.
@@ -249,7 +195,7 @@ def scan_cache_files(cache_dir: Path) -> List[Path]:
     return sorted(cache_dir.rglob('*_predictions.json'))
 
 
-def main_batch(args):
+def main_batch(args: argparse.Namespace):
     """
     Handle --list, --exp, --all batch metric recomputation modes.
 
@@ -325,12 +271,11 @@ def main_batch(args):
     logger.info(f"\nBatch processing completed: {success_count} succeeded, {fail_count} failed")
 
 
-if __name__ == "__main__":
-    import argparse as _argparse
-
-    parser = _argparse.ArgumentParser(
+def build_parser() -> argparse.ArgumentParser:
+    """Build the cached-prediction evaluation CLI parser."""
+    parser = argparse.ArgumentParser(
         description='Quickly recompute evaluation metrics from prediction JSON (supports batch mode)',
-        formatter_class=_argparse.RawDescriptionHelpFormatter,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Single file mode (original behavior):
@@ -350,13 +295,11 @@ Examples:
         """
     )
 
-    # Single-file flags (--input now optional when batch flags are used)
     parser.add_argument('--input', '-i', type=str, required=False,
                         help='Path to the prediction data JSON file (single-file mode)')
     parser.add_argument('--save-dir', '-o', type=str, default='outputs/evaluations/metrics',
                         help='Output directory')
 
-    # Threshold flags (used by single-file mode)
     parser.add_argument('--rouge-threshold', type=float, default=None,
                         help=f'ROUGE-L threshold (default: {EvaluationThresholds.ROUGE_L_THRESHOLD})')
     parser.add_argument('--bertscore-threshold', type=float, default=None,
@@ -376,7 +319,6 @@ Examples:
     parser.add_argument('--no-bertscore', dest='use_bertscore', action='store_false',
                         help='Disable BERTScore (faster computation)')
 
-    # Batch mode flags
     parser.add_argument('--list', dest='list_caches', action='store_true',
                         help='List all available inference cache files')
     parser.add_argument('--exp', type=str, default=None,
@@ -387,11 +329,31 @@ Examples:
     parser.add_argument('--method', type=str, default=None,
                         help='Filter cache files by method name (used with --exp or --all)')
 
-    args = parser.parse_args()
+    return parser
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse CLI arguments and enforce the required execution mode."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if not (args.list_caches or args.exp or args.compute_all or args.input):
+        parser.error('--input is required unless --list, --exp, or --all is specified')
+
+    return args
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Dispatch single-file or batch cached-prediction evaluation."""
+    args = parse_args(argv)
 
     if args.list_caches or args.exp or args.compute_all:
         main_batch(args)
-    elif args.input:
-        main_single(args)
     else:
-        parser.error('--input is required unless --list, --exp, or --all is specified')
+        main_single(args)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
