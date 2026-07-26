@@ -16,12 +16,11 @@ calls.
 
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from config.settings import get_path_config, get_inference_config  # noqa: E402
+from config.settings import get_inference_config, get_path_config  # noqa: E402
 from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('baselines.zero_shot')
@@ -37,7 +36,7 @@ def _build_few_shot_prompt(
     input_text: str,
     input_type: str,
     n_shots: int,
-    examples: List[Dict]
+    examples: list[dict]
 ) -> str:
     """
     Build a few-shot prompt in Qwen3 chat template format.
@@ -116,7 +115,7 @@ class ZeroShotGenerator:
         self,
         base_model_path: str = None,
         use_4bit: bool = True,
-        max_new_tokens: Optional[int] = None
+        max_new_tokens: int | None = None
     ):
         """
         Args:
@@ -174,6 +173,7 @@ class ZeroShotGenerator:
                 del self._lm
                 self._lm = None
             import gc
+
             import torch
             gc.collect()
             if torch.cuda.is_available():
@@ -190,7 +190,7 @@ class ZeroShotGenerator:
         input_text: str,
         input_type: str = 'text',
         n_shots: int = 0,
-        examples: Optional[List[Dict]] = None
+        examples: list[dict] | None = None
     ) -> str:
         """
         Generate an instruction for a single input.
@@ -237,12 +237,12 @@ class ZeroShotGenerator:
 
     def batch_generate(
         self,
-        inputs: List[str],
+        inputs: list[str],
         input_type: str = 'text',
         n_shots: int = 0,
-        examples: Optional[List[Dict]] = None,
+        examples: list[dict] | None = None,
         batch_size: int = 8
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Generate instructions for a list of inputs using GPU-batched inference.
 

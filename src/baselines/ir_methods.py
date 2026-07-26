@@ -12,7 +12,6 @@ Dependencies:
 
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 import numpy as np
 
@@ -35,10 +34,10 @@ class BM25Retriever:
 
     def __init__(self):
         self._bm25 = None
-        self._outputs: List[str] = []
+        self._outputs: list[str] = []
         self._indexed = False
 
-    def build_index(self, train_data: List[Dict]) -> None:
+    def build_index(self, train_data: list[dict]) -> None:
         """
         Build BM25 index from training data.
 
@@ -71,7 +70,7 @@ class BM25Retriever:
         best_idx = int(np.argmax(scores))
         return self._outputs[best_idx]
 
-    def batch_retrieve(self, queries: List[str]) -> List[str]:
+    def batch_retrieve(self, queries: list[str]) -> list[str]:
         """
         Retrieve outputs for a list of queries.
 
@@ -107,10 +106,10 @@ class LSARetriever:
         self._vectorizer = None
         self._svd = None
         self._doc_vectors: np.ndarray = None
-        self._outputs: List[str] = []
+        self._outputs: list[str] = []
         self._indexed = False
 
-    def build_index(self, train_data: List[Dict]) -> None:
+    def build_index(self, train_data: list[dict]) -> None:
         """
         Build LSA index from training data.
 
@@ -162,7 +161,7 @@ class LSARetriever:
         best_idx = int(np.argmax(similarities))
         return self._outputs[best_idx]
 
-    def batch_retrieve(self, queries: List[str]) -> List[str]:
+    def batch_retrieve(self, queries: list[str]) -> list[str]:
         """
         Retrieve outputs for a list of queries.
 
