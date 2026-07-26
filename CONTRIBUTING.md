@@ -47,7 +47,7 @@ stack, install the lightweight CI dependencies instead:
 
 ```bash
 python -m pip install -r requirements-ci.txt
-python -m pytest -q tests/test_repository_quality.py tests/test_manuscript_terminology.py tests/test_model_compatibility.py tests/test_experiment_alignment.py tests/test_console_output.py -k "not config_exposes_only_supported_vision_version"
+python -m pytest -q tests/test_repository_quality.py
 python -m ruff check --select E9 .
 ```
 
@@ -57,10 +57,10 @@ The same lightweight checks run automatically for pull requests targeting
 ## Validation expectations
 
 Documentation-only changes should verify links, paths, and Git status. Python
-changes should at minimum pass syntax parsing and relevant lightweight tests.
-Model or experiment changes require the smallest representative inference or
-cached experiment check, plus the full relevant run before release claims are
-made.
+changes should at minimum pass syntax parsing plus a direct import, CLI, or
+small runtime smoke check for the affected entry point. Model or experiment
+changes require the smallest representative inference or cached experiment
+check, plus the full relevant run before release claims are made.
 
 If a full GPU run is not possible, say exactly what was and was not verified.
 

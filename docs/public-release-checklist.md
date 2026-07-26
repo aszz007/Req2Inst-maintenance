@@ -36,8 +36,8 @@ the primary Req2Inst implementation or publishing a versioned release.
 - [ ] Export the final Conda environment and/or fully pinned requirements lock.
 - [ ] Record Python, CUDA, driver, GPU, and package versions.
 - [ ] Verify model and dataset directory preparation from a clean clone.
-- [ ] Add lightweight automated tests for prompts, routing, input parsing, and
-      quality validation.
+- [ ] Run direct syntax, import, CLI, and representative runtime smoke checks
+      for the release entry points.
 - [ ] Run representative inference and the release experiment suite.
 - [ ] Record fresh-run versus cache-derived results.
 
@@ -50,12 +50,12 @@ the primary Req2Inst implementation or publishing a versioned release.
 - [ ] Confirm `outputs/`, datasets, model weights, browser profiles, and local
       inputs are not tracked.
 - [ ] Review README commands and all relative links from a clean checkout.
-- [x] Add a small CI workflow only after compatible lightweight tests exist.
+- [x] Keep a small CI workflow for tracked-file syntax and documentation links.
 
 ## Community readiness
 
-- [ ] Confirm CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, SUPPORT, issue templates,
-      and pull-request template.
+- [ ] Confirm CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, SUPPORT, and the
+      pull-request template.
 - [ ] Define supported versions and maintainer contact channels.
 - [ ] Configure repository topics, description, social preview, and release
       notes.

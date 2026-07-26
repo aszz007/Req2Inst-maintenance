@@ -1,7 +1,9 @@
 # Experiment index
 
-The canonical orchestrator is
-`scripts/evaluation/experiments/run_all_experiments.py`.
+Each experiment is run directly through its own script under
+`scripts/evaluation/experiments/`. The repository does not keep a second
+all-experiments orchestration layer; explicit entry points make the selected
+experiment and its options visible in the command history.
 
 | No. | Script | Purpose |
 | --- | --- | --- |
@@ -17,7 +19,7 @@ The canonical orchestrator is
 | 10 | `exp10_advanced_routing.py` | MLP routing and output-ensemble evaluation with later repository-only diagnostics |
 | 11 | `exp11_ablation_optimization.py` | Ablation experiments |
 
-Experiments 9-11 receive `--all` automatically from the orchestrator.
+Experiments 9-11 expose `--all` when every phase should run.
 
 Experiment 10 contains the manuscript-reported Learned Router and Output
 Ensemble evaluation. The paper uses the MLP router for top-1 expert selection
@@ -28,21 +30,23 @@ are repository-only research code, not separate validated paper improvements.
 
 ## Usage
 
+Inspect the options of the selected experiment before running it:
+
 ```bash
-# All experiments
-python scripts/evaluation/experiments/run_all_experiments.py
+python scripts/evaluation/experiments/exp1_baseline_comparison.py --help
+```
 
-# Selected experiments
-python scripts/evaluation/experiments/run_all_experiments.py \
-  --experiments 1,2,3
+Examples:
 
-# Small validation and continue after failures
-python scripts/evaluation/experiments/run_all_experiments.py \
-  --test-mode --skip-failed
+```bash
+python scripts/evaluation/experiments/exp1_baseline_comparison.py \
+  --from-cache --test-mode
 
-# Reuse compatible prediction caches
-python scripts/evaluation/experiments/run_all_experiments.py \
-  --from-cache --test-mode --skip-failed
+python scripts/evaluation/experiments/exp2_compare_finetuning_methods.py \
+  --from-cache --test-mode
+
+python scripts/evaluation/experiments/exp9_routing_strategy.py \
+  --all --test-mode
 ```
 
 ## Result interpretation
@@ -53,5 +57,5 @@ python scripts/evaluation/experiments/run_all_experiments.py \
 - Format validity and semantic similarity are separate measurements.
 - Binary classifications depend on threshold and AND/OR policy; inspect the
   saved report rather than quoting only one headline number.
-- Generated plots and cached predictions belong under `outputs/` and should not
-  be committed by default.
+- Generated plots and cached predictions belong under `outputs/` and should
+  not be committed by default.

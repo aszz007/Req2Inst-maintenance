@@ -175,11 +175,14 @@ intentionally excluded from Git.
 
 ## Training
 
-Train selected experts through the orchestrator:
+Train an individual expert through its method-specific entry point:
 
 ```bash
-python scripts/training/train_all_experts.py --method lora_moe --expert text
+python scripts/training/lora_moe/train_text_expert.py
 ```
+
+The other methods and domains have corresponding entry points under
+`scripts/training/`.
 
 Training is GPU-intensive and expects local datasets, base models, and enough
 storage for checkpoints. Do not start a full run before reviewing
@@ -187,16 +190,16 @@ storage for checkpoints. Do not start a full run before reviewing
 
 ## Evaluation
 
-Run a quick cached validation when compatible caches are available:
+Run an individual experiment directly. For example, Experiment 1 supports a
+small cached validation when compatible caches are available:
 
 ```bash
-python scripts/evaluation/experiments/run_all_experiments.py \
-  --test-mode --from-cache --skip-failed
+python scripts/evaluation/experiments/exp1_baseline_comparison.py \
+  --test-mode --from-cache
 ```
 
-Run selected experiments with `--experiments 1,2,3`. See
-[the experiment index](docs/experiments.md) before launching the complete
-suite.
+Each experiment has its own command-line options. See
+[the experiment index](docs/experiments.md) before running an experiment.
 
 ## Data, weights, and generated artifacts
 

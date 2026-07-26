@@ -92,9 +92,9 @@ plots are local artifacts, not source.
 ### Quality format
 
 Prompt templates and expert normalization target three lines: Definition,
-Emphasis & Caution, and Things to Avoid. A separate
-`src/instruction_generation/quality_validator.py` can validate this structure;
-not every historical script invokes that validator through the same path.
+Emphasis & Caution, and Things to Avoid. Format and generation-quality
+measurements are calculated by `src/utils/enhanced_metrics.py` during
+evaluation.
 
 ## Current source-of-truth policy
 
@@ -115,10 +115,12 @@ define the supported model-version boundary.
 - Some paths are hard-coded for the original Windows or Linux workstation.
 - Historical path conventions and environment names coexist with current entry
   points.
-- Some helper logic is duplicated across experiment and preprocessing scripts.
-- The lightweight test suite covers tracked-file syntax, documentation links,
-  manuscript terminology, model compatibility, and experiment defaults. It does
-  not replace model-backed training, inference, or metric validation.
+- Some helper logic is duplicated across experiment scripts.
+- `scripts/evaluation/calculate_metrics_from_json.py` and
+  `src/utils/enhanced_metrics.py` overlap and require a dedicated metrics
+  consolidation task before either implementation is removed.
+- Repository quality automation checks tracked-file syntax and documentation
+  links. It does not replace direct training, inference, or metric validation.
 
 These items describe future refactoring scope; they are not evidence that the
 completed experiment run was invalid.
