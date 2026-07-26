@@ -1,13 +1,13 @@
 """Provide safe file, path, checkpoint, and JSON utilities."""
 
-import json
 import csv
+import json
 import shutil
-from pathlib import Path
-from typing import Union, List, Dict, Any, Optional, Callable, Iterator
 import warnings
+from collections.abc import Callable, Iterator
 from datetime import datetime
-
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 
 def ensure_dir(path: Union[str, Path]) -> Path:

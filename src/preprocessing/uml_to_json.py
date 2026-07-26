@@ -1,8 +1,8 @@
 """Convert FlowChart inputs into structured JSON descriptions."""
 
+import time
 from pathlib import Path
 from typing import Dict, Optional
-import time
 
 from models.vision_model import VisionModel
 from src.utils.logger import get_logger

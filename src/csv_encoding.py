@@ -1,9 +1,9 @@
 '''Resolve CSV encodings with deterministic, strict full-file decoding.'''
 
 import codecs
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional, Union
-
+from typing import Optional, Union
 
 PathLike = Union[str, Path]
 

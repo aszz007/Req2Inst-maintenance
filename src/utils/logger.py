@@ -2,10 +2,11 @@
 
 import logging
 import sys
-from pathlib import Path
-from logging.handlers import RotatingFileHandler
 from datetime import datetime
-from typing import Optional, Dict, Any
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 import torch
 
 
