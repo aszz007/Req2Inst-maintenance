@@ -200,3 +200,115 @@ def test_main_short_circuits_when_tokenizer_loading_fails(monkeypatch, capsys):
     DATASET_LENGTHS.main()
 
     assert capsys.readouterr().out == ""
+
+
+def test_main_preserves_unreadable_dataset_behavior(monkeypatch, tmp_path, capsys):
+    text_dir = tmp_path / "text"
+    text_dir.mkdir()
+    text_csv = text_dir / "sample.csv"
+    image_csv = tmp_path / "image.csv"
+    uml_csv = tmp_path / "uml.csv"
+    for path in (text_csv, image_csv, uml_csv):
+        path.write_text("fixture", encoding="utf-8")
+
+    reads = []
+    stats = []
+    monkeypatch.setattr(
+        DATASET_LENGTHS,
+        "path_cfg",
+        SimpleNamespace(
+            TEXT_DATASET_DIR=text_dir,
+            IMAGE_DATASET_CSV=image_csv,
+            UML_DATASET_CSV=uml_csv,
+        ),
+    )
+    monkeypatch.setattr(DATASET_LENGTHS, "get_tokenizer", object)
+
+    def unreadable(path):
+        reads.append(Path(path).name)
+        return None, None
+
+    def unexpected(*_args, **_kwargs):
+        pytest.fail("Unreadable datasets must not be tokenized")
+
+    monkeypatch.setattr(DATASET_LENGTHS, "read_csv_safely", unreadable)
+    monkeypatch.setattr(DATASET_LENGTHS, "calculate_lengths_from_df", unexpected)
+    monkeypatch.setattr(
+        DATASET_LENGTHS,
+        "print_stats",
+        lambda name, lengths: stats.append((name, tuple(lengths))),
+    )
+
+    DATASET_LENGTHS.main()
+
+    assert reads == ["sample.csv", "image.csv", "uml.csv"]
+    assert stats == [("Text Expert (all files combined)", ())]
+    assert capsys.readouterr().out == (
+        "\nComputing dataset lengths for all experts (including content previews)...\n\n"
+        "[Text] Found 1 files\n"
+        "[Text] Error: could not read sample.csv; all encoding attempts failed\n"
+    )
+
+
+def test_main_preserves_text_exception_boundary_and_continues(
+    monkeypatch,
+    tmp_path,
+    capsys,
+):
+    text_dir = tmp_path / "text"
+    text_dir.mkdir()
+    text_csv = text_dir / "sample.csv"
+    image_csv = tmp_path / "image.csv"
+    uml_csv = tmp_path / "uml.csv"
+    for path in (text_csv, image_csv, uml_csv):
+        path.write_text("fixture", encoding="utf-8")
+
+    calls = []
+    monkeypatch.setattr(
+        DATASET_LENGTHS,
+        "path_cfg",
+        SimpleNamespace(
+            TEXT_DATASET_DIR=text_dir,
+            IMAGE_DATASET_CSV=image_csv,
+            UML_DATASET_CSV=uml_csv,
+        ),
+    )
+    monkeypatch.setattr(DATASET_LENGTHS, "get_tokenizer", object)
+
+    def read_csv(path):
+        name = Path(path).name
+        calls.append(("read", name))
+        if name == "sample.csv":
+            raise RuntimeError("fixture failure")
+        return f"frame:{name}", "fixture-encoding"
+
+    def calculate(frame, _tokenizer, expert_type, source_name=""):
+        calls.append(("calculate", frame, expert_type, source_name))
+        return {"image": [20], "uml": [30]}[expert_type]
+
+    def record_stats(name, lengths):
+        calls.append(("stats", name, tuple(lengths)))
+
+    monkeypatch.setattr(DATASET_LENGTHS, "read_csv_safely", read_csv)
+    monkeypatch.setattr(DATASET_LENGTHS, "calculate_lengths_from_df", calculate)
+    monkeypatch.setattr(DATASET_LENGTHS, "print_stats", record_stats)
+
+    DATASET_LENGTHS.main()
+
+    assert calls == [
+        ("read", "sample.csv"),
+        ("stats", "Text Expert (all files combined)", ()),
+        ("read", "image.csv"),
+        ("calculate", "frame:image.csv", "image", ""),
+        ("stats", "Image Expert", (20,)),
+        ("read", "uml.csv"),
+        ("calculate", "frame:uml.csv", "uml", ""),
+        ("stats", "FlowChart Expert", (30,)),
+    ]
+    assert capsys.readouterr().out == (
+        "\nComputing dataset lengths for all experts (including content previews)...\n\n"
+        "[Text] Found 1 files\n"
+        "[Text] Unexpected error while processing sample.csv: fixture failure\n"
+        "[Image] Read successfully | encoding: fixture-encoding\n"
+        "[FlowChart] Read successfully | encoding: fixture-encoding\n"
+    )
