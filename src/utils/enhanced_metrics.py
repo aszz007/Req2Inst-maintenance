@@ -13,8 +13,8 @@ logger = get_logger('metrics.enhanced')
 class EvaluationThresholds:
     """Store metric decision thresholds."""
 
-    ROUGE_L_THRESHOLD = 0.4
-    BERTSCORE_F1_THRESHOLD = 0.82
+    ROUGE_L_THRESHOLD = 0.5
+    BERTSCORE_F1_THRESHOLD = 0.85
 
     USE_AND_LOGIC = True
 
@@ -246,7 +246,7 @@ class EnhancedMetrics:
         format_results = []
 
         for instruction in instructions:
-            result = self._check_single_instruction_format(instruction)
+            result = self._check_single_format(instruction)
             format_results.append(result)
 
         total = len(format_results)
@@ -261,10 +261,10 @@ class EnhancedMetrics:
             'definition_in_this_task': sum(1 for r in format_results if r['definition_starts_with_in_this_task']) / total if total > 0 else 0,
 
             'emphasis_present': sum(1 for r in format_results if r['has_emphasis']) / total if total > 0 else 0,
-            'emphasis_valid': sum(1 for r in format_results if r['emphasis_is_valid']) / total if total > 0 else 0,
+            'emphasis_valid': sum(1 for r in format_results if r['emphasis_valid']) / total if total > 0 else 0,
 
             'avoid_present': sum(1 for r in format_results if r['has_avoid']) / total if total > 0 else 0,
-            'avoid_valid': sum(1 for r in format_results if r['avoid_is_valid']) / total if total > 0 else 0,
+            'avoid_valid': sum(1 for r in format_results if r['avoid_valid']) / total if total > 0 else 0,
 
             'avg_format_score': sum(r['format_score'] for r in format_results) / total if total > 0 else 0,
 
@@ -275,88 +275,6 @@ class EnhancedMetrics:
         logger.info(f"Average format score: {summary['avg_format_score']:.4f}")
 
         return summary
-
-    def _check_single_instruction_format(self, instruction: str) -> Dict[str, Any]:
-        """Check single instruction format."""
-        result = {
-            'is_valid': False,
-            'has_definition': False,
-            'definition_has_content': False,
-            'definition_starts_with_in_this_task': False,
-            'has_emphasis': False,
-            'emphasis_is_valid': False,
-            'has_avoid': False,
-            'avoid_is_valid': False,
-            'format_score': 0.0,
-            'errors': []
-        }
-
-        lines = instruction.split('\n')
-
-        definition_line = None
-        emphasis_line = None
-        avoid_line = None
-
-        for line in lines:
-            line_stripped = line.strip()
-            if not line_stripped:
-                continue
-
-            if line_stripped.startswith('Definition:'):
-                definition_line = line_stripped
-                result['has_definition'] = True
-            elif line_stripped.startswith('Emphasis & Caution:') or line_stripped.startswith('Emphasis and Caution:'):
-                emphasis_line = line_stripped
-                result['has_emphasis'] = True
-            elif line_stripped.startswith('Things to Avoid:'):
-                avoid_line = line_stripped
-                result['has_avoid'] = True
-
-        if definition_line:
-            content = definition_line.split('Definition:', 1)[1].strip()
-
-            if content and content != '-':
-                result['definition_has_content'] = True
-            else:
-                result['errors'].append('Definition没有实际内容')
-
-            if content.lower().startswith('in this task'):
-                result['definition_starts_with_in_this_task'] = True
-        else:
-            result['errors'].append('缺少Definition')
-
-        if emphasis_line:
-            content = emphasis_line.split(':', 1)[1].strip()
-            if content:
-                result['emphasis_is_valid'] = True
-        else:
-            result['errors'].append('缺少Emphasis & Caution')
-
-        if avoid_line:
-            content = avoid_line.split(':', 1)[1].strip()
-            if content:
-                result['avoid_is_valid'] = True
-        else:
-            result['errors'].append('缺少Things to Avoid')
-
-        score_components = [
-            result['has_definition'],
-            result['definition_has_content'],
-            result['definition_starts_with_in_this_task'],
-            result['has_emphasis'],
-            result['emphasis_is_valid'],
-            result['has_avoid'],
-            result['avoid_is_valid']
-        ]
-        result['format_score'] = sum(score_components) / len(score_components)
-
-        result['is_valid'] = (
-            result['definition_has_content'] and
-            result['has_emphasis'] and
-            result['has_avoid']
-        )
-
-        return result
 
     def calculate_statistical_metrics(
         self,
@@ -440,8 +358,6 @@ class EnhancedMetrics:
             raise ValueError(
                 f"Prediction and reference counts do not match: {len(predictions)} vs {len(references)}"
             )
-
-        self.calculate_format_metrics(predictions)
 
         self._lazy_load_metrics()
         try:
@@ -550,23 +466,33 @@ class EnhancedMetrics:
         return results
 
     def _check_single_format(self, instruction: str) -> Dict[str, Any]:
-        """Check single format."""
+        """Check the manuscript-required three-part instruction format."""
         result = {
+            'is_valid': False,
             'has_definition': False,
-            'has_emphasis': False,
-            'has_avoid': False,
             'definition_has_content': False,
+            'definition_starts_with_in_this_task': False,
+            'has_emphasis': False,
             'emphasis_valid': False,
+            'emphasis_is_valid': False,
+            'has_avoid': False,
             'avoid_valid': False,
-            'format_score': 0.0
+            'avoid_is_valid': False,
+            'format_score': 0.0,
+            'errors': []
         }
 
-        if not instruction or len(instruction.strip()) < 10:
+        if not instruction:
+            result['errors'] = [
+                '缺少Definition',
+                '缺少Emphasis & Caution',
+                '缺少Things to Avoid'
+            ]
             return result
 
         lines = [line.strip() for line in instruction.strip().split('\n') if line.strip()]
 
-        _SECTION_HEADERS = [
+        section_headers = [
             ('Definition:', 'definition', len('Definition:')),
             ('Emphasis & Caution:', 'emphasis', len('Emphasis & Caution:')),
             ('Emphasis and Caution:', 'emphasis', len('Emphasis and Caution:')),
@@ -574,7 +500,7 @@ class EnhancedMetrics:
         ]
 
         def _match_header(line):
-            for prefix, key, offset in _SECTION_HEADERS:
+            for prefix, key, offset in section_headers:
                 if line.startswith(prefix):
                     return key, line[offset:].strip()
             return None, None
@@ -601,16 +527,29 @@ class EnhancedMetrics:
             content = sections['definition']
             if content and content != '-':
                 result['definition_has_content'] = True
+            else:
+                result['errors'].append('Definition没有实际内容')
+
+            if content.lower().startswith('in this task'):
+                result['definition_starts_with_in_this_task'] = True
+        else:
+            result['errors'].append('缺少Definition')
 
         if 'emphasis' in sections:
             result['has_emphasis'] = True
             if sections['emphasis']:
                 result['emphasis_valid'] = True
+                result['emphasis_is_valid'] = True
+        else:
+            result['errors'].append('缺少Emphasis & Caution')
 
         if 'avoid' in sections:
             result['has_avoid'] = True
             if sections['avoid']:
                 result['avoid_valid'] = True
+                result['avoid_is_valid'] = True
+        else:
+            result['errors'].append('缺少Things to Avoid')
 
         score = 0.0
         if result['definition_has_content']:
@@ -621,6 +560,11 @@ class EnhancedMetrics:
             score += 0.3
 
         result['format_score'] = score
+        result['is_valid'] = (
+            result['definition_has_content'] and
+            result['has_emphasis'] and
+            result['has_avoid']
+        )
 
         return result
 
@@ -630,31 +574,92 @@ class EnhancedMetrics:
         references: List[str],
         expert_usage: Optional[Dict[str, int]] = None,
         save_path: Optional[str] = None,
-        include_binary_metrics: bool = True
+        include_binary_metrics: bool = True,
+        format_threshold: float = None,
+        rouge_threshold: float = None,
+        bertscore_threshold: float = None,
+        use_and_logic: bool = None
     ) -> Dict[str, Any]:
-        """Generate comprehensive report."""
+        """Generate one canonical report for valid prediction/reference pairs."""
         logger.info("Generating comprehensive evaluation report")
+
+        if len(predictions) != len(references):
+            raise ValueError(
+                f"Prediction and reference counts do not match: {len(predictions)} vs {len(references)}"
+            )
+
+        valid_pairs = [
+            (prediction, reference)
+            for prediction, reference in zip(predictions, references)
+            if prediction and prediction.strip()
+        ]
+        skipped_samples = len(predictions) - len(valid_pairs)
+
+        if skipped_samples:
+            logger.warning(
+                f"Skipped {skipped_samples} empty predictions out of {len(predictions)}"
+            )
+
+        if not valid_pairs:
+            logger.error("No valid predictions are available for evaluation")
+            return {}
+
+        valid_predictions = [pair[0] for pair in valid_pairs]
+        valid_references = [pair[1] for pair in valid_pairs]
+
+        effective_format_threshold = (
+            EvaluationThresholds.FORMAT_SCORE_THRESHOLD
+            if format_threshold is None else format_threshold
+        )
+        effective_rouge_threshold = (
+            EvaluationThresholds.ROUGE_L_THRESHOLD
+            if rouge_threshold is None else rouge_threshold
+        )
+        effective_bertscore_threshold = (
+            EvaluationThresholds.BERTSCORE_F1_THRESHOLD
+            if bertscore_threshold is None else bertscore_threshold
+        )
+        effective_use_and_logic = (
+            EvaluationThresholds.USE_AND_LOGIC
+            if use_and_logic is None else use_and_logic
+        )
 
         report = {
             'metadata': {
                 'total_samples': len(predictions),
+                'valid_samples': len(valid_predictions),
+                'skipped_samples': skipped_samples,
                 'timestamp': self._get_timestamp()
+            },
+            'total_samples': len(predictions),
+            'valid_samples': len(valid_predictions),
+            'skipped_samples': skipped_samples,
+            'threshold_config': {
+                'rouge_l_threshold': effective_rouge_threshold,
+                'bertscore_f1_threshold': effective_bertscore_threshold,
+                'use_and_logic': effective_use_and_logic,
+                'format_score_threshold': effective_format_threshold
             }
         }
 
         logger.info("\n[1/4] Computing generation-quality metrics...")
         report['generation_quality'] = self.calculate_generation_quality(
-            predictions, references
+            valid_predictions, valid_references
         )
 
         logger.info("\n[2/4] Computing format metrics...")
-        report['format_metrics'] = self.calculate_format_metrics(predictions)
+        report['format_metrics'] = self.calculate_format_metrics(valid_predictions)
 
         if include_binary_metrics:
             logger.info("\n[3/4] Computing binary-classification metrics (TP/TN/FP/FN)...")
-            precomputed_bs = report['generation_quality'].get('bertscore_f1_scores', None)
+            precomputed_bs = report['generation_quality'].get('bertscore_f1_scores')
             report['binary_classification'] = self.calculate_binary_classification_metrics(
-                predictions, references,
+                valid_predictions,
+                valid_references,
+                format_threshold=effective_format_threshold,
+                rouge_threshold=effective_rouge_threshold,
+                bertscore_threshold=effective_bertscore_threshold,
+                use_and_logic=effective_use_and_logic,
                 precomputed_bertscore_f1=precomputed_bs
             )
         else:
@@ -662,7 +667,7 @@ class EnhancedMetrics:
 
         logger.info("\n[4/4] Computing statistical metrics...")
         report['statistical_metrics'] = self.calculate_statistical_metrics(
-            predictions, expert_usage
+            valid_predictions, expert_usage
         )
 
         if save_path:

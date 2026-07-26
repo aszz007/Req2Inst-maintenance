@@ -166,6 +166,28 @@ python scripts/evaluation/experiments/exp2_compare_finetuning_methods.py \
   --from-cache --test-mode
 ```
 
+## Manuscript evaluation contract
+
+The canonical metric workflow is implemented by
+`src/utils/enhanced_metrics.py`. Experiment code reaches it through
+`src/baselines/inference_utils.py`, while cached predictions can be evaluated
+through:
+
+```bash
+python scripts/evaluation/calculate_metrics_from_json.py --input predictions.json
+```
+
+The manuscript-default task-specific criterion is:
+
+- Format: Definition, Emphasis & Caution, and Things to Avoid are present.
+- Semantic adequacy: ROUGE-L >= 0.5 and BERTScore F1 >= 0.85.
+- Success: format adequacy AND semantic adequacy.
+
+The cached-prediction CLI retains threshold and OR-logic overrides for
+controlled diagnostics. Results produced with those overrides, or with
+BERTScore disabled, are not manuscript-default Binary F1 results and should
+record their effective `threshold_config`.
+
 ## Reproducibility controls
 
 - Dataset splitting defaults to seed 42.
