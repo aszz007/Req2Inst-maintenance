@@ -8,7 +8,6 @@ the task type, then simple noun phrases are extracted to fill template slots.
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -29,7 +28,7 @@ class TemplateFiller:
       Things to Avoid: ...
     """
 
-    TEMPLATES: Dict[str, str] = {
+    TEMPLATES: dict[str, str] = {
         'annotation': (
             'Definition: In this task, annotate {target} by {action}.\n'
             'Emphasis & Caution: {caution}\n'
@@ -205,7 +204,7 @@ class TemplateFiller:
         except KeyError:
             return self.TEMPLATES['default'].format(target=target)
 
-    def batch_fill(self, inputs: List[str]) -> List[str]:
+    def batch_fill(self, inputs: list[str]) -> list[str]:
         """
         Generate instructions for a list of input texts.
 
