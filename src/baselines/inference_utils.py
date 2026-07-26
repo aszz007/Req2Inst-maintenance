@@ -1,9 +1,7 @@
-"""
-Inference Utilities - Shared cache save/load and metric utilities for Phase 2 experiments.
+"""Shared cache I/O, diagnostics, and metric adapters for evaluation experiments.
 
-Provides thin wrappers around EnhancedMetrics and JSON cache I/O so that all
-experiment scripts share a consistent cache format compatible with
-calculate_metrics_from_json.py.
+Experiment scripts use one cache schema that is consumed by the cached-
+prediction CLI in `scripts/evaluation/calculate_metrics_from_json.py`.
 """
 
 import json
@@ -25,20 +23,7 @@ _DIAGNOSTICS_SAMPLE_COUNT = 5
 
 
 def _build_diagnostics(samples: List[Dict]) -> Dict:
-    """
-    Build a compact diagnostics section for LLM-assisted debugging.
-
-    Scans raw prediction strings and returns format compliance counts,
-    empty/degenerate prediction counts, length statistics, and a short
-    list of representative samples so that an LLM can identify quality
-    problems without reading every sample.
-
-    Args:
-        samples: Full sample list with 'prediction' and 'reference' keys.
-
-    Returns:
-        Diagnostics dict embedded in the cache payload under 'diagnostics'.
-    """
+    """Build compact format, length, and sample diagnostics for debugging."""
     total = len(samples)
     empty_count = 0
     format_counts = {'has_definition': 0, 'has_emphasis': 0, 'has_avoid': 0, 'all_three': 0}
@@ -132,7 +117,7 @@ def save_predictions_cache(
         "config": {...},
         "timestamp": ...,
         "total_samples": N,
-        "diagnostics": { ...compact stats for LLM debugging... },
+        "diagnostics": { ...compact debugging statistics... },
         "samples": [{"index": 0, "input": ..., "prediction": ..., "reference": ...}]
       }
 
