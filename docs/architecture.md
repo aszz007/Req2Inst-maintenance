@@ -80,14 +80,27 @@ sources.
 
 ### Evaluation
 
-`src/utils/enhanced_metrics.py` implements generation, format, and binary
-evaluation reports. `scripts/evaluation/experiments/` contains experiments
-1-11. Experiment 10 contains the manuscript-reported MLP Learned Router and
-Output Ensemble evaluation, along with later repository-only diagnostics and
-weighting explorations. Only the paper-described top-1 selection and top-2 logit
-fusion configuration should be treated as manuscript evidence; later variants
-are not separate validated paper improvements. Cached predictions and generated
-plots are local artifacts, not source.
+`src/utils/enhanced_metrics.py` is the canonical engine for generation,
+format, binary, and statistical evaluation. The experiment-facing wrapper in
+`src/baselines/inference_utils.py` and the cached-prediction CLI in
+`scripts/evaluation/calculate_metrics_from_json.py` delegate to this engine so
+that both paths use the same format parser, thresholds, and per-sample metric
+values.
+
+The manuscript task-specific success criterion requires the three-part
+Definition, Emphasis & Caution, and Things to Avoid structure together with
+ROUGE-L >= 0.5 and BERTScore F1 >= 0.85. Semantic adequacy uses AND logic, and
+overall success requires both format and semantic adequacy. CLI threshold
+overrides remain available for diagnostic comparisons, but they are not the
+manuscript-default evaluation contract.
+
+`scripts/evaluation/experiments/` contains experiments 1-11. Experiment 10
+contains the manuscript-reported MLP Learned Router and Output Ensemble
+evaluation, along with later repository-only diagnostics and weighting
+explorations. Only the paper-described top-1 selection and top-2 logit fusion
+configuration should be treated as manuscript evidence; later variants are not
+separate validated paper improvements. Cached predictions and generated plots
+are local artifacts, not source.
 
 ### Quality format
 
@@ -116,9 +129,6 @@ define the supported model-version boundary.
 - Historical path conventions and environment names coexist with current entry
   points.
 - Some helper logic is duplicated across experiment scripts.
-- `scripts/evaluation/calculate_metrics_from_json.py` and
-  `src/utils/enhanced_metrics.py` overlap and require a dedicated metrics
-  consolidation task before either implementation is removed.
 - Repository quality automation checks tracked-file syntax and documentation
   links. It does not replace direct training, inference, or metric validation.
 
