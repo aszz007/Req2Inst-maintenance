@@ -213,80 +213,53 @@ def compute_all_metrics(
     use_bertscore: bool = True
 ) -> Dict:
     """
-    Run the full EnhancedMetrics suite and return a combined result dict.
+    Run the canonical EnhancedMetrics workflow and preserve experiment keys.
 
-    Filters empty predictions before evaluation and reports how many were
-    skipped.
-
-    Args:
-        predictions: Model-generated strings
-        references: Ground-truth strings
-        use_bertscore: Whether to compute BERTScore (slower but richer)
-
-    Returns:
-        Combined dict with keys from generation_quality, format_metrics,
-        binary_classification, and statistical_metrics
+    Empty predictions are filtered by EnhancedMetrics, and the returned wrapper
+    keeps the result structure consumed by experiments 1-11.
     """
-    valid_pairs = [
-        (p, r) for p, r in zip(predictions, references) if p and p.strip()
-    ]
-
-    skipped = len(predictions) - len(valid_pairs)
-    if skipped:
-        logger.warning(f'Skipped {skipped} empty predictions out of {len(predictions)}')
-
-    if not valid_pairs:
-        logger.error('No valid predictions are available for evaluation')
-        return {}
-
-    valid_preds = [pair[0] for pair in valid_pairs]
-    valid_refs = [pair[1] for pair in valid_pairs]
-
     metrics = EnhancedMetrics(use_bertscore=use_bertscore)
 
-    quality = metrics.calculate_generation_quality(
-        predictions=valid_preds,
-        references=valid_refs
-    )
-    format_m = metrics.calculate_format_metrics(instructions=valid_preds)
-    precomputed_bs = quality.get('bertscore_f1_scores', None)
-    binary = metrics.calculate_binary_classification_metrics(
-        predictions=valid_preds,
-        references=valid_refs,
-        precomputed_bertscore_f1=precomputed_bs
-    )
-    stats = metrics.calculate_statistical_metrics(instructions=valid_preds)
-
-    result = {
-        'total_samples': len(predictions),
-        'valid_samples': len(valid_preds),
-        'skipped_samples': skipped,
-        'generation_quality': quality,
-        'format_metrics': format_m,
-        'binary_classification': binary,
-        'statistical_metrics': stats,
-    }
-
-    logger.info(
-        f'Metric computation complete | ROUGE-L={quality.get("rougeL", 0):.4f} '
-        f'F1={binary.get("f1_score", 0):.4f}'
-    )
-
     try:
-        metrics.cleanup()
-    except Exception:
-        pass
-    del metrics
-    import gc
-    gc.collect()
-    try:
-        import torch
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    except Exception:
-        pass
+        report = metrics.generate_comprehensive_report(
+            predictions=predictions,
+            references=references
+        )
+        if not report:
+            return {}
 
-    return result
+        result = {
+            'total_samples': report['total_samples'],
+            'valid_samples': report['valid_samples'],
+            'skipped_samples': report['skipped_samples'],
+            'generation_quality': report['generation_quality'],
+            'format_metrics': report['format_metrics'],
+            'binary_classification': report['binary_classification'],
+            'statistical_metrics': report['statistical_metrics'],
+        }
+
+        quality = result['generation_quality']
+        binary = result['binary_classification']
+        logger.info(
+            f'Metric computation complete | ROUGE-L={quality.get("rougeL", 0):.4f} '
+            f'F1={binary.get("f1_score", 0):.4f}'
+        )
+
+        return result
+    finally:
+        try:
+            metrics.cleanup()
+        except Exception:
+            pass
+        del metrics
+        import gc
+        gc.collect()
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
 
 
 def save_experiment_results(

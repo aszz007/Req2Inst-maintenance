@@ -58,65 +58,38 @@ def calculate_metrics(
         use_and_logic: bool = None,
         format_threshold: float = None
 ) -> Dict:
-    """Calculate metrics."""
+    """Calculate cached-prediction metrics through the canonical C105 workflow."""
     logger.info("Starting metric computation")
 
     metrics = EnhancedMetrics(use_bertscore=use_bertscore)
 
-    valid_pairs = [
-        (pred, ref) for pred, ref in zip(predictions, references)
-        if pred.strip()
-    ]
+    try:
+        report = metrics.generate_comprehensive_report(
+            predictions=predictions,
+            references=references,
+            format_threshold=format_threshold,
+            rouge_threshold=rouge_threshold,
+            bertscore_threshold=bertscore_threshold,
+            use_and_logic=use_and_logic
+        )
+        if not report:
+            return {}
 
-    if not valid_pairs:
-        logger.error("No valid predictions found")
-        return {}
+        results = {
+            'timestamp': report['metadata']['timestamp'],
+            'total_samples': report['total_samples'],
+            'valid_samples': report['valid_samples'],
+            'generation_quality': report['generation_quality'],
+            'format_metrics': report['format_metrics'],
+            'binary_classification': report['binary_classification'],
+            'statistical_metrics': report['statistical_metrics'],
+            'threshold_config': report['threshold_config']
+        }
 
-    valid_predictions = [pair[0] for pair in valid_pairs]
-    valid_references = [pair[1] for pair in valid_pairs]
-
-    logger.info(f"Valid samples: {len(valid_predictions)}/{len(predictions)}")
-
-    logger.info("\n[1/4] Computing generation quality metrics...")
-    quality_metrics = metrics.calculate_generation_quality(
-        predictions=valid_predictions,
-        references=valid_references
-    )
-
-    logger.info("\n[2/4] Computing format metrics...")
-    format_metrics = metrics.calculate_format_metrics(
-        instructions=valid_predictions
-    )
-
-    logger.info("\n[3/4] Computing binary classification metrics...")
-    binary_metrics = metrics.calculate_binary_classification_metrics(
-        predictions=valid_predictions,
-        references=valid_references,
-        format_threshold=format_threshold,
-        rouge_threshold=rouge_threshold,
-        bertscore_threshold=bertscore_threshold,
-        use_and_logic=use_and_logic
-    )
-
-    logger.info("\n[4/4] Computing summary statistics...")
-    statistical_metrics = metrics.calculate_statistical_metrics(
-        instructions=valid_predictions
-    )
-
-    results = {
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'total_samples': len(predictions),
-        'valid_samples': len(valid_predictions),
-        'generation_quality': quality_metrics,
-        'format_metrics': format_metrics,
-        'binary_classification': binary_metrics,
-        'statistical_metrics': statistical_metrics,
-        'threshold_config': EvaluationThresholds.get_config()
-    }
-
-    logger.info("Metric computation completed")
-
-    return results
+        logger.info("Metric computation completed")
+        return results
+    finally:
+        metrics.cleanup()
 
 
 def print_metrics_summary(results: Dict, expert_name: str):
@@ -334,7 +307,11 @@ def main_batch(args):
             results = calculate_metrics(
                 data['predictions'],
                 data['references'],
-                use_bertscore=not args.no_bertscore
+                use_bertscore=args.use_bertscore,
+                rouge_threshold=args.rouge_threshold,
+                bertscore_threshold=args.bertscore_threshold,
+                use_and_logic=args.use_and_logic,
+                format_threshold=args.format_threshold
             )
             results['expert_name'] = data.get('expert_name', 'unknown')
             results['input_file'] = str(filepath)
