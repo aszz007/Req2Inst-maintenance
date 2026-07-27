@@ -8,7 +8,6 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -22,14 +21,14 @@ logger = get_logger('baselines.inference_utils')
 _DIAGNOSTICS_SAMPLE_COUNT = 5
 
 
-def _build_diagnostics(samples: List[Dict]) -> Dict:
+def _build_diagnostics(samples: list[dict]) -> dict:
     """Build compact format, length, and sample diagnostics for debugging."""
     total = len(samples)
     empty_count = 0
     format_counts = {'has_definition': 0, 'has_emphasis': 0, 'has_avoid': 0, 'all_three': 0}
     pred_lengths = []
     ref_lengths = []
-    starts: Dict[str, int] = {}
+    starts: dict[str, int] = {}
 
     for s in samples:
         pred = s.get('prediction', '') or ''
@@ -99,10 +98,10 @@ def _build_diagnostics(samples: List[Dict]) -> Dict:
 
 
 def save_predictions_cache(
-    samples: List[Dict],
+    samples: list[dict],
     method: str,
     expert_type: str,
-    config: Dict,
+    config: dict,
     cache_dir: Path,
     filename: str = None
 ) -> Path:
@@ -179,7 +178,7 @@ def save_predictions_cache(
     return filepath
 
 
-def load_predictions_cache(cache_dir: Path, filename: str) -> Optional[Dict]:
+def load_predictions_cache(cache_dir: Path, filename: str) -> dict | None:
     """Load predictions cache."""
     filepath = Path(cache_dir) / filename
     if not filepath.exists():
@@ -193,10 +192,10 @@ def load_predictions_cache(cache_dir: Path, filename: str) -> Optional[Dict]:
 
 
 def compute_all_metrics(
-    predictions: List[str],
-    references: List[str],
+    predictions: list[str],
+    references: list[str],
     use_bertscore: bool = True
-) -> Dict:
+) -> dict:
     """
     Run the canonical EnhancedMetrics workflow and preserve experiment keys.
 
@@ -248,7 +247,7 @@ def compute_all_metrics(
 
 
 def save_experiment_results(
-    results: Dict,
+    results: dict,
     exp_dir: Path,
     filename: str = 'results.json'
 ) -> Path:

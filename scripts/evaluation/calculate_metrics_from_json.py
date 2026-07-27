@@ -3,9 +3,9 @@
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Sequence
 
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -16,7 +16,7 @@ from src.utils.logger import get_logger  # noqa: E402
 logger = get_logger('evaluation.calculate_metrics_from_json')
 
 
-def load_predictions_json(filepath: str) -> Dict:
+def load_predictions_json(filepath: str) -> dict:
     """Load predictions JSON."""
     filepath = Path(filepath)
 
@@ -51,14 +51,14 @@ def load_predictions_json(filepath: str) -> Dict:
 
 
 def calculate_metrics(
-        predictions: List[str],
-        references: List[str],
+        predictions: list[str],
+        references: list[str],
         use_bertscore: bool = True,
         rouge_threshold: float = None,
         bertscore_threshold: float = None,
         use_and_logic: bool = None,
         format_threshold: float = None
-) -> Dict:
+) -> dict:
     """Calculate cached-prediction metrics through the canonical C105 workflow."""
     logger.info("Starting metric computation")
 
@@ -93,7 +93,7 @@ def calculate_metrics(
         metrics.cleanup()
 
 
-def print_metrics_summary(results: Dict, expert_name: str):
+def print_metrics_summary(results: dict, expert_name: str):
     """Print metrics summary."""
     print("\n" + "=" * 80)
     print(f"Evaluation Summary - {expert_name}")
@@ -128,7 +128,7 @@ def print_metrics_summary(results: Dict, expert_name: str):
     print("=" * 80 + "\n")
 
 
-def save_results(results: Dict, expert_name: str, save_dir: str):
+def save_results(results: dict, expert_name: str, save_dir: str):
     """Save results."""
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -178,7 +178,7 @@ def main_single(args: argparse.Namespace):
     logger.info("Completed")
 
 
-def scan_cache_files(cache_dir: Path) -> List[Path]:
+def scan_cache_files(cache_dir: Path) -> list[Path]:
     """
     Recursively find all *_predictions.json files under cache_dir.
 
