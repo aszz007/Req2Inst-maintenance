@@ -74,7 +74,7 @@ class MoEModel:
 
     def _load_expert(self, routing_result: RoutingResult):
         """Load expert."""
-        from src.experts import TextExpert, ImageExpert, UMLExpert, GeneralExpert
+        from src.experts import GeneralExpert, ImageExpert, TextExpert, UMLExpert
 
         expert_type = routing_result.expert_type
         expert_path = routing_result.expert_path

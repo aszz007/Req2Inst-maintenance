@@ -1,7 +1,7 @@
 """Calculate generation, format, and binary evaluation metrics."""
 
-from typing import Any
 import warnings
+from typing import Any
 
 warnings.filterwarnings('ignore')
 

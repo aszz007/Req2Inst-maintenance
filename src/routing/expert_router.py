@@ -1,8 +1,8 @@
 """Select a domain expert with rule-based input-type routing."""
 
-from pathlib import Path
-from dataclasses import dataclass
 from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
