@@ -1,7 +1,6 @@
 """Define the general prompt template for three-part instruction generation."""
 
 import json
-from typing import Union
 
 
 class GeneralInstructionTemplate:
@@ -30,7 +29,7 @@ CRITICAL RULES:
 - Output ONLY these three lines, nothing else"""
 
     @staticmethod
-    def detect_input_type(input_data: Union[str, dict]) -> str:
+    def detect_input_type(input_data: str | dict) -> str:
         """Detect input type."""
         if isinstance(input_data, dict):
             input_str = json.dumps(input_data)
@@ -59,7 +58,7 @@ CRITICAL RULES:
         return 'text'
 
     @staticmethod
-    def build_prompt(input_data: Union[str, dict], force_type: str = None) -> str:
+    def build_prompt(input_data: str | dict, force_type: str = None) -> str:
         """Build prompt."""
         if force_type:
             input_type = force_type

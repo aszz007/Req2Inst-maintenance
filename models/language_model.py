@@ -14,7 +14,6 @@ from tqdm import tqdm
 
 from peft import PeftModel
 from pathlib import Path
-from typing import Optional
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 import os
@@ -49,7 +48,7 @@ class SanitizeLogitsProcessor(LogitsProcessor):
 class LanguageModel:
     """Load Qwen3-8B and manage generation and LoRA adapters."""
 
-    def __init__(self, model_path: Optional[str] = None, use_4bit: bool = True):
+    def __init__(self, model_path: str | None = None, use_4bit: bool = True):
         """Initialize the instance."""
         path_cfg = get_path_config()
         device_cfg = get_device_config()
@@ -140,7 +139,7 @@ class LanguageModel:
         """Return target modules."""
         return ["q_proj", "k_proj", "v_proj", "o_proj"]
 
-    def _clean_lora_config(self, lora_path: Path) -> Optional[Path]:
+    def _clean_lora_config(self, lora_path: Path) -> Path | None:
         """Clean LoRA config."""
         try:
             config_file = lora_path / "adapter_config.json"
@@ -627,7 +626,7 @@ class LanguageModel:
 class InstructionGenerator:
     """Generate instructions with the configured model interface."""
 
-    def __init__(self, model_path: Optional[str] = None, use_4bit: bool = True):
+    def __init__(self, model_path: str | None = None, use_4bit: bool = True):
         """Initialize the instance."""
         self.language_model = LanguageModel(
             model_path=model_path,

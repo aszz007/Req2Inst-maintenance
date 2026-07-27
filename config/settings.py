@@ -3,7 +3,6 @@
 import torch
 from pathlib import Path
 from dataclasses import dataclass
-from typing import List, Optional
 
 @dataclass
 class ModelConfig:
@@ -26,7 +25,7 @@ class VisionModelConfig:
 
     version: str = "qwen3"
 
-    SUPPORTED_VERSIONS: List[str] = None
+    SUPPORTED_VERSIONS: list[str] = None
 
     def __post_init__(self):
         """Finalize dataclass initialization."""
@@ -290,7 +289,7 @@ class LoRAConfig:
 
     dropout: float = 0.05
 
-    target_modules: List[str] = None
+    target_modules: list[str] = None
 
     task_type: str = "CAUSAL_LM"
 
@@ -427,11 +426,11 @@ class PromptTuningConfig:
     num_virtual_tokens: int = 10
 
     prompt_tuning_init: str = "RANDOM"
-    prompt_tuning_init_text: Optional[str] = None
+    prompt_tuning_init_text: str | None = None
 
     task_type: str = "CAUSAL_LM"
 
-    token_dim: Optional[int] = None
+    token_dim: int | None = None
 
     @classmethod
     def get_default_config(cls):
@@ -453,7 +452,7 @@ class FullFineTuningConfig:
     lora_alpha: int = 128
     lora_dropout: float = 0.05
 
-    target_modules: List[str] = None
+    target_modules: list[str] = None
 
     learning_rate: float = 1e-4
     num_epochs: int = 3
@@ -539,9 +538,9 @@ class InferenceConfig:
 class DeviceConfig:
     """Store device and GPU-tier configuration."""
 
-    device: Optional[str] = None
-    gpu_name: Optional[str] = None
-    gpu_memory_gb: Optional[float] = None
+    device: str | None = None
+    gpu_name: str | None = None
+    gpu_memory_gb: float | None = None
     is_high_end_gpu: bool = False
     enable_streaming: bool = False
 
