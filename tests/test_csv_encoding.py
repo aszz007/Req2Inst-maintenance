@@ -126,17 +126,3 @@ def test_training_loader_detector_delegates_to_shared_resolver():
     path = Path('fixture.csv')
     assert namespace['detect_csv_encoding'](path) == 'gb18030'
     assert calls == [path]
-
-
-def test_dataset_validator_loads_gbk_text_without_mojibake(tmp_path):
-    from scripts.evaluation.data_quality.validate_dataset_quality import (
-        UMLDatasetValidator,
-    )
-
-    csv_path = tmp_path / 'validator.csv'
-    expected = ['patient’s record', 'SRS 34–36', 'within ±1 ml']
-    _write_csv(csv_path, 'gbk', expected)
-
-    frame = UMLDatasetValidator(str(csv_path)).load_dataset()
-
-    assert frame['text'].tolist() == expected

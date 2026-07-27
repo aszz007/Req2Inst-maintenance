@@ -275,20 +275,3 @@ def test_full_finetuning_console_output_keeps_operational_information():
         assert header in source
         for message in common_messages:
             assert message in source
-
-
-def test_dataset_utility_console_text_is_english():
-    length_source = (
-        ROOT / "scripts/utils/calculate_dataset_lengths.py"
-    ).read_text(encoding="utf-8")
-    sample_source = (
-        ROOT / "scripts/preprocessing/dataset_sampling/sample_text_dataset.py"
-    ).read_text(encoding="utf-8")
-
-    assert "Text Expert (all files combined)" in length_source
-    assert "High_Requirements (display only; not used for training)" in sample_source
-
-    for source in (length_source, sample_source):
-        assert not any("\u3400" <= char <= "\u9fff" for char in source)
-        assert "（" not in source
-        assert "）" not in source

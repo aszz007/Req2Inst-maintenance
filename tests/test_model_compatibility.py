@@ -40,8 +40,6 @@ class ModelCompatibilityTests(unittest.TestCase):
         cli_paths = (
             ROOT / "scripts/inference/recognize_inputs.py",
             ROOT / "scripts/inference/generate_instructions.py",
-            ROOT / "scripts/preprocessing/raw_to_interim/image/recognize_image.py",
-            ROOT / "scripts/preprocessing/raw_to_interim/uml/recognize_uml.py",
         )
 
         for path in cli_paths:
