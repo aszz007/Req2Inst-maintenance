@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import torch
 
@@ -164,7 +164,7 @@ def log_training_metrics(
         logger: logging.Logger,
         epoch: int,
         step: int,
-        metrics: Dict[str, float],
+        metrics: dict[str, float],
         prefix: str = ""
 ):
     """Log training metrics."""
@@ -193,8 +193,8 @@ def log_data_info(
         logger: logging.Logger,
         dataset_name: str,
         train_size: int,
-        val_size: Optional[int] = None,
-        test_size: Optional[int] = None
+        val_size: int | None = None,
+        test_size: int | None = None
 ):
     """Log dataset metadata."""
     logger.info(f"Dataset: {dataset_name}")
@@ -210,7 +210,7 @@ def log_data_info(
     logger.info(f"Total samples: {total}")
 
 
-def log_config(logger: logging.Logger, config: Dict[str, Any], config_name: str = "Configuration"):
+def log_config(logger: logging.Logger, config: dict[str, Any], config_name: str = "Configuration"):
     """Log configuration values."""
     logger.info(f"{config_name}")
 

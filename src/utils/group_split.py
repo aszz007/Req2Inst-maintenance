@@ -2,11 +2,10 @@
 
 import random
 from collections import defaultdict
-from typing import Dict, List, Tuple
 
 
 def group_split_by_input(
-    data: List[Dict],
+    data: list[dict],
     train_ratio: float = 0.8,
     val_ratio: float = 0.1,
     test_ratio: float = 0.1,
@@ -14,11 +13,11 @@ def group_split_by_input(
     dedup_identical: bool = True,
     input_key: str = "input",
     output_key: str = "output",
-) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+) -> tuple[list[dict], list[dict], list[dict]]:
     """Split records while grouping identical inputs."""
     if dedup_identical:
         seen = set()
-        cleaned: List[Dict] = []
+        cleaned: list[dict] = []
         for item in data:
             key = (item[input_key], item[output_key])
             if key not in seen:
@@ -30,7 +29,7 @@ def group_split_by_input(
                   f"({len(data)} → {len(cleaned)})")
         data = cleaned
 
-    groups: Dict[str, List[Dict]] = defaultdict(list)
+    groups: dict[str, list[dict]] = defaultdict(list)
     for item in data:
         groups[item[input_key]].append(item)
 
