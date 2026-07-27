@@ -8,7 +8,6 @@ import pandas as pd
 import random
 import warnings
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
 from torch.utils.data import Dataset, DataLoader
 import torch
 
@@ -45,7 +44,7 @@ def detect_csv_encoding(filepath: Path) -> str:
 class InstructionDataset(Dataset):
     """Expose tokenized instruction-training examples."""
 
-    def __init__(self, data: List[Dict], tokenizer, max_length: int = 2048):
+    def __init__(self, data: list[dict], tokenizer, max_length: int = 2048):
         """Initialize the instance."""
         self.data = data
         self.tokenizer = tokenizer
@@ -190,7 +189,7 @@ def clean_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def find_column(df: pd.DataFrame, possible_names: List[str]) -> Optional[str]:
+def find_column(df: pd.DataFrame, possible_names: list[str]) -> str | None:
     """Find column."""
     df_columns_lower = {col.lower(): col for col in df.columns}
 
@@ -240,7 +239,7 @@ class TextDatasetLoader:
         self.dataset_dir = path_cfg.TEXT_DATASET_DIR
         logger.info(f"Initializing TextDatasetLoader; path: {self.dataset_dir}")
 
-    def load_csv_files(self) -> List[Dict]:
+    def load_csv_files(self) -> list[dict]:
         """Load CSV files."""
         all_data = []
         dataset_path = Path(self.dataset_dir)
@@ -326,7 +325,7 @@ class ImageDatasetLoader:
         self.dataset_csv = path_cfg.IMAGE_DATASET_CSV
         logger.info(f"Initializing ImageDatasetLoader; path: {self.dataset_csv}")
 
-    def load_csv_file(self) -> List[Dict]:
+    def load_csv_file(self) -> list[dict]:
         """Load CSV file."""
         all_data = []
 
@@ -402,7 +401,7 @@ class UMLDatasetLoader:
 
         logger.info(f"Initializing FlowChart dataset loader - dataset: {self.dataset_csv}")
 
-    def load_csv_file(self) -> List[Dict]:
+    def load_csv_file(self) -> list[dict]:
         """Load CSV file."""
         csv_path = self.dataset_csv
 
@@ -502,7 +501,7 @@ class GeneralDatasetLoader:
         logger.info("Initializing GeneralDatasetLoader - loading text, image, and FlowChart data")
         logger.info(f"Template mode: {'domain-specific templates (lora_single)' if use_domain_templates else 'general template (general_expert)'}")
 
-    def load_all_data(self) -> List[Dict]:
+    def load_all_data(self) -> list[dict]:
         """Load all data."""
         all_data = []
 
@@ -583,12 +582,12 @@ class GeneralDatasetLoader:
 
 
 def split_dataset(
-    data: List[Dict],
+    data: list[dict],
     train_ratio: float = 0.8,
     val_ratio: float = 0.1,
     test_ratio: float = 0.1,
     seed: int = 42
-) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+) -> tuple[list[dict], list[dict], list[dict]]:
     """Split dataset."""
     random.seed(seed)
 
@@ -609,10 +608,10 @@ def split_dataset(
 
 
 def split_dataset_for_expert(
-    data: List[Dict],
+    data: list[dict],
     expert_type: str,
     seed: int = 42
-) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+) -> tuple[list[dict], list[dict], list[dict]]:
     """Split dataset for expert."""
     data_size = len(data)
 

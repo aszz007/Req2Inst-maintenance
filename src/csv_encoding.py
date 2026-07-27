@@ -3,9 +3,8 @@
 import codecs
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Optional, Union
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 DEFAULT_CSV_ENCODINGS = (
     'utf-8-sig',
@@ -36,7 +35,7 @@ def _canonical_encoding(encoding: str) -> str:
 
 def _encoding_candidates(
     filepath: Path,
-    preferred_encoding: Optional[str],
+    preferred_encoding: str | None,
     encodings: Iterable[str],
 ) -> list[str]:
     if preferred_encoding is not None:
@@ -73,7 +72,7 @@ def _decode_file(filepath: Path, encoding: str, chunk_size: int) -> None:
 
 def detect_csv_encoding(
     filepath: PathLike,
-    preferred_encoding: Optional[str] = None,
+    preferred_encoding: str | None = None,
     encodings: Iterable[str] = DEFAULT_CSV_ENCODINGS,
     chunk_size: int = 1024 * 1024,
 ) -> str:
