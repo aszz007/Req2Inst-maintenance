@@ -1,15 +1,35 @@
 # Architecture
 
-This document describes the current implemented architecture without rewriting
-legacy code or claiming that every historical experiment uses the same path.
+This document distinguishes the manuscript architecture from the repository's
+current executable paths. The distinction prevents later utilities or
+compatibility code from being reported as part of the published experiment
+design.
 
 ## System boundary
 
 Req2Inst accepts text requirements, image requirements, flowchart requirements,
-or recognized
-JSON. It produces English crowdsourcing instructions and experiment metadata.
-Base model files, LoRA checkpoints, datasets, and routine outputs are external
-local artifacts.
+or recognized JSON. It produces English crowdsourcing instructions and
+experiment metadata. Base model files, LoRA checkpoints, datasets, and routine
+outputs are external local artifacts.
+
+## Manuscript architecture
+
+The manuscript presents a four-stage workflow:
+
+1. collect text, image, and FlowChart requirements;
+2. preprocess and augment the requirements, then construct structured
+   requirement-instruction pairs;
+3. adapt Qwen3-8B with parameter-efficient fine-tuning, including the proposed
+   four-expert LoRA method; and
+4. compare the resulting methods through automatic, routing, efficiency, and
+   human evaluation.
+
+In the manuscript setup, BLIP-2 extracts entities and attributes from images,
+while Qwen3-VL-8B extracts procedural and logical information from FlowCharts.
+Both models are used during offline preprocessing rather than Qwen3-8B training
+or instruction-generation inference. The Router MLP then supports top-1 expert
+selection and top-2 output-space fusion over Text, Image, FlowChart, and General
+LoRA experts.
 
 ## Terminology and compatibility boundary
 
@@ -19,26 +39,26 @@ class names, dataset keys, and CLI values. Documentation and display text use
 FlowChart, while internal uml contracts remain unchanged to preserve
 reproducibility.
 
-## End-to-end inference path
+## Repository inference path
 
 1. `scripts/inference/generate_instructions.py` scans `inputs/` or a supplied
    input directory.
 2. Text files are loaded directly. Image and flowchart files can be passed to
    `scripts/inference/recognize_inputs.py`.
-3. `models/vision_model.py` uses Qwen3-VL-8B-Instruct to produce a structured
-   image or flowchart description.
+3. For local convenience, `models/vision_model.py` can use
+   Qwen3-VL-8B-Instruct to produce a structured image or FlowChart description.
+   This repository path is not the manuscript's BLIP-2/Qwen3-VL offline
+   preprocessing setup.
 4. `src/instruction_generation/generator.py` provides the public generation
    interface.
 5. `src/routing/moe_model.py` normalizes the input and invokes a router.
-6. The manuscript describes adaptive expert selection with a Router MLP,
-   including single-expert routing and top-2 output ensembling. The current
-   default
-   entry point still uses `src/routing/expert_router.py` for type-based selection;
-   soft and learned routing implementations remain under
+6. The current default entry point uses `src/routing/expert_router.py` for
+   type-based selection. The manuscript's Router MLP and output-ensemble path is
+   implemented in the advanced routing experiment; soft and learned routing
+   implementations remain under
    `src/routing/soft_router.py` and `src/routing/learned_router.py`.
 7. A Text, Image, FlowChart, or General expert builds its domain prompt and
-   calls the
-   shared Qwen3-8B language-model wrapper with a LoRA adapter.
+   calls the shared Qwen3-8B language-model wrapper with a LoRA adapter.
 8. The generated instruction and routing metadata are written under
    `outputs/generated_instructions/`.
 
@@ -58,8 +78,8 @@ detection. It is the current source of truth for the Qwen3 baseline.
 
 - `models/language_model.py`: Qwen3-8B loading, optional 4-bit execution, LoRA
   adapter management, generation, batching, and output cleanup.
-- `models/vision_model.py`: Qwen3-VL-8B-Instruct loading and image/flowchart
-  recognition.
+- `models/vision_model.py`: repository-side Qwen3-VL-8B-Instruct loading and
+  image/FlowChart recognition.
 - `models/prompt_templates/`: domain-specific three-part instruction prompts.
 
 ### Experts and routing
@@ -109,12 +129,16 @@ Emphasis & Caution, and Things to Avoid. Format and generation-quality
 measurements are calculated by `src/utils/enhanced_metrics.py` during
 evaluation.
 
-## Current source-of-truth policy
+## Source-of-truth policy
 
-The active baseline is:
+For manuscript-facing descriptions, the current paper draft defines the
+datasets, preprocessing models, method, routing configuration, experiment
+environment, and reported claims.
+
+For executable repository behavior, the active baseline is:
 
 - Qwen3-8B for instruction generation;
-- Qwen3-VL-8B-Instruct for image and flowchart recognition;
+- Qwen3-VL-8B-Instruct for optional local image and FlowChart recognition;
 - four domain experts;
 - `checkpoints/lora_moe/` as the standard Multi-Expert LoRA checkpoint root.
 

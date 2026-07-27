@@ -1,6 +1,6 @@
 # Support
 
-Req2Inst-maintenance is a public research codebase, not a hosted service.
+Req2Inst is a public research codebase, not a hosted service.
 
 Before requesting help, read:
 

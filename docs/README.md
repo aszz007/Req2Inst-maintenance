@@ -1,26 +1,35 @@
 # Req2Inst documentation
 
-This directory is the maintained documentation entry point for Req2Inst. This
-repository is the continuously maintained implementation and will replace the
-paper-facing [`aszz007/Req2Inst`](https://github.com/aszz007/Req2Inst) snapshot
-after the maintenance and release boundaries are revalidated. The paper remains
+This directory is the documentation entry point for Req2Inst. The manuscript is
 under review, so final venue, DOI, and publication-date metadata are not yet
 available. The source code is licensed under Apache-2.0.
 
+The maintained repository is intended to replace the paper-facing
+[`aszz007/Req2Inst`](https://github.com/aszz007/Req2Inst) snapshot after release
+verification.
+
 ## Guides
 
+- [Project overview](project-overview.md)
 - [Architecture](architecture.md)
 - [Reproducibility](reproducibility.md)
 - [Experiment index](experiments.md)
 - [Data and artifact policy](data-and-artifacts.md)
 - [Release readiness checklist](public-release-checklist.md)
 
-## Documentation source of truth
+## Sources of truth
 
-The current execution baseline is Qwen3-8B for instruction generation and
-Qwen3-VL-8B-Instruct for image and flowchart recognition. `config/settings.py`,
-`models/language_model.py`, and `models/vision_model.py` are the code-level
-sources of truth.
+The latest manuscript is the source of truth for paper-facing terminology,
+method definitions, dataset scope, experiment settings, and reported claims.
+`config/settings.py`, `models/language_model.py`, `models/vision_model.py`, and
+the selected entry point are the sources of truth for current executable
+behavior.
+
+The manuscript uses BLIP-2 for offline image preprocessing and Qwen3-VL-8B for
+offline FlowChart preprocessing. The repository additionally supports local
+Qwen3-VL-8B-Instruct recognition for image and FlowChart inputs. Documentation
+must keep these paths distinct rather than treating the repository extension as
+paper evidence.
 
 The manuscript calls the third requirement domain **FlowChart**. Internal paths,
 classes, dataset keys, and CLI values continue to use the legacy `uml` identifier
@@ -31,7 +40,7 @@ scripts. They are documented as maintenance debt rather than silently rewritten
 during repository cleanup. Runtime-affecting cleanup requires dedicated
 regression verification.
 
-## Status labels used in the documentation
+## Status labels
 
 - **Current**: represented by central configuration and active entry points.
 - **Historical**: retained from earlier experiments but not the current default.

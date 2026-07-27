@@ -34,6 +34,19 @@ release decision says otherwise:
 `inputs/README.md` and `outputs/README.md` are tracked only to document the
 expected folder contracts.
 
+## Manuscript dataset provenance
+
+The manuscript describes the following research inputs:
+
+- text requirements from GANNT, WARC, CCHIT, InfusionPump, CM1, and MODIS;
+- 500 Design2Code UI screenshots and 500 MS COCO images; and
+- 1,500 FlowChart images from Roboflow.
+
+These references document the experimental sources; they do not grant this
+repository permission to redistribute the underlying assets. The repository
+therefore keeps dataset files local and requires users to verify each upstream
+license and preparation procedure independently.
+
 ## Output policy
 
 Routine training curves, metric dumps, recognition results, validation lists,
