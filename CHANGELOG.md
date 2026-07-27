@@ -12,6 +12,7 @@ policy will be adopted before the first versioned release.
 ### Added
 
 - Public-facing English README and documentation.
+- Paper-aligned project overview and dataset/method summary.
 - Architecture, reproducibility, experiment, artifact, and release guides.
 - Contribution, conduct, support, security, citation, and Apache-2.0 license
   files.
@@ -27,6 +28,8 @@ policy will be adopted before the first versioned release.
 - The public maintenance repository is identified as the continuously
   maintained implementation that will replace the paper-facing snapshot after
   stabilization and release-boundary review.
+- Paper experiment settings are distinguished from repository-only inference
+  and routing extensions.
 - Source comments, docstrings, and 1,492 safe diagnostic messages are
   standardized in English without changing prompts, result labels, generated
   outputs, log levels, or control flow.

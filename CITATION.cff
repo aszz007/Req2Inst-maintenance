@@ -2,6 +2,16 @@ cff-version: 1.2.0
 message: If you use Req2Inst in your work, please cite the preferred citation below.
 title: Req2Inst
 type: software
+abstract: >-
+  Req2Inst transforms multimodal software requirements into standardized
+  crowdsourcing task instructions using modality-aware preprocessing,
+  Qwen3-8B, specialized LoRA experts, and adaptive expert routing.
+keywords:
+  - software requirements
+  - crowdsourcing
+  - multimodal data
+  - task instruction generation
+  - large language models
 authors:
   - family-names: Hong
     given-names: Shuai

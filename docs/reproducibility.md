@@ -7,15 +7,23 @@ environment export was not retained. `requirements.txt` is therefore a
 reconstructed compatibility specification. A future versioned release should
 add an environment lock produced on the final verification machine.
 
-## Recommended host
+## Manuscript experiment environment
+
+The manuscript reports an NVIDIA RTX 5090 with 32 GB VRAM, BF16 + TF32 mixed
+precision for training, and FP16 for inference. Its visual preprocessing uses
+BLIP-2 for image inputs and Qwen3-VL-8B for FlowChart inputs. These visual
+models are offline preprocessing tools rather than part of Qwen3-8B training or
+instruction-generation inference.
+
+## Repository compatibility environment
 
 - Python 3.10 in a Conda environment named `instruction_generator`.
 - NVIDIA GPU and the PyTorch 2.7.1 CUDA 12.8 build used by the current
   RTX 4060/RTX 5090 compatibility target.
 - Sufficient local storage for two 8B base models, multiple adapters,
   checkpoints, datasets, and caches.
-- 24 GB-class VRAM for the configurations designed around RTX 4090; lower-memory
-  devices may require explicit configuration changes and revalidation.
+- Lower-memory devices may require explicit configuration changes and
+  revalidation; a dependency or CUDA smoke test is not a paper reproduction.
 
 CPU-only execution is technically detectable but is not a practical baseline
 for full training or multimodal inference.
@@ -35,8 +43,8 @@ but pip installs the wheel built for the current operating system. The
 reconstructed environment has passed dependency imports and a CUDA tensor
 smoke test on an RTX 4060 Laptop GPU. The CUDA 12.8 wheel also targets the
 RTX 5090 architecture, but a model-backed server run is still required before
-publishing a final environment lock. The 8 GB local GPU is not treated as a
-replacement for the documented 24 GB-class experimental baseline.
+publishing a final environment lock. The local 8 GB GPU is not treated as a
+replacement for the manuscript's 32 GB experimental environment.
 
 ## Read-only environment preflight
 
@@ -106,6 +114,18 @@ Expected logical fields are:
 The loaders tolerate several column-name variants; inspect
 `src/training/data_loader.py` before converting a new dataset.
 
+## Manuscript dataset composition
+
+The manuscript reports 2,472 Text samples after augmentation, 1,000 Image
+samples, 1,500 FlowChart samples, and a 4,972-sample General mixed dataset. The
+Image set comprises 500 Design2Code UI screenshots and 500 MS COCO images; the
+FlowChart set comes from Roboflow. The original Text collection contains 1,756
+requirements from GANNT, WARC, CCHIT, InfusionPump, CM1, and MODIS sources.
+
+These datasets are not shipped in this repository. A reproduction package must
+record the exact upstream versions, licenses, checksums, preprocessing outputs,
+augmentation record, and 80%/10%/10% split manifest.
+
 ## Checkpoint layout
 
 ```text
@@ -121,6 +141,10 @@ The repository does not ship checkpoints. Do not substitute a checkpoint from
 another experiment without recording the change.
 
 ## Basic commands
+
+The commands below describe repository entry points. They do not by themselves
+reproduce the manuscript unless the paper-aligned data, preprocessing,
+checkpoints, environment, and configuration are also supplied.
 
 Recognize a single image or flowchart input:
 

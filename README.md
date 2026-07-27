@@ -6,25 +6,26 @@
 > specialized LoRA experts,
 > and adaptive expert routing.
 
-[Documentation](docs/README.md) · [Reproducibility](docs/reproducibility.md) ·
-[Contribution guide](CONTRIBUTING.md)
+[Project overview](docs/project-overview.md) | [Documentation](docs/README.md) |
+[Reproducibility](docs/reproducibility.md) | [Contribution guide](CONTRIBUTING.md)
 
 ## Project status
 
-This repository is the continuously maintained implementation of Req2Inst. The
-paper-facing snapshot remains available in the
-[`aszz007/Req2Inst`](https://github.com/aszz007/Req2Inst) repository. After the
-current stability, documentation, and compatibility work is complete and the
-release boundary is revalidated, this repository will replace that snapshot as
-the primary Req2Inst implementation.
+This repository contains the continuously maintained implementation of
+Req2Inst. The manuscript currently cites the public snapshot at
+[`aszz007/Req2Inst`](https://github.com/aszz007/Req2Inst); this repository is
+intended to replace that snapshot after release verification.
 
-The accompanying paper is currently under review. The implementation has
-completed an end-to-end research run, while repository cleanup and
-behavior-preserving maintenance continue in scoped branches. The source code is
-distributed under the Apache License 2.0; datasets, model weights, checkpoints,
-inputs, and generated artifacts remain subject to their own terms.
+The accompanying manuscript, *Req2Inst: Toward Task Instruction Generation for
+Crowdsourcing from Multimodal Software Requirements*, is under review. Its
+authors are Shuai Hong, Yilin He, and Rong Chen. Final venue, DOI, volume, issue,
+and publication-date metadata are therefore not yet available.
 
-## What Req2Inst does
+The source code is distributed under the Apache License 2.0. Datasets, model
+weights, checkpoints, local inputs, and generated artifacts are not included
+and remain subject to their original licenses and terms.
+
+## Research overview
 
 Req2Inst converts text requirements, image requirements (including UI
 screenshots and open-domain images), and flowchart requirements into
@@ -37,46 +38,56 @@ Emphasis & Caution: ...
 Things to Avoid: ...
 ```
 
-The current pipeline is:
+The manuscript describes a four-stage research workflow:
 
 ```text
-text / image / FlowChart input
-        |
-        +-- image and flowchart recognition with Qwen3-VL-8B-Instruct
-        |
-structured text or JSON representation
-        |
-expert routing (paper: Router MLP; default CLI: type-based)
-        |
-Qwen3-8B + Text/Image/FlowChart/General LoRA expert
-        |
-three-part instruction + evaluation artifacts
+multimodal data collection
+        -> preprocessing, augmentation, and dataset construction
+        -> Qwen3-8B parameter-efficient fine-tuning
+        -> comparative and human evaluation
 ```
 
-## Current model baseline
+For the manuscript experiments, text requirements are processed directly;
+BLIP-2 extracts visual entities from image inputs; and Qwen3-VL-8B extracts
+procedural and logical structure from FlowChart inputs. These visual models are
+used for offline preprocessing rather than as part of language-model training
+or instruction-generation inference.
+
+The proposed generation method uses four independent LoRA adapters on a shared
+Qwen3-8B backbone: Text, Image, FlowChart, and General. A Router MLP supports
+top-1 expert selection and top-2 output-space logit fusion.
+
+See the [project overview](docs/project-overview.md) for the paper-aligned
+dataset, method, and evaluation summary.
+
+## Manuscript and repository boundary
 
 - Instruction generation: **Qwen3-8B**.
-- Image and flowchart recognition: **Qwen3-VL-8B-Instruct**.
+- Manuscript image preprocessing: **BLIP-2**.
+- Manuscript FlowChart preprocessing: **Qwen3-VL-8B**.
 - Expert set: Text, Image, FlowChart, and General.
-- Main adaptation method: Multi-Expert LoRA (implemented under the legacy
-  lora_moe path name).
+- Proposed adaptation method: Multi-Expert LoRA.
 - Paper comparison methods: LoRA (Unified), LoRA (Task-Specific), Prompt
   Tuning, and P-Tuning v2.
 - Additional repository implementation: full fine-tuning, retained for local
   comparison but not listed as a main method in the manuscript's Table 3.
 
 The paper-facing domain name is **FlowChart**. Existing source paths, class
-names,
-dataset files, and CLI values retain the legacy `uml` identifier for backward
-compatibility. The paper evaluates a Router MLP for single-expert selection and
-top-2 output ensembling; the repository also retains the default type-based
-router
-and several experimental routing implementations.
+names, dataset files, and CLI values retain the legacy `uml` identifier for
+backward compatibility. The paper evaluates a Router MLP for single-expert
+selection and top-2 output ensembling. The default repository CLI retains
+type-based routing, and the repository also contains experimental routing
+implementations.
 
-The tracked runtime configuration, model wrappers, CLI version choices, and
-expert registry use the current Qwen3 identifiers. Earlier model states remain
-recoverable from Git history but are not active source contracts.
-`config/settings.py` and the model wrappers are the source of truth.
+The repository additionally provides Qwen3-VL-8B-Instruct recognition utilities
+for local image and FlowChart inference. This executable convenience path is
+separate from the manuscript's offline visual-preprocessing setup and should not
+be reported as a reproduction of that setup without matching data, models,
+checkpoints, and configuration.
+
+For paper-facing claims, the manuscript is the source of truth. For executable
+behavior, `config/settings.py`, the model wrappers, and the selected entry point
+are the source of truth.
 
 ## Repository layout
 
@@ -100,11 +111,10 @@ docs/                   Architecture, reproducibility, and release notes
 
 ## Environment
 
-The original runs used a Conda environment named `instruction_generator` and
-an NVIDIA GPU. Python 3.10 is recommended for reconstructing the environment.
-The dependency list in `requirements.txt` was reconstructed from imports,
-configuration comments, and the historical dependency file; the exact
-original environment lock was not preserved.
+The manuscript experiments used an NVIDIA RTX 5090 with 32 GB VRAM, BF16 + TF32
+for training, and FP16 for inference. Python 3.10 is recommended for rebuilding
+the current repository environment. The original Conda lock was not preserved;
+`requirements.txt` is a reconstructed compatibility specification.
 
 1. Create and activate an isolated environment.
 
@@ -173,6 +183,9 @@ model uses `DeviceConfig.enable_streaming`, whose tracked default is `False`.
 Generated files are written under `outputs/generated_instructions/` and are
 intentionally excluded from Git.
 
+This command exercises the repository's current local inference path. It is not
+by itself a reproduction of the manuscript experiment pipeline.
+
 ## Training
 
 Train an individual expert through its method-specific entry point:
@@ -212,6 +225,7 @@ review. See [Data and artifact policy](docs/data-and-artifacts.md).
 ## Documentation
 
 - [Documentation index](docs/README.md)
+- [Project overview](docs/project-overview.md)
 - [Architecture](docs/architecture.md)
 - [Reproducibility guide](docs/reproducibility.md)
 - [Experiment index](docs/experiments.md)
