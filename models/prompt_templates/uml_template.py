@@ -1,7 +1,6 @@
 """Define the FlowChart-domain prompt template for three-part instruction generation."""
 
 import json
-from typing import Union
 
 
 class UMLInstructionTemplate:
@@ -72,7 +71,7 @@ CRITICAL RULES:
 - Output ONLY these three lines, nothing else"""
 
     @staticmethod
-    def build_prompt(uml_json: Union[str, dict]) -> str:
+    def build_prompt(uml_json: str | dict) -> str:
         """Build prompt."""
         if isinstance(uml_json, dict):
             filtered_data = {
@@ -142,7 +141,7 @@ CRITICAL RULES:
         ]
 
     @staticmethod
-    def extract_key_elements(uml_data: Union[str, dict]) -> dict:
+    def extract_key_elements(uml_data: str | dict) -> dict:
         """Extract key elements."""
         if isinstance(uml_data, str):
             try:

@@ -1,7 +1,6 @@
 """Define the image-domain prompt template for three-part instruction generation."""
 
 import json
-from typing import Union
 
 
 class ImageInstructionTemplate:
@@ -43,7 +42,7 @@ CRITICAL RULES:
 - Output ONLY these three lines, nothing else"""
 
     @staticmethod
-    def build_prompt(image_description: Union[str, dict]) -> str:
+    def build_prompt(image_description: str | dict) -> str:
         """Build prompt."""
         if isinstance(image_description, dict):
             filtered_data = {
@@ -100,7 +99,7 @@ CRITICAL RULES:
         ]
 
     @staticmethod
-    def extract_description_from_json(json_data: Union[str, dict]) -> str:
+    def extract_description_from_json(json_data: str | dict) -> str:
         """Extract description from JSON."""
         if isinstance(json_data, str):
             try:

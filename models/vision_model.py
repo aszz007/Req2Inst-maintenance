@@ -12,7 +12,6 @@ from peft import PeftModel
 import json
 import re
 import gc
-from typing import Dict, Optional, Tuple
 from pathlib import Path
 from threading import Thread
 
@@ -27,7 +26,7 @@ logger = get_logger(__name__)
 class VisionModel:
     """Recognize image and FlowChart inputs with Qwen3-VL."""
 
-    def __init__(self, model_path: Optional[str] = None, version: str = None):
+    def __init__(self, model_path: str | None = None, version: str = None):
         """Initialize the instance."""
         path_cfg = get_path_config()
         device_cfg = get_device_config()
@@ -144,7 +143,7 @@ class VisionModel:
             raise
 
 
-    def _build_messages(self, prompt: str, image_path: Optional[str] = None) -> list:
+    def _build_messages(self, prompt: str, image_path: str | None = None) -> list:
         """Build messages."""
         content = []
         if image_path:
@@ -213,7 +212,7 @@ class VisionModel:
             kwargs.update(extra_kwargs)
         return kwargs
 
-    def _extract_json(self, response: str) -> Optional[str]:
+    def _extract_json(self, response: str) -> str | None:
         """Extract JSON."""
         json_match = re.search(r'```json\s*(\{.*?\})\s*```', response, re.DOTALL)
         if json_match:
@@ -279,7 +278,7 @@ class VisionModel:
             logger.error(f"Failed to unload LoRA adapter: {e}")
             return False
 
-    def generate(self, prompt: str, image_path: Optional[str] = None,
+    def generate(self, prompt: str, image_path: str | None = None,
                  max_new_tokens: int = 1024, temperature: float = 0.3,
                  top_p: float = 0.8, do_sample: bool = True) -> str:
         """Generate output."""
@@ -308,7 +307,7 @@ class VisionModel:
             logger.error(f"Generation failed: {e}")
             return ""
 
-    def recognize_image(self, image_path: str, prompt: Optional[str] = None) -> Dict:
+    def recognize_image(self, image_path: str, prompt: str | None = None) -> dict:
         """Recognize image."""
         if prompt is None:
             prompt = ImageInstructionTemplate.get_recognition_prompt()
@@ -344,8 +343,8 @@ class VisionModel:
                 "error": str(e)
             }
 
-    def recognize_uml(self, uml_path: str, max_retries: int = 2, prompt: Optional[str] = None,
-                      streaming: Optional[bool] = None) -> Dict:
+    def recognize_uml(self, uml_path: str, max_retries: int = 2, prompt: str | None = None,
+                      streaming: bool | None = None) -> dict:
         """Recognize FlowChart."""
         if prompt is None:
             prompt = UMLInstructionTemplate.get_recognition_prompt()
@@ -546,7 +545,7 @@ class VisionModel:
                     f"streaming={str(e)}, standard={str(fallback_error)}"
                 )
 
-    def _generate_with_confidence(self, inputs) -> Tuple[str, float]:
+    def _generate_with_confidence(self, inputs) -> tuple[str, float]:
         """Generate with confidence."""
         gen_kwargs = self._build_gen_kwargs(
             self.image_gen_config,
@@ -571,7 +570,7 @@ class VisionModel:
 
         return response, float(confidence)
 
-    def _parse_image_response(self, response: str, image_path: str) -> Dict:
+    def _parse_image_response(self, response: str, image_path: str) -> dict:
         """Parse image response."""
         try:
             json_str = self._extract_json(response) or response
@@ -600,7 +599,7 @@ class VisionModel:
                 }
             }
 
-    def _parse_uml_response(self, response: str, uml_path: str) -> Dict:
+    def _parse_uml_response(self, response: str, uml_path: str) -> dict:
         """Parse FlowChart response."""
         try:
             json_str = self._extract_json(response) or response
