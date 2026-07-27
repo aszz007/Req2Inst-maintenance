@@ -48,7 +48,7 @@ def convert_uml_to_json(
                 "description": "",
                 "processing_time": processing_time,
                 "recognition_status": "failed",
-                "error": result.get('error', '未知错误')
+                "error": result.get('error', 'Unknown error')
             }
 
         if save_path:
