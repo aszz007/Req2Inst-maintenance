@@ -2,7 +2,6 @@
 
 import torch
 import torch.utils.checkpoint
-from typing import Optional
 from peft import (
     PrefixTuningConfig,
     get_peft_model,
@@ -20,8 +19,8 @@ class PTuningTrainer(BaseTrainer):
 
     def __init__(self,
                  expert_type: str,
-                 base_model_path: Optional[str] = None,
-                 output_dir: Optional[str] = None,
+                 base_model_path: str | None = None,
+                 output_dir: str | None = None,
                  use_4bit: bool = True,
                  use_rtx4090_optimization: bool = True,
                  debug_samples: bool = False):
