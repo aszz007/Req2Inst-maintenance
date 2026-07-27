@@ -5,7 +5,6 @@ import json
 import math
 import torch
 from pathlib import Path
-from typing import Optional, List, Dict, Tuple
 from abc import ABC, abstractmethod
 from transformers import (
     AutoModelForCausalLM,
@@ -166,8 +165,8 @@ class BaseTrainer(ABC):
     def __init__(self,
                  expert_type: str,
                  method_name: str,
-                 base_model_path: Optional[str] = None,
-                 output_dir: Optional[str] = None,
+                 base_model_path: str | None = None,
+                 output_dir: str | None = None,
                  use_rtx4090_optimization: bool = True,
                  debug_samples: bool = False,
                  use_domain_templates: bool = False):
@@ -326,7 +325,7 @@ class BaseTrainer(ABC):
             logger.error(traceback.format_exc())
             return False
 
-    def _get_batch_config(self) -> Tuple[int, int]:
+    def _get_batch_config(self) -> tuple[int, int]:
         """Return batch config."""
         if self.use_rtx4090_optimization:
             return 8, 2
@@ -767,7 +766,7 @@ class BaseTrainer(ABC):
             import traceback
             logger.error(traceback.format_exc())
 
-    def get_training_status(self) -> Dict:
+    def get_training_status(self) -> dict:
         """Return training status."""
         return {
             'expert_type': self.expert_type,
@@ -780,7 +779,7 @@ class BaseTrainer(ABC):
             'val_samples': len(self.val_dataset) if self.val_dataset else 0,
         }
 
-    def _plot_training_curves(self, training_history: List[Dict], expert_type: str):
+    def _plot_training_curves(self, training_history: list[dict], expert_type: str):
         """Plot training curves."""
         try:
             import matplotlib
