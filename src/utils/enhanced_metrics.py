@@ -1,6 +1,6 @@
 """Calculate generation, format, and binary evaluation metrics."""
 
-from typing import Dict, List, Optional, Any
+from typing import Any
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -150,9 +150,9 @@ class EnhancedMetrics:
 
     def calculate_generation_quality(
         self,
-        predictions: List[str],
-        references: List[str]
-    ) -> Dict[str, float]:
+        predictions: list[str],
+        references: list[str]
+    ) -> dict[str, float]:
         """Calculate generation quality."""
         self._lazy_load_metrics()
 
@@ -238,8 +238,8 @@ class EnhancedMetrics:
 
     def calculate_format_metrics(
         self,
-        instructions: List[str]
-    ) -> Dict[str, Any]:
+        instructions: list[str]
+    ) -> dict[str, Any]:
         """Calculate format metrics."""
         logger.info(f"Computing format metrics - samples: {len(instructions)}")
 
@@ -278,9 +278,9 @@ class EnhancedMetrics:
 
     def calculate_statistical_metrics(
         self,
-        instructions: List[str],
-        expert_usage: Optional[Dict[str, int]] = None
-    ) -> Dict[str, Any]:
+        instructions: list[str],
+        expert_usage: dict[str, int] | None = None
+    ) -> dict[str, Any]:
         """Calculate statistical metrics."""
         logger.info(f"Computing statistical metrics - samples: {len(instructions)}")
 
@@ -329,14 +329,14 @@ class EnhancedMetrics:
 
     def calculate_binary_classification_metrics(
         self,
-        predictions: List[str],
-        references: List[str],
+        predictions: list[str],
+        references: list[str],
         format_threshold: float = None,
         rouge_threshold: float = None,
         bertscore_threshold: float = None,
         use_and_logic: bool = None,
-        precomputed_bertscore_f1: Optional[List[float]] = None
-    ) -> Dict[str, Any]:
+        precomputed_bertscore_f1: list[float] | None = None
+    ) -> dict[str, Any]:
         """Calculate binary classification metrics."""
         if format_threshold is None:
             format_threshold = EvaluationThresholds.FORMAT_SCORE_THRESHOLD
@@ -465,7 +465,7 @@ class EnhancedMetrics:
 
         return results
 
-    def _check_single_format(self, instruction: str) -> Dict[str, Any]:
+    def _check_single_format(self, instruction: str) -> dict[str, Any]:
         """Check the manuscript-required three-part instruction format."""
         result = {
             'is_valid': False,
@@ -570,16 +570,16 @@ class EnhancedMetrics:
 
     def generate_comprehensive_report(
         self,
-        predictions: List[str],
-        references: List[str],
-        expert_usage: Optional[Dict[str, int]] = None,
-        save_path: Optional[str] = None,
+        predictions: list[str],
+        references: list[str],
+        expert_usage: dict[str, int] | None = None,
+        save_path: str | None = None,
         include_binary_metrics: bool = True,
         format_threshold: float = None,
         rouge_threshold: float = None,
         bertscore_threshold: float = None,
         use_and_logic: bool = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate one canonical report for valid prediction/reference pairs."""
         logger.info("Generating comprehensive evaluation report")
 
@@ -682,7 +682,7 @@ class EnhancedMetrics:
         from datetime import datetime
         return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    def _save_report(self, report: Dict, save_path: str):
+    def _save_report(self, report: dict, save_path: str):
         """Save report."""
         import json
         from pathlib import Path
@@ -695,7 +695,7 @@ class EnhancedMetrics:
 
         logger.info(f"Evaluation report saved to: {save_path}")
 
-    def print_report_summary(self, report: Dict):
+    def print_report_summary(self, report: dict):
         """Print report summary."""
         print("\n" + "=" * 80)
         print("Evaluation Report Summary")
