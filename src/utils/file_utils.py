@@ -7,17 +7,17 @@ import warnings
 from collections.abc import Callable, Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 
-def ensure_dir(path: Union[str, Path]) -> Path:
+def ensure_dir(path: str | Path) -> Path:
     """Create a directory if needed."""
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def safe_path_join(*paths: Union[str, Path]) -> Path:
+def safe_path_join(*paths: str | Path) -> Path:
     """Join path components safely."""
     if not paths:
         return Path('.')
@@ -29,7 +29,7 @@ def safe_path_join(*paths: Union[str, Path]) -> Path:
     return result
 
 
-def get_relative_path(path: Union[str, Path], base: Union[str, Path]) -> Path:
+def get_relative_path(path: str | Path, base: str | Path) -> Path:
     """Return relative path."""
     path = Path(path).resolve()
     base = Path(base).resolve()
@@ -41,7 +41,7 @@ def get_relative_path(path: Union[str, Path], base: Union[str, Path]) -> Path:
 
 
 def validate_path_exists(
-        path: Union[str, Path],
+        path: str | Path,
         path_type: str = 'auto',
         raise_error: bool = True
 ) -> bool:
@@ -67,7 +67,7 @@ def validate_path_exists(
 
 
 
-def load_json(filepath: Union[str, Path], encoding: str = 'utf-8') -> Dict:
+def load_json(filepath: str | Path, encoding: str = 'utf-8') -> dict:
     """Load JSON."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
@@ -83,8 +83,8 @@ def load_json(filepath: Union[str, Path], encoding: str = 'utf-8') -> Dict:
 
 
 def save_json(
-        data: Dict,
-        filepath: Union[str, Path],
+        data: dict,
+        filepath: str | Path,
         indent: int = 2,
         encoding: str = 'utf-8',
         ensure_ascii: bool = False
@@ -98,10 +98,10 @@ def save_json(
 
 
 def update_json(
-        filepath: Union[str, Path],
-        updates: Dict,
+        filepath: str | Path,
+        updates: dict,
         create_if_missing: bool = True
-) -> Dict:
+) -> dict:
     """Update JSON."""
     filepath = Path(filepath)
 
@@ -121,11 +121,11 @@ def update_json(
 
 
 def load_csv(
-        filepath: Union[str, Path],
+        filepath: str | Path,
         encoding: str = 'utf-8',
         delimiter: str = ',',
         skip_header: bool = False
-) -> List[Dict]:
+) -> list[dict]:
     """Load CSV."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
@@ -140,11 +140,11 @@ def load_csv(
 
 
 def load_csv_chunks(
-        filepath: Union[str, Path],
+        filepath: str | Path,
         chunksize: int = 1000,
         encoding: str = 'utf-8',
         delimiter: str = ','
-) -> Iterator[List[Dict]]:
+) -> Iterator[list[dict]]:
     """Load CSV chunks."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
@@ -165,9 +165,9 @@ def load_csv_chunks(
 
 
 def save_csv(
-        data: List[Dict],
-        filepath: Union[str, Path],
-        fieldnames: Optional[List[str]] = None,
+        data: list[dict],
+        filepath: str | Path,
+        fieldnames: list[str] | None = None,
         encoding: str = 'utf-8',
         delimiter: str = ','
 ) -> None:
@@ -189,7 +189,7 @@ def save_csv(
 
 
 
-def load_lora_weights(expert_name: str) -> Optional[Path]:
+def load_lora_weights(expert_name: str) -> Path | None:
     """Load LoRA weights."""
     try:
         from config import get_path_config
@@ -209,7 +209,7 @@ def load_lora_weights(expert_name: str) -> Optional[Path]:
 def save_lora_weights(
         model: Any,
         expert_name: str,
-        checkpoint_name: Optional[str] = None,
+        checkpoint_name: str | None = None,
         save_method: str = 'peft'
 ) -> Path:
     """Save LoRA weights."""
@@ -239,7 +239,7 @@ def save_lora_weights(
         raise RuntimeError(f"Failed to save LoRA weights: {str(e)}")
 
 
-def list_checkpoints(expert_name: str) -> List[Path]:
+def list_checkpoints(expert_name: str) -> list[Path]:
     """List available checkpoints."""
     try:
         from config import get_path_config
@@ -263,10 +263,10 @@ def list_checkpoints(expert_name: str) -> List[Path]:
 
 
 def scan_files(
-        directory: Union[str, Path],
+        directory: str | Path,
         pattern: str = "*",
         recursive: bool = False
-) -> List[Path]:
+) -> list[Path]:
     """Scan files that match the requested criteria."""
     directory = Path(directory)
     validate_path_exists(directory, path_type='dir')
@@ -278,10 +278,10 @@ def scan_files(
 
 
 def batch_process_files(
-        file_list: List[Path],
+        file_list: list[Path],
         process_fn: Callable[[Path], Any],
         error_handling: str = 'skip'
-) -> List[Any]:
+) -> list[Any]:
     """Process files in batches."""
     results = []
     errors = []
@@ -308,7 +308,7 @@ def batch_process_files(
 
 
 
-def get_file_size(filepath: Union[str, Path], human_readable: bool = True) -> Union[int, str]:
+def get_file_size(filepath: str | Path, human_readable: bool = True) -> int | str:
     """Return file size."""
     filepath = Path(filepath)
     validate_path_exists(filepath, path_type='file')
@@ -329,8 +329,8 @@ def get_file_size(filepath: Union[str, Path], human_readable: bool = True) -> Un
 
 
 def copy_file_safe(
-        src: Union[str, Path],
-        dst: Union[str, Path],
+        src: str | Path,
+        dst: str | Path,
         overwrite: bool = False
 ) -> Path:
     """Copy a file with safety checks."""
@@ -348,8 +348,8 @@ def copy_file_safe(
 
 
 def create_backup(
-        filepath: Union[str, Path],
-        backup_dir: Optional[Union[str, Path]] = None,
+        filepath: str | Path,
+        backup_dir: str | Path | None = None,
         timestamp: bool = True
 ) -> Path:
     """Create backup."""
