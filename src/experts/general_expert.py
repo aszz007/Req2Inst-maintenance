@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Optional, Union
 
 from src.experts.base_expert import BaseExpert
 from models.prompt_templates.general_template import GeneralInstructionTemplate
@@ -39,7 +38,7 @@ class GeneralExpert(BaseExpert):
     """Generate instructions for mixed-domain inputs."""
 
     def __init__(self,
-                 lora_path: Optional[str] = None,
+                 lora_path: str | None = None,
                  use_4bit: bool = True):
         """Initialize the instance."""
         path_cfg = get_path_config()
@@ -72,7 +71,7 @@ class GeneralExpert(BaseExpert):
 
         logger.info("General expert initialized")
 
-    def generate_instruction(self, input_data: Union[str, dict], sample_index: int = None) -> str:
+    def generate_instruction(self, input_data: str | dict, sample_index: int = None) -> str:
         """Generate instruction."""
         if not self.is_model_loaded:
             logger.warning("Model is not loaded; attempting to load it...")
@@ -184,7 +183,7 @@ class GeneralExpert(BaseExpert):
             logger.error(f"Exception details: {traceback.format_exc()}")
             return [""] * len(input_data_list)
 
-    def _detect_input_type(self, input_data: Union[str, dict]) -> str:
+    def _detect_input_type(self, input_data: str | dict) -> str:
         """Detect input type."""
         if isinstance(input_data, dict):
             if 'actors' in input_data and 'use_cases' in input_data:
@@ -217,7 +216,7 @@ class GeneralExpert(BaseExpert):
 
         return True
 
-    def _fallback_generation(self, input_data: Union[str, dict]) -> str:
+    def _fallback_generation(self, input_data: str | dict) -> str:
         """Generate fallback output."""
         logger.info("Using fallback instruction generation")
 

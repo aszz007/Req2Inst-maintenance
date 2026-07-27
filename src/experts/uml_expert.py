@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Optional, Union
 
 from src.experts.base_expert import BaseExpert
 from models.prompt_templates.uml_template import UMLInstructionTemplate
@@ -43,7 +42,7 @@ class UMLExpert(BaseExpert):
     """Generate instructions for FlowChart-domain inputs."""
 
     def __init__(self,
-                 lora_path: Optional[str] = None,
+                 lora_path: str | None = None,
                  use_4bit: bool = True):
         """Initialize the instance."""
         path_cfg = get_path_config()
@@ -76,7 +75,7 @@ class UMLExpert(BaseExpert):
 
         logger.info("FlowChart expert initialized")
 
-    def generate_instruction(self, input_data: Union[str, dict], sample_index: int = None) -> str:
+    def generate_instruction(self, input_data: str | dict, sample_index: int = None) -> str:
         """Generate instruction."""
         if not self.is_model_loaded:
             logger.warning("Model is not loaded; attempting to load it...")
