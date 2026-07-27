@@ -1,8 +1,8 @@
 """Convert image inputs into structured JSON descriptions."""
 
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Dict, Optional
 
 from models.vision_model import VisionModel
 from src.utils.logger import get_logger
@@ -23,9 +23,9 @@ def get_vision_model() -> VisionModel:
 
 def convert_image_to_json(
     image_path: str,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     return_processing_time: bool = True
-) -> Dict:
+) -> dict:
     """Convert image to JSON."""
     logger.info(f"Processing image: {Path(image_path).name}")
 
@@ -58,9 +58,9 @@ def convert_image_to_json(
 
 def batch_convert_images(
     image_paths: list,
-    output_dir: Optional[str] = None,
-    progress_callback: Optional[callable] = None
-) -> Dict:
+    output_dir: str | None = None,
+    progress_callback: Callable[[int, int, dict], None] | None = None
+) -> dict:
     """Convert images in batches."""
     results = []
     success = 0

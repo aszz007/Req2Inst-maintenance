@@ -3,16 +3,15 @@
 import argparse
 import json
 import sys
-from pathlib import Path
-from typing import Dict, List, Optional
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from models.vision_model import VisionModel  # noqa: E402
 from config.settings import get_path_config  # noqa: E402
+from models.vision_model import VisionModel  # noqa: E402
 from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('inference.recognize_inputs')
@@ -68,8 +67,8 @@ def recognize_single_file(
         file_path: str,
         rec_type: str,
         version: str,
-        streaming: Optional[bool] = None
-) -> Dict:
+        streaming: bool | None = None
+) -> dict:
     """
     Recognize a single image file
 
@@ -130,8 +129,8 @@ def recognize_directory(
         dir_path: str,
         rec_type: str,
         version: str,
-        streaming: Optional[bool] = None
-) -> List[Dict]:
+        streaming: bool | None = None
+) -> list[dict]:
     """
     Recognize all images in a directory
 

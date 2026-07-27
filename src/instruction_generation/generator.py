@@ -1,13 +1,12 @@
 """Expose the unified instruction-generation interface."""
 
 import json
-from typing import Dict, List, Optional, Union
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
+from config.settings import get_path_config
 from src.routing.moe_model import MoEModel
 from src.utils.logger import get_logger
-from config.settings import get_path_config
 
 logger = get_logger('instruction_generation.generator')
 
@@ -17,8 +16,8 @@ class InstructionGenerator:
 
     def __init__(
             self,
-            lora_weights_dir: Optional[str] = None,
-            base_models_dir: Optional[str] = None
+            lora_weights_dir: str | None = None,
+            base_models_dir: str | None = None
     ):
         """Initialize the instance."""
         path_cfg = get_path_config()
@@ -40,11 +39,11 @@ class InstructionGenerator:
 
     def generate(
             self,
-            input_data: Union[str, dict],
+            input_data: str | dict,
             output_format: str = 'text',
-            expert_variant: Optional[str] = None,
+            expert_variant: str | None = None,
             **generation_kwargs
-    ) -> Union[str, dict]:
+    ) -> str | dict:
         """Generate output."""
         logger.info("Starting instruction generation")
 
@@ -68,12 +67,12 @@ class InstructionGenerator:
 
     def batch_generate(
             self,
-            input_list: List[Union[str, dict]],
+            input_list: list[str | dict],
             output_format: str = 'text',
-            expert_variant: Optional[str] = None,
-            save_path: Optional[str] = None,
+            expert_variant: str | None = None,
+            save_path: str | None = None,
             **generation_kwargs
-    ) -> List[Union[str, dict]]:
+    ) -> list[str | dict]:
         """Generate outputs in batches."""
         logger.info(f"Batch instruction generation - {len(input_list)} samples")
 
@@ -114,10 +113,10 @@ class InstructionGenerator:
     def generate_from_file(
             self,
             input_file: str,
-            output_file: Optional[str] = None,
+            output_file: str | None = None,
             output_format: str = 'json',
             **generation_kwargs
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Generate from file."""
         logger.info(f"Generating instructions from file: {input_file}")
 
@@ -133,7 +132,7 @@ class InstructionGenerator:
 
         return results
 
-    def _load_input_file(self, file_path: str) -> List[Union[str, dict]]:
+    def _load_input_file(self, file_path: str) -> list[str | dict]:
         """Load input file."""
         file_path = Path(file_path)
 
@@ -161,7 +160,7 @@ class InstructionGenerator:
 
     def _save_results(
             self,
-            results: List[Union[str, dict]],
+            results: list[str | dict],
             save_path: str,
             output_format: str
     ):
@@ -204,7 +203,7 @@ class InstructionGenerator:
 
         return md
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         """Return statistics."""
         return self.moe_model.get_router_statistics()
 
@@ -213,6 +212,6 @@ class InstructionGenerator:
         self.moe_model.reset_router_statistics()
         logger.info("Statistics reset")
 
-    def list_available_experts(self, expert_type: Optional[str] = None) -> List[str]:
+    def list_available_experts(self, expert_type: str | None = None) -> list[str]:
         """List available experts."""
         return self.moe_model.list_available_experts(expert_type)

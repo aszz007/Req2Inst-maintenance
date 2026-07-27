@@ -1,8 +1,8 @@
 """Convert FlowChart inputs into structured JSON descriptions."""
 
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Dict, Optional
 
 from models.vision_model import VisionModel
 from src.utils.logger import get_logger
@@ -23,9 +23,9 @@ def get_vision_model() -> VisionModel:
 
 def convert_uml_to_json(
     uml_path: str,
-    save_path: Optional[str] = None,
+    save_path: str | None = None,
     max_retries: int = 2
-) -> Dict:
+) -> dict:
     """Convert FlowChart to JSON."""
     logger.info(f"Processing FlowChart diagram: {Path(uml_path).name}")
 
@@ -69,9 +69,9 @@ def convert_uml_to_json(
 
 def batch_convert_umls(
     uml_paths: list,
-    output_dir: Optional[str] = None,
-    progress_callback: Optional[callable] = None
-) -> Dict:
+    output_dir: str | None = None,
+    progress_callback: Callable[[int, int, dict], None] | None = None
+) -> dict:
     """Convert FlowChart inputs in batches."""
     results = []
     success = 0

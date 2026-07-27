@@ -2,19 +2,18 @@
 
 import argparse
 import json
+import re
 import subprocess
 import sys
-from pathlib import Path
-from typing import Dict, List, Optional
 from datetime import datetime
-import re
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.instruction_generation import InstructionGenerator  # noqa: E402
 from config.settings import get_path_config  # noqa: E402
+from src.instruction_generation import InstructionGenerator  # noqa: E402
 from src.utils.logger import get_logger  # noqa: E402
 
 logger = get_logger('inference.generate_instructions')
@@ -86,7 +85,7 @@ Examples:
     return parser.parse_args()
 
 
-def scan_input_directory(input_dir: Path) -> Dict[str, List[Path]]:
+def scan_input_directory(input_dir: Path) -> dict[str, list[Path]]:
     """
     Scan input directory and categorize files by type
 
@@ -140,11 +139,11 @@ def scan_input_directory(input_dir: Path) -> Dict[str, List[Path]]:
 
 
 def recognize_images(
-        image_files: List[Path],
+        image_files: list[Path],
         rec_type: str,
         vision_version: str,
         streaming: bool = False
-) -> Optional[Path]:
+) -> Path | None:
     """
     Recognize images by calling recognize_inputs.py as subprocess
 
@@ -217,7 +216,7 @@ def recognize_images(
         return None
 
 
-def load_text_input(file_path: Path) -> Dict:
+def load_text_input(file_path: Path) -> dict:
     """
     Load text input file
 
@@ -238,7 +237,7 @@ def load_text_input(file_path: Path) -> Dict:
     }
 
 
-def load_json_input(file_path: Path) -> Dict:
+def load_json_input(file_path: Path) -> dict:
     """
     Load JSON input file (recognized results)
 
@@ -278,7 +277,7 @@ def load_json_input(file_path: Path) -> Dict:
     }
 
 
-def load_recognition_results(json_file: Path, rec_type: str) -> List[Dict]:
+def load_recognition_results(json_file: Path, rec_type: str) -> list[dict]:
     """
     Load recognition results and format as input data
 
