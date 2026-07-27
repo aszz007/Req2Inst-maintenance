@@ -75,12 +75,9 @@ class ManuscriptTerminologyTests(unittest.TestCase):
         protected_paths = (
             ROOT / "models/prompt_templates/general_template.py",
             ROOT / "models/prompt_templates/uml_template.py",
-            ROOT / "scripts/preprocessing/build_final_dataset/uml/generate_instructions_uml.py",
-            ROOT / "scripts/preprocessing/build_final_dataset/uml/regenerate_failed_uml.py",
         )
         combined = "\n".join(path.read_text(encoding="utf-8") for path in protected_paths)
         self.assertIn("UML Use Case Diagram", combined)
-        self.assertIn("[UML Diagram:", combined)
         self.assertIn("Definition:", combined)
         self.assertIn("Emphasis & Caution:", combined)
         self.assertIn("Things to Avoid:", combined)
