@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Optional
 
 from src.experts.base_expert import BaseExpert
 from models.prompt_templates.text_template import TextInstructionTemplate
@@ -42,7 +41,7 @@ def _build_prompt_for_domain(input_data):
 class TextExpert(BaseExpert):
     """Generate instructions for text-domain inputs."""
 
-    def __init__(self, lora_path: Optional[str] = None, use_4bit: bool = True):
+    def __init__(self, lora_path: str | None = None, use_4bit: bool = True):
         """Initialize the instance."""
         path_cfg = get_path_config()
 

@@ -1,6 +1,5 @@
 """Coordinate expert loading, routing, and instruction generation."""
 
-from typing import Dict, List, Optional, Union
 from pathlib import Path
 
 from .expert_router import ExpertRouter, RoutingResult
@@ -24,10 +23,10 @@ class MoEModel:
 
     def generate_instruction(
             self,
-            input_data: Union[str, dict],
-            expert_variant: Optional[str] = None,
+            input_data: str | dict,
+            expert_variant: str | None = None,
             **generation_kwargs
-    ) -> Dict:
+    ) -> dict:
         """Generate instruction."""
         formatted_input = self._format_input(input_data)
 
@@ -50,7 +49,7 @@ class MoEModel:
             'reasoning': routing_result.reasoning
         }
 
-    def _format_input(self, input_data: Union[str, dict]) -> dict:
+    def _format_input(self, input_data: str | dict) -> dict:
         """Format input."""
         if isinstance(input_data, str):
             return {
@@ -97,10 +96,10 @@ class MoEModel:
 
     def batch_generate(
             self,
-            input_list: List[Union[str, dict]],
-            expert_variant: Optional[str] = None,
+            input_list: list[str | dict],
+            expert_variant: str | None = None,
             **generation_kwargs
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Generate outputs in batches."""
         results = []
         for input_data in input_list:
@@ -112,7 +111,7 @@ class MoEModel:
             results.append(result)
         return results
 
-    def get_router_statistics(self) -> Dict:
+    def get_router_statistics(self) -> dict:
         """Return router statistics."""
         return self.router.get_routing_statistics()
 
@@ -122,8 +121,8 @@ class MoEModel:
 
     def list_available_experts(
             self,
-            expert_type: Optional[str] = None
-    ) -> List[str]:
+            expert_type: str | None = None
+    ) -> list[str]:
         """List available experts."""
         if expert_type:
             return self.router.get_available_variants(expert_type)

@@ -1,6 +1,5 @@
 """Select a domain expert with rule-based input-type routing."""
 
-from typing import Dict, List, Optional
 from pathlib import Path
 from dataclasses import dataclass
 from collections import defaultdict
@@ -21,7 +20,7 @@ class ExpertConfig:
     name: str
     expert_type: str
     model_version: str
-    dataset_variant: Optional[str]
+    dataset_variant: str | None
     path: str
     is_default: bool
 
@@ -42,7 +41,7 @@ class ExpertRouter:
         self.expert_registry = self._build_expert_registry()
         self.routing_stats = defaultdict(int)
 
-    def _build_expert_registry(self) -> Dict[str, List[ExpertConfig]]:
+    def _build_expert_registry(self) -> dict[str, list[ExpertConfig]]:
         """Build expert registry."""
         registry = {
             'text': [],
@@ -92,7 +91,7 @@ class ExpertRouter:
     def route(
             self,
             input_data: dict,
-            expert_variant: Optional[str] = None
+            expert_variant: str | None = None
     ) -> RoutingResult:
         """Route an input to an expert."""
         input_type = input_data.get('type', '').lower()
@@ -125,7 +124,7 @@ class ExpertRouter:
             reasoning=f"Default expert for {input_type} input"
         )
 
-    def _get_expert_by_name(self, expert_name: str) -> Optional[ExpertConfig]:
+    def _get_expert_by_name(self, expert_name: str) -> ExpertConfig | None:
         """Return expert by name."""
         for expert_list in self.expert_registry.values():
             for expert in expert_list:
@@ -135,9 +134,9 @@ class ExpertRouter:
 
     def list_experts(
             self,
-            expert_type: Optional[str] = None,
+            expert_type: str | None = None,
             only_defaults: bool = False
-    ) -> List[ExpertConfig]:
+    ) -> list[ExpertConfig]:
         """List configured experts."""
         if expert_type:
             experts = self.expert_registry.get(expert_type, [])
@@ -151,12 +150,12 @@ class ExpertRouter:
 
         return experts
 
-    def get_available_variants(self, expert_type: str) -> List[str]:
+    def get_available_variants(self, expert_type: str) -> list[str]:
         """Return available variants."""
         experts = self.expert_registry.get(expert_type, [])
         return [e.name for e in experts]
 
-    def get_routing_statistics(self) -> Dict:
+    def get_routing_statistics(self) -> dict:
         """Return routing statistics."""
         total_routings = sum(self.routing_stats.values())
 
