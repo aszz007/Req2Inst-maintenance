@@ -518,27 +518,6 @@ class LanguageModel:
                     break
             text = text[:truncate_pos].strip()
 
-        unwanted_patterns = [
-            '在不失准确性',
-            '请对以下',
-            '这句话的',
-            '摘要',
-            '反义词',
-            '总结',
-            '翻译',
-            '目的 观察',
-            '方法 ',
-            '结果 ',
-            '结论 ',
-        ]
-
-        for pattern in unwanted_patterns:
-            if pattern in text:
-                idx = text.find(pattern)
-                if idx > 0:
-                    text = text[:idx].strip()
-                    break
-
         return text
 
     def _truncate_after_three_parts(self, text: str) -> str:

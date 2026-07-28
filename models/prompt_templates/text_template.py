@@ -66,7 +66,9 @@ CRITICAL RULES:
         lines = [line.strip() for line in instruction.strip().split('\n') if line.strip()]
 
         if len(lines) < 3:
-            result['errors'].append(f'指令行数不足，期望至少3行，实际{len(lines)}行')
+            result['errors'].append(
+                f'Instruction has too few lines; expected at least 3, got {len(lines)}'
+            )
             result['is_valid'] = False
             return result
 
@@ -76,7 +78,7 @@ CRITICAL RULES:
                 if content:
                     result['has_definition'] = True
                 else:
-                    result['errors'].append('Definition部分内容为空')
+                    result['errors'].append('Definition section is empty')
 
             elif line.startswith('Emphasis & Caution:') or line.startswith('Emphasis and Caution:'):
                 result['has_emphasis'] = True
@@ -85,13 +87,17 @@ CRITICAL RULES:
                 result['has_avoid'] = True
 
         if not result['has_definition']:
-            result['errors'].append('缺少"Definition:"部分或格式错误')
+            result['errors'].append('Missing "Definition:" section or invalid format')
 
         if not result['has_emphasis']:
-            result['errors'].append('缺少"Emphasis & Caution:"部分或格式错误')
+            result['errors'].append(
+                'Missing "Emphasis & Caution:" section or invalid format'
+            )
 
         if not result['has_avoid']:
-            result['errors'].append('缺少"Things to Avoid:"部分或格式错误')
+            result['errors'].append(
+                'Missing "Things to Avoid:" section or invalid format'
+            )
 
         result['is_valid'] = all([
             result['has_definition'],
