@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASE_EXPERT = ROOT / "src" / "experts" / "base_expert.py"
 EXPECTED_NON_IMPORT_HASH = (
-    "23bf4cd29e9d86a9a36e0bd545972f407904776b98ad4e39cd700500d2a8d687"
+    "d073ea3f12d9e7c9fa184fc95adc7d22caba72801af2e2c61c0f65148f7b6695"
 )
 EXPECTED_IMPORT_SIGNATURE = [
     ("import", None, ("os",)),

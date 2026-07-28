@@ -47,8 +47,30 @@ class BaseExpert(ABC):
         if lora_path:
             logger.info(f"LoRA path: {lora_path}")
 
+    def _get_required_lora_path(self) -> Optional[Path]:
+        """Return a valid required LoRA directory or fail closed."""
+        if not self.lora_path:
+            logger.error(
+                f"A LoRA adapter is required for {self.expert_name}, but no path is configured"
+            )
+            return None
+
+        lora_path = Path(self.lora_path)
+        if not lora_path.exists():
+            logger.error(f"Required LoRA path does not exist: {lora_path}")
+            return None
+        if not lora_path.is_dir():
+            logger.error(f"Required LoRA path is not a directory: {lora_path}")
+            return None
+        return lora_path
+
     def load_model(self) -> bool:
         """Load model."""
+        lora_path = self._get_required_lora_path()
+        if lora_path is None:
+            self.is_model_loaded = False
+            return False
+
         try:
             logger.info(f"Loading model for {self.expert_name}...")
 
@@ -57,23 +79,24 @@ class BaseExpert(ABC):
                 use_4bit=self.use_4bit
             )
 
-            if self.lora_path:
-                lora_path = Path(self.lora_path)
-                if lora_path.exists():
-                    logger.info(f"Loading LoRA weights: {self.lora_path}")
-                    success = self.model.load_lora_from_path(str(self.lora_path))
-                    if not success:
-                        logger.warning("Failed to load LoRA adapter; using the base model")
-                else:
-                    logger.warning(f"LoRA path does not exist: {self.lora_path}")
-                    logger.warning("Using the base model without fine-tuning")
+            logger.info(f"Loading required LoRA weights: {lora_path}")
+            success = self.model.load_lora_from_path(str(lora_path))
+            if not success or not self.model.is_lora_loaded:
+                logger.error(
+                    f"Required LoRA adapter failed to load for {self.expert_name}; "
+                    "base-model fallback is disabled"
+                )
+                self.unload_model()
+                return False
 
             self.is_model_loaded = True
-            logger.info("Model loading complete")
+            logger.info("Model and required LoRA adapter loading complete")
             return True
 
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
+            if self.model is not None:
+                self.unload_model()
             self.is_model_loaded = False
             return False
 
@@ -571,6 +594,11 @@ Things to Avoid: {avoid}"""
 
     def load_model_with_shared_base(self) -> bool:
         """Load model with shared base."""
+        lora_path = self._get_required_lora_path()
+        if lora_path is None:
+            self.is_model_loaded = False
+            return False
+
         try:
             if self.__class__._shared_base_model is None:
                 logger.error("Shared base model is not loaded; call load_shared_base_model first")
@@ -584,23 +612,28 @@ Things to Avoid: {avoid}"""
 
             self.model = self.__class__._shared_base_model
 
-            if self.lora_path:
-                lora_path = Path(self.lora_path)
-                if lora_path.exists():
-                    logger.info(f"Loading LoRA weights: {self.lora_path}")
-                    success = self.model.load_lora_from_path(str(self.lora_path))
-                    if not success:
-                        logger.warning("Failed to load LoRA adapter; using the base model")
-                else:
-                    logger.warning(f"LoRA path does not exist: {self.lora_path}")
-                    logger.warning("Using the base model without fine-tuning")
+            logger.info(f"Loading required LoRA weights: {lora_path}")
+            success = self.model.load_lora_from_path(str(lora_path))
+            if not success or not self.model.is_lora_loaded:
+                logger.error(
+                    f"Required LoRA adapter failed to load for {self.expert_name}; "
+                    "base-model fallback is disabled"
+                )
+                if self.model.is_lora_loaded:
+                    self.model.unload_lora()
+                self.model = None
+                self.is_model_loaded = False
+                return False
 
             self.is_model_loaded = True
-            logger.info(f"{self.expert_name} loaded with the shared base model")
+            logger.info(
+                f"{self.expert_name} loaded with the shared base model and required LoRA adapter"
+            )
             return True
 
         except Exception as e:
             logger.error(f"Failed to load expert with the shared base model: {e}")
+            self.model = None
             self.is_model_loaded = False
             return False
 
