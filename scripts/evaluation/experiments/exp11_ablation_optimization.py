@@ -794,8 +794,6 @@ def run_phase3(args, ablation_results=None, router_results=None):
 
     _plot_final_summary(ablation_results, router_results, exp10_p2)
 
-    _generate_report(ablation_results, router_results, exp10_p2)
-
     final = {
         'experiment': 'exp11_ablation_optimization',
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -1130,90 +1128,6 @@ def _plot_final_summary(ablation_results, router_results, exp10_p2):
     plt.savefig(PLOT_DIR / 'final_summary_table.png', dpi=150, bbox_inches='tight')
     plt.close()
     logger.info("  [6/6] final_summary_table.png")
-
-
-def _generate_report(ablation_results, router_results, exp10_p2):
-    """Generate report."""
-    hard_r = exp10_p2.get('hard_baseline_rougeL', 0.5515)
-    oracle_r = exp10_p2.get('oracle_rougeL', 0.6339)
-    gap = oracle_r - hard_r
-
-    lines = [
-        "# 实验11: Output Ensemble消融与路由优化",
-        f"\n生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        "\n## Part A: 消融实验结果",
-    ]
-
-    if ablation_results:
-        abl = ablation_results.get('ablation_results', ablation_results)
-        lines.append("| 配置 | 名称 | ROUGE-L | Gap缩小率 |")
-        lines.append("|------|------|---------|----------|")
-        for k in ['A0','A1','A2','A3','A4','A5','A6']:
-            if k in abl:
-                v = abl[k].get('rougeL', 0)
-                gr = f"{(v-hard_r)/gap*100:.1f}%" if gap > 0 else '-'
-                lines.append(f"| {k} | {abl[k].get('name', k)} | {v:.4f} | {gr} |")
-
-        lines.append("\n### Key Findings")
-
-        vals = {k: abl[k].get('rougeL', 0) for k in abl}
-        identical_pairs = []
-        keys_list = list(vals.keys())
-        for i in range(len(keys_list)):
-            for j in range(i+1, len(keys_list)):
-                if abs(vals[keys_list[i]] - vals[keys_list[j]]) < 0.0001:
-                    identical_pairs.append((keys_list[i], keys_list[j]))
-        if identical_pairs:
-            lines.append("\n**Identical results detected:**")
-            for (k1, k2) in identical_pairs:
-                lines.append(f"- {k1} ({abl[k1].get('name','')}) = {k2} ({abl[k2].get('name','')}) = {vals[k1]:.4f}")
-            lines.append("\nThis occurs because OOD correction and cache redirect operate on the same "
-                         "post-OOD weight threshold (>=0.95). When the base cache threshold (w1_raw>=0.85) "
-                         "already captures most high-confidence samples, the additional cache redirect "
-                         "mechanism has minimal marginal effect. Disabling OOD correction (A1) makes the "
-                         "redirect threshold unreachable, producing the same effect as explicitly disabling "
-                         "redirect (A2).")
-
-        a5_v = vals.get('A5', 0)
-        a0_v = vals.get('A0', 0)
-        if a5_v > 0:
-            lines.append("\n**Mechanism contribution ranking (vs A5 Pure Ensemble):**")
-            lines.append(f"1. Quality Gate: +{(vals.get('A6',0) - a5_v)*100:.1f}pp (most impactful)")
-            lines.append(f"2. Router Weights (vs equal): +{(a0_v - vals.get('A6',0))*100:.1f}pp")
-            lines.append("3. OOD Correction + Cache Redirect: ~0pp (redundant on this dataset)")
-
-    lines.append("\n## Part B: Router优化结果")
-    if router_results:
-        rr = router_results.get('router_results', router_results)
-        lines.append("| 配置 | 名称 | Macro F1 |")
-        lines.append("|------|------|----------|")
-        for k in ['B0','B1','B2','B3','B4']:
-            if k in rr:
-                f1 = rr[k].get('macro_f1')
-                f1_str = f"{f1:.4f}" if f1 is not None else "N/A"
-                name = rr[k].get('name', k)
-                lines.append(f"| {k} | {name} | {f1_str} |")
-
-        best_k, best_f1 = None, 0
-        for k in ['B0','B2','B3','B4']:
-            if k in rr and rr[k].get('macro_f1') is not None:
-                if rr[k]['macro_f1'] > best_f1:
-                    best_f1 = rr[k]['macro_f1']
-                    best_k = k
-        if best_k:
-            lines.append(f"\n**Best Router: {best_k} ({rr[best_k].get('name','')}) "
-                         f"with macro F1 = {best_f1:.4f}**")
-            b0_gen = rr.get('B0', {}).get('per_class', {}).get('general', 0)
-            best_gen = rr.get(best_k, {}).get('per_class', {}).get('general', 0)
-            if b0_gen and best_gen:
-                lines.append(f"\nGeneral domain F1: B0={b0_gen:.3f} → {best_k}={best_gen:.3f} "
-                             f"(+{(best_gen-b0_gen)*100:.1f}pp)")
-
-    report_path = EXP_DIR / 'report.md'
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines))
-    logger.info(f"Report saved to: {report_path}")
-
 
 
 def main():

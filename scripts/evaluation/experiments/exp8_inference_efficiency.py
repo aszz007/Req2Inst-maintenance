@@ -618,100 +618,6 @@ def plot_summary_table(results_by_method, test_mode=False):
 
 
 
-def generate_report(results, results_by_method, test_mode=False):
-    """Generate report."""
-    lines = []
-    lines.append('# 实验8: 推理效率基准测试报告\n')
-    lines.append(f'**生成时间**: {results.get("timestamp", "N/A")}\n')
-    if test_mode:
-        lines.append('> **注意**: 本报告在测试模式下生成, 样本量较少, 仅供验证流程使用。\n')
-
-    hw = results.get('hardware', {})
-    lines.append('## 1. 实验环境\n')
-    lines.append(f'- GPU: {hw.get("gpu_name", "N/A")}')
-    lines.append(f'- GPU显存: {hw.get("gpu_memory_total_mb", "N/A")} MB')
-    lines.append(f'- CUDA: {hw.get("cuda_version", "N/A")}')
-    lines.append(f'- PyTorch: {hw.get("torch_version", "N/A")}')
-    lines.append(f'- CPU核心数: {hw.get("cpu_count", "N/A")}')
-    lines.append(f'- 内存: {hw.get("ram_total_gb", "N/A")} GB')
-    lines.append('')
-
-    lines.append('## 2. 测试配置\n')
-    lines.append(f'- 预热样本数: {results.get("n_warmup", "N/A")}')
-    lines.append(f'- 延迟测量样本数: {results.get("n_latency", "N/A")}')
-    lines.append(f'- 吞吐测量样本数: {results.get("n_throughput", "N/A")}')
-    lines.append('')
-
-    lines.append('## 3. 结果汇总\n')
-    lines.append(
-        '| 方法 | 设备 | 量化 | 加载(s) | 延迟(ms) | P95(ms) | Min(ms) | Max(ms) | 吞吐(/s) | 显存(MB) | Adapter(MB) |')
-    lines.append(
-        '|------|------|------|---------|----------|---------|---------|---------|----------|----------|-------------|')
-    for m in METHOD_ORDER:
-        if m not in results_by_method:
-            continue
-        e = results_by_method[m]
-        highlight = '**' if m == 'lora_moe' else ''
-        lines.append(
-            f'| {highlight}{e["label"]}{highlight} | {e["device"]} | {e["quantisation"]} | '
-            f'{e["load_time_s"]:.2f} | {e["latency_median_ms"]:.1f} | '
-            f'{e["latency_p95_ms"]:.1f} | {e.get("latency_min_ms", 0):.1f} | '
-            f'{e.get("latency_max_ms", 0):.1f} | {e["throughput_samples_per_sec"]:.1f} | '
-            f'{e["peak_gpu_memory_mb"]:.0f} | {e["adapter_size_mb"]:.1f} |'
-        )
-    lines.append('')
-
-    lines.append('## 4. 分析要点\n')
-
-    gpu_entries = [(m, results_by_method[m]) for m in METHOD_ORDER
-                   if m in results_by_method and m in GPU_METHODS]
-    if gpu_entries:
-        best_latency = min(gpu_entries, key=lambda x: x[1]['latency_median_ms'])
-        best_throughput = max(gpu_entries, key=lambda x: x[1]['throughput_samples_per_sec'])
-        lowest_mem = min(gpu_entries, key=lambda x: x[1]['peak_gpu_memory_mb'])
-
-        lines.append(f'- **延迟最低 (GPU)**: {METHOD_LABELS[best_latency[0]]} '
-                     f'({best_latency[1]["latency_median_ms"]:.1f} ms)')
-        lines.append(f'- **吞吐最高 (GPU)**: {METHOD_LABELS[best_throughput[0]]} '
-                     f'({best_throughput[1]["throughput_samples_per_sec"]:.1f} samples/sec)')
-        lines.append(f'- **显存最低 (GPU)**: {METHOD_LABELS[lowest_mem[0]]} '
-                     f'({lowest_mem[1]["peak_gpu_memory_mb"]:.0f} MB)')
-
-        if 'lora_moe' in results_by_method:
-            moe = results_by_method['lora_moe']
-            lines.append('\n### Multi-Expert LoRA 效率分析\n')
-            lines.append(f'- 加载时间: {moe["load_time_s"]:.2f}s')
-            lines.append(f'- 中位延迟: {moe["latency_median_ms"]:.1f}ms '
-                         f'(P95={moe["latency_p95_ms"]:.1f}ms, '
-                         f'Std={moe["latency_std_ms"]:.1f}ms)')
-            lines.append(f'- 延迟范围: {moe.get("latency_min_ms", 0):.1f}ms ~ '
-                         f'{moe.get("latency_max_ms", 0):.1f}ms')
-            lines.append(f'- 吞吐量: {moe["throughput_samples_per_sec"]:.1f} samples/sec '
-                         f'(batch_size={moe["throughput_batch_size"]})')
-            lines.append(f'- GPU显存: {moe["peak_gpu_memory_mb"]:.0f} MB')
-            lines.append(f'- Adapter大小: {moe["adapter_size_mb"]:.1f} MB')
-    lines.append('')
-
-    lines.append('## 5. 可视化图表\n')
-    plot_descriptions = [
-        ('latency_comparison.png', '延迟对比柱状图 (中位数+P95标记)'),
-        ('latency_distribution.png', '延迟分布箱线图'),
-        ('throughput_comparison.png', '吞吐量对比柱状图'),
-        ('gpu_memory_comparison.png', 'GPU显存对比柱状图'),
-        ('load_time_comparison.png', '模型加载时间对比'),
-        ('latency_vs_memory.png', '延迟-显存权衡散点气泡图'),
-        ('summary_table.png', '论文级综合汇总表格'),
-    ]
-    for fname, desc in plot_descriptions:
-        lines.append(f'- `plots/{fname}`: {desc}')
-    lines.append('')
-
-    report_path = EXP_DIR / 'report.md'
-    report_path.write_text('\n'.join(lines), encoding='utf-8')
-    logger.info(f'Experiment report saved to: {report_path}')
-
-
-
 def run(args):
     """Run the workflow."""
     logger.info('Experiment 8: Inference efficiency benchmark')
@@ -842,12 +748,6 @@ def run(args):
             plot_summary_table(results_by_method, args.test_mode)
     except Exception as e:
         logger.warning(f'Plotting failed: {e}')
-        logger.warning(traceback.format_exc())
-
-    try:
-        generate_report(results, results_by_method, args.test_mode)
-    except Exception as e:
-        logger.warning(f'Report generation failed: {e}')
         logger.warning(traceback.format_exc())
 
     logger.info('Inference efficiency summary')
