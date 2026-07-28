@@ -52,15 +52,15 @@ class UMLExpert(BaseExpert):
         if lora_path is None:
             lora_weight_path = path_cfg.EXPERT_LORA_PATHS.get(expert_name)
             if lora_weight_path is None:
-                logger.warning(f"No LoRA weight path is configured for {expert_name}; using the base model")
+                logger.error(f"No LoRA weight path is configured for {expert_name}; expert loading will fail")
                 lora_path = None
             else:
                 lora_path_obj = Path(lora_weight_path)
                 if not lora_path_obj.exists():
-                    logger.warning(f"LoRA weight path does not exist: {lora_path_obj}; using the base model")
+                    logger.error(f"LoRA weight path does not exist: {lora_path_obj}; expert loading will fail")
                     lora_path = None
                 elif not lora_path_obj.is_dir():
-                    logger.warning(f"LoRA weight path is not a directory: {lora_path_obj}; using the base model")
+                    logger.error(f"LoRA weight path is not a directory: {lora_path_obj}; expert loading will fail")
                     lora_path = None
                 else:
                     lora_path = str(lora_path_obj)

@@ -46,6 +46,8 @@ policy will be adopted before the first versioned release.
 - The repository-hygiene and stability-first code-maintenance phase is closed;
   subsequent work is scoped to inference readiness, concrete defects, or
   separately approved research behavior.
+- Required expert LoRA adapters now fail closed when their path is missing,
+  invalid, or cannot be loaded.
 
 ### Removed
 
@@ -55,6 +57,7 @@ policy will be adopted before the first versioned release.
 - Unused Markdown summary-report generators from Experiments 8-11.
 - Redundant phrase-specific Chinese output-cleanup patterns already covered by
   the generic Han-character boundary.
+- Silent fallback from a failed expert LoRA adapter to the Qwen3 base model.
 
 ## [0.1.0] - Research prototype
 

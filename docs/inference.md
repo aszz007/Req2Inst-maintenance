@@ -136,8 +136,9 @@ mixed-modality use on limited-memory GPUs.
 
 - A failed environment preflight means a required dependency or local asset is
   missing or incompatible.
-- A missing LoRA directory may cause an expert to use the base model. Check
-  `get_lora_status()` when adapter-backed output is required.
+- A missing or invalid required LoRA adapter causes expert loading to fail.
+  Base-model fallback is disabled; check `get_lora_status()` when confirming a
+  successful adapter-backed run.
 - Recognition functions return structured failure fields for per-input errors;
   the end-to-end launcher records failed items in local output JSON.
 - Do not treat an empty generated instruction, a parsed fallback result, or a
