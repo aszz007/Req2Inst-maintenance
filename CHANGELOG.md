@@ -34,16 +34,25 @@ policy will be adopted before the first versioned release.
   standardized in English without changing prompts, result labels, generated
   outputs, log levels, or control flow.
 - Direct console-only progress and status text is translated to English in
-  safe non-browser paths; prompts, CLI help, validation fields, and result
-  schemas remain unchanged.
+  safe non-browser paths; prompts, CLI help, result labels, and output schemas
+  remain unchanged.
+- Validation errors and advanced-routing diagnostic explanations are
+  standardized in English without changing validation criteria, thresholds,
+  or recommendation outcomes.
 - Legacy generated artifacts and superseded dependency notes are removed from
   the current source snapshot while remaining recoverable from Git history.
+- The repository-hygiene and stability-first code-maintenance phase is closed;
+  subsequent work is scoped to inference readiness, concrete defects, or
+  separately approved research behavior.
 
 ### Removed
 
 - The obsolete `run_all_training.sh` workstation launcher.
 - 236 separator-only log calls that added console noise without diagnostic
   content.
+- Unused Markdown summary-report generators from Experiments 8-11.
+- Redundant phrase-specific Chinese output-cleanup patterns already covered by
+  the generic Han-character boundary.
 
 ## [0.1.0] - Research prototype
 
