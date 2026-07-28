@@ -2149,7 +2149,6 @@ def run_phase3(args, phase1_results, phase2_results, exp9_phase1, exp9_phase2):
         router_rougeL, ensemble_rougeL, phase1_results
     )
 
-    _generate_report(phase1_results, phase2_results, exp9_phase1, exp9_phase2)
     logger.info(f"\nAll plots saved to: {PLOT_DIR}")
 
 
@@ -2516,66 +2515,6 @@ def _plot_summary_table(exp9_strategies, soft_rougeL, router_rougeL, ensemble_ro
     plt.savefig(PLOT_DIR / 'summary_table.png', dpi=150, bbox_inches='tight')
     plt.close()
     logger.info("  [8/8] summary_table.png")
-
-
-def _generate_report(phase1_results, phase2_results, exp9_phase1, exp9_phase2):
-    """Generate report."""
-    hard_g = exp9_phase1.get('strategies', {}).get('Hard Routing', {}).get('per_domain', {}).get('general', 0)
-    oracle_g = exp9_phase1.get('strategies', {}).get('Oracle Routing', {}).get('per_domain', {}).get('general', 0)
-    gap = oracle_g - hard_g
-
-    router_rougeL = (phase2_results or {}).get('learned_router', {}).get('rougeL', 0)
-    ensemble_rougeL = (phase2_results or {}).get('output_ensemble', {}).get('rougeL', 0)
-
-    lines = [
-        "# Experiment 10: Advanced Routing Strategy",
-        f"\n生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        "\n## Phase 1: Learned Router训练结果",
-    ]
-
-    if phase1_results:
-        acc = phase1_results.get('routing_accuracy', {})
-        lines += [
-            f"- 整体路由准确率: {phase1_results.get('overall_accuracy', 0)*100:.1f}%",
-            "- 分域准确率:",
-            *[f"  - {d}: {acc.get(d, 0)*100:.1f}%" for d in ALL_TYPES],
-        ]
-
-    lines += [
-        "\n## Phase 2: 推理结果",
-        "\n### General域结果对比",
-        "| 策略 | ROUGE-L | Oracle-Hard Gap缩小率 |",
-        "|------|---------|----------------------|",
-        f"| Hard Routing (基线) | {hard_g:.4f} | 0% |",
-    ]
-
-    if (exp9_phase2 or {}).get('best_rougeL'):
-        soft_r = exp9_phase2['best_rougeL']
-        lines.append(f"| Soft Routing (Exp9) | {soft_r:.4f} | {(soft_r-hard_g)/gap*100:.1f}% |")
-
-    if router_rougeL:
-        lines.append(f"| Learned Router (方案B) | {router_rougeL:.4f} | {(router_rougeL-hard_g)/gap*100:.1f}% |")
-    if ensemble_rougeL:
-        lines.append(f"| Output Ensemble (方案A) | {ensemble_rougeL:.4f} | {(ensemble_rougeL-hard_g)/gap*100:.1f}% |")
-
-    lines.append(f"| Oracle Routing | {oracle_g:.4f} | 100% |")
-
-    lines += [
-        "\n## 核心研究问题回答",
-        f"\n**RQ1**: Output Ensemble vs Soft Routing — Gap缩小率分别为 "
-        f"{(ensemble_rougeL-hard_g)/gap*100:.1f}% vs "
-        f"{((exp9_phase2 or {}).get('best_rougeL', hard_g)-hard_g)/gap*100:.1f}%",
-        f"\n**RQ2**: Learned Router路由准确率（General域）= "
-        f"{(phase1_results or {}).get('routing_accuracy', {}).get('general', 0)*100:.1f}%",
-        "\n**RQ3**: Output Ensemble在General域表现最优，Gap缩小率最高",
-        "\n**RQ4**: Learned Router推理开销≈Hard Routing×1；Output Ensemble≈Hard Routing×1.5~2",
-    ]
-
-    report_path = EXP_DIR / 'report.md'
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines))
-    logger.info(f"Report saved to: {report_path}")
-
 
 
 def main():

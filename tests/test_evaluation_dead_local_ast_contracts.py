@@ -22,7 +22,7 @@ SPECS = [
         "scripts/evaluation/experiments/exp9_routing_strategy.py",
         "run_phase3",
         ("score_matrix",),
-        "c7fcac0301918cf2e36a50f9922a07b051d4b6c6bb67359fb9f6fcd45522c90b",
+        "8876d7dc10d106f73376d2a5c98e745ae5bddab8157a77cc53e20de89b9f7ae4",
         id="exp9-score-matrix",
     ),
     pytest.param(
@@ -43,7 +43,7 @@ SPECS = [
         "scripts/evaluation/experiments/exp10_advanced_routing.py",
         "run_phase3",
         ("gap",),
-        "63d6fe829678e35d156185af29f2cc0e3d8ac4d226fd518fda08a32f2380d497",
+        "4eda9c27a92b6dd246cf3e77c1d2148a4621b97746d12aa13b0d4bd63f58e265",
         id="exp10-phase3-gap",
     ),
     pytest.param(
@@ -57,7 +57,7 @@ SPECS = [
         "scripts/evaluation/experiments/exp11_ablation_optimization.py",
         "run_phase3",
         ("gap",),
-        "6645a8868645f2fc4a016e95ba587a63817d192ab67c0e4fee518b3e073f3715",
+        "7ac7aa1d37fb83cc6fbd88ba49581e29650c66d59825b46649e8cf9af294d369",
         id="exp11-phase3-gap",
     ),
 ]

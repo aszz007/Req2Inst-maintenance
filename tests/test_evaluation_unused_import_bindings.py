@@ -13,7 +13,7 @@ SPECS = [
     pytest.param(
         "scripts/evaluation/experiments/exp8_inference_efficiency.py",
         {"group_split_by_input"},
-        "27c747b1ac33b69f1bff0f1abfe914aae55648edafe3edb435364a6b1cdf60c0",
+        "eacb9f55733e91421dbe4b438b7f329d27b254f8679276fbde3c56a7a555e965",
         id="exp8-group-split-binding",
     ),
     pytest.param(
@@ -25,7 +25,7 @@ SPECS = [
             "UMLDatasetLoader",
             "sns",
         },
-        "69089fdfb496c8625610632098a3635efe39993d5dfca46a576f23b652ffd0de",
+        "16c2791f921c19b070b8b86ca6a485b1a5712dad422564274ced665188395c59",
         id="exp11-unused-bindings",
     ),
 ]

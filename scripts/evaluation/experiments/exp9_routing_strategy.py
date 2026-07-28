@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Experiment 9 routing-strategy evaluation and write its reports."""
+"""Run Experiment 9 routing-strategy evaluation."""
 
 import sys
 import gc
@@ -667,8 +667,6 @@ def run_phase3(args, phase1_results=None, phase2_results=None):
 
     _plot_summary_table(strategies, phase2_results)
 
-    _generate_report(phase1_results, phase2_results)
-
     logger.info(f"\nAll plots saved to: {PLOT_DIR}")
 
 
@@ -958,62 +956,6 @@ def _plot_summary_table(strategies, phase2_results=None):
     plt.savefig(PLOT_DIR / 'summary_table.png', dpi=150, bbox_inches='tight')
     plt.close()
     logger.info("  [8/8] summary_table.png")
-
-
-def _generate_report(phase1_results, phase2_results=None):
-    """Generate report."""
-    strategies = phase1_results.get('strategies', {})
-    gap_analysis = phase1_results.get('gap_analysis', {})
-
-    lines = [
-        "# Experiment 9: Routing Strategy Comparison",
-        f"\n生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        "\n## Phase 1: Oracle上下界分析",
-        "\n### 策略对比结果",
-        "",
-        "| 策略 | Text | Image | FlowChart | General | 平均 |",
-        "|------|------|-------|-----|---------|------|",
-    ]
-
-    for name in ['Worst Routing', 'Random Routing', 'General-Only',
-                 'Hard Routing', 'Oracle Routing']:
-        s = strategies.get(name, {})
-        per_d = s.get('per_domain', {})
-        avg = s.get('average', 0)
-        std_str = f" +/- {s.get('std', 0):.4f}" if s.get('std', 0) > 0 else ""
-        lines.append(
-            f"| {name} | {per_d.get('text', 0):.4f} | {per_d.get('image', 0):.4f} | "
-            f"{per_d.get('uml', 0):.4f} | {per_d.get('general', 0):.4f} | "
-            f"{avg:.4f}{std_str} |"
-        )
-
-    lines.extend([
-        "",
-        "### 差距分析",
-        f"- Oracle-Hard 总体差距: {gap_analysis.get('overall_gap', 0)*100:.2f}%",
-        f"- General域差距: {gap_analysis.get('general_domain_gap', 0)*100:.2f}%",
-        f"- Phase 2建议: {'建议执行' if gap_analysis.get('phase2_recommended') else '可选'}",
-    ])
-
-    per_gaps = gap_analysis.get('per_domain_gaps', {})
-    for d in ALL_TYPES:
-        lines.append(f"  - {d}: {per_gaps.get(d, 0)*100:.2f}%")
-
-    if phase2_results and phase2_results.get('phase') == 'phase2':
-        lines.extend([
-            "",
-            "## Phase 2: Soft Routing结果",
-            f"- 最优alpha: {phase2_results.get('best_alpha')}",
-            f"- Soft Routing ROUGE-L: {phase2_results.get('best_rougeL', 0):.4f}",
-            f"- Hard Routing ROUGE-L: {phase2_results.get('hard_baseline_rougeL', 0):.4f}",
-            f"- 提升: {phase2_results.get('improvement', 0)*100:.2f}%",
-        ])
-
-    report_path = EXP_DIR / 'report.md'
-    with open(report_path, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines))
-    logger.info(f"Report saved to: {report_path}")
-
 
 
 def main():
