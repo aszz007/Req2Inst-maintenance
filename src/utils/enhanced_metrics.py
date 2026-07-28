@@ -484,9 +484,9 @@ class EnhancedMetrics:
 
         if not instruction:
             result['errors'] = [
-                '缺少Definition',
-                '缺少Emphasis & Caution',
-                '缺少Things to Avoid'
+                'Missing Definition section',
+                'Missing Emphasis & Caution section',
+                'Missing Things to Avoid section'
             ]
             return result
 
@@ -528,12 +528,12 @@ class EnhancedMetrics:
             if content and content != '-':
                 result['definition_has_content'] = True
             else:
-                result['errors'].append('Definition没有实际内容')
+                result['errors'].append('Definition section has no substantive content')
 
             if content.lower().startswith('in this task'):
                 result['definition_starts_with_in_this_task'] = True
         else:
-            result['errors'].append('缺少Definition')
+            result['errors'].append('Missing Definition section')
 
         if 'emphasis' in sections:
             result['has_emphasis'] = True
@@ -541,7 +541,7 @@ class EnhancedMetrics:
                 result['emphasis_valid'] = True
                 result['emphasis_is_valid'] = True
         else:
-            result['errors'].append('缺少Emphasis & Caution')
+            result['errors'].append('Missing Emphasis & Caution section')
 
         if 'avoid' in sections:
             result['has_avoid'] = True
@@ -549,7 +549,7 @@ class EnhancedMetrics:
                 result['avoid_valid'] = True
                 result['avoid_is_valid'] = True
         else:
-            result['errors'].append('缺少Things to Avoid')
+            result['errors'].append('Missing Things to Avoid section')
 
         score = 0.0
         if result['definition_has_content']:

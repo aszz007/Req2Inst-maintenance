@@ -49,7 +49,7 @@ CLEAN_LINE = _load_cleaner()
             "Definition: A payment service.",
         ),
         (
-            "Emphasis & Caution: Validate inputs. 中文说明",
+            "Emphasis & Caution: Validate inputs. " + "\u4e2d\u6587\u8bf4\u660e",
             "Emphasis & Caution: Validate inputs.",
         ),
         (

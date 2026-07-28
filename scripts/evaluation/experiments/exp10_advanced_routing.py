@@ -763,7 +763,7 @@ def _run_output_ensemble(router, features, general_test, args):
         logger.info(f"  [DEBUG] Sample 0 template: {tpl0}, first 80 prompt characters: {prompt0[:80]!r}")
 
     #
-    #   soft_limit 65%→70%，eos_boost_rate 0.12→0.08。
+    #   soft_limit increased from 65% to 70%; eos_boost_rate decreased from 0.12 to 0.08.
 
     sample_meta = []          # [(i, expert1, expert2, w1, w2, w1_raw, template_name), ...]
     cache_results = {}        # {i: pred_str}
@@ -1192,7 +1192,7 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
             'hypothesis_A_likely': entropy_ratio > 1.3,
             'interpretation': (
                 f"H(fused)/max(H1,H2) = {entropy_ratio:.2f}. "
-                f"{'> 1.3 → 分布稀释严重，假设A成立' if entropy_ratio > 1.3 else '≤ 1.3 → 分布稀释不严重'}"
+                f"{'> 1.3 -> severe distribution dilution; hypothesis A is supported' if entropy_ratio > 1.3 else '<= 1.3 -> distribution dilution is not severe'}"
             ),
         }
         logger.info(f"  [D1] H(prob1)={avg_h1:.3f}, H(prob2)={avg_h2:.3f}, H(fused)={avg_hf:.3f}")
@@ -1223,7 +1223,7 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
             'hypothesis_AE_likely': avg_jac < 0.2,
             'interpretation': (
                 f"avg Jaccard = {avg_jac:.3f}. "
-                f"{'< 0.2 → 两专家分布几乎不重叠，融合无意义' if avg_jac < 0.2 else '≥ 0.2 → 有一定重叠'}"
+                f"{'< 0.2 -> expert distributions barely overlap; fusion is unlikely to help' if avg_jac < 0.2 else '>= 0.2 -> expert distributions have some overlap'}"
             ),
         }
         logger.info(f"  [D2] avg Jaccard(top-10) = {avg_jac:.4f} "
@@ -1375,35 +1375,49 @@ def _run_diagnostic_analysis(samples, ensemble_results, general_test,
         logger.info(f"  [D5] {pair_key}: format_ok={vals['format_ok']}/{vals['total']} ({rate*100:.1f}%)")
     diag['D5_per_pair_format'] = d5_result
 
+    entropy_dilution_likely = bool(diag['D1_entropy'].get('hypothesis_A_likely'))
+    expert_overlap_low = bool(diag['D2_jaccard'].get('hypothesis_AE_likely'))
+
     conclusions = []
-    if diag['D1_entropy'].get('hypothesis_A_likely'):
-        conclusions.append("假设A(分布稀释)很可能成立 → 推荐方向A(PoE log-linear)")
-    if diag['D2_jaccard'].get('hypothesis_AE_likely'):
-        conclusions.append("假设A/E(专家分布不重叠)成立 → 推荐方向A或F(PoE/Reranking)")
+    if entropy_dilution_likely:
+        conclusions.append(
+            "Hypothesis A (distribution dilution) is likely supported -> "
+            "recommend direction A (PoE log-linear)"
+        )
+    if expert_overlap_low:
+        conclusions.append(
+            "Hypothesis A/E (expert distributions do not overlap) is supported -> "
+            "recommend direction A or F (PoE/Reranking)"
+        )
 
     n_hurts = sum(1 for v in d4_result.values() if not v.get('fusion_helps', True))
     n_total_pairs = len(d4_result)
-    if n_hurts > n_total_pairs * 0.5:
+    fusion_degrades_majority = n_hurts > n_total_pairs * 0.5
+    if fusion_degrades_majority:
         conclusions.append(
-            f"D4: {n_hurts}/{n_total_pairs} 组融合后更差 → 当前MoE混合公式确实有问题"
+            f"D4: {n_hurts}/{n_total_pairs} pairs degrade after fusion -> "
+            "the current MoE fusion formula is likely problematic"
         )
 
     low_format_pairs = [k for k, v in d5_result.items() if v['format_ok_rate'] < 0.5]
-    if low_format_pairs:
+    format_issue_detected = bool(low_format_pairs)
+    if format_issue_detected:
         conclusions.append(
-            f"D5: {low_format_pairs} 组格式通过率<50% → 可能需要方向D(Constrained Decoding)"
+            f"D5: {low_format_pairs} pairs have a format pass rate below 50% -> "
+            "direction D (Constrained Decoding) may be needed"
         )
 
     diag['conclusions'] = conclusions
+    recommend_poe = entropy_dilution_likely or expert_overlap_low
     diag['recommended_next_version'] = (
-        'v14: PoE log-linear interpolation (方向A)' if any('方向A' in c for c in conclusions)
-        else 'v14: 置信度自适应融合 (方向B)' if conclusions
-        else 'v14: 需要更多样本运行完整诊断'
+        'v14: PoE log-linear interpolation (direction A)' if recommend_poe
+        else 'v14: confidence-adaptive fusion (direction B)' if conclusions
+        else 'v14: run the full diagnostic with more samples'
     )
 
     logger.info("\n  [v13] === Diagnostic conclusions ===")
     for c in conclusions:
-        logger.info(f"  → {c}")
+        logger.info(f"  -> {c}")
     logger.info(f"  Recommended next step: {diag['recommended_next_version']}")
 
     diag_path = EXP_DIR / 'debug_ensemble_diagnostics.json'

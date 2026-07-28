@@ -322,7 +322,7 @@ def run(args):
         logger.warning(f'Plotting failed: {e}')
 
     logger.info('Data efficiency summary')
-    header = f'{"方法":<18}'
+    header = f'{"Method":<18}'
     for f in FRACTIONS:
         header += f' {_fraction_tag(f):>8}'
     logger.info(header + '  (ROUGE-L)')
