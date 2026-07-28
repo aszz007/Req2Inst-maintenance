@@ -7,7 +7,8 @@
 > and adaptive expert routing.
 
 [Project overview](docs/project-overview.md) | [Documentation](docs/README.md) |
-[Reproducibility](docs/reproducibility.md) | [Contribution guide](CONTRIBUTING.md)
+[Inference guide](docs/inference.md) | [Reproducibility](docs/reproducibility.md) |
+[Contribution guide](CONTRIBUTING.md)
 
 ## Project status
 
@@ -162,6 +163,10 @@ the current repository environment. The original Conda lock was not preserved;
 
 ## Inference
 
+See the [inference guide](docs/inference.md) for the environment preflight,
+required local assets, single-modality commands, GPU guidance, and model
+lifecycle boundary.
+
 Create local input subdirectories as needed:
 
 ```text
@@ -227,6 +232,7 @@ review. See [Data and artifact policy](docs/data-and-artifacts.md).
 - [Documentation index](docs/README.md)
 - [Project overview](docs/project-overview.md)
 - [Architecture](docs/architecture.md)
+- [Inference guide](docs/inference.md)
 - [Reproducibility guide](docs/reproducibility.md)
 - [Experiment index](docs/experiments.md)
 - [Data and artifact policy](docs/data-and-artifacts.md)

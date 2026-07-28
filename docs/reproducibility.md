@@ -146,6 +146,9 @@ The commands below describe repository entry points. They do not by themselves
 reproduce the manuscript unless the paper-aligned data, preprocessing,
 checkpoints, environment, and configuration are also supplied.
 
+For the complete inference-only setup, GPU lifecycle, and failure
+interpretation, see the [inference guide](inference.md).
+
 Recognize a single image or flowchart input:
 
 ```bash
