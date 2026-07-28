@@ -12,6 +12,7 @@ verification.
 
 - [Project overview](project-overview.md)
 - [Architecture](architecture.md)
+- [Inference guide](inference.md)
 - [Reproducibility](reproducibility.md)
 - [Experiment index](experiments.md)
 - [Data and artifact policy](data-and-artifacts.md)

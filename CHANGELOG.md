@@ -17,6 +17,8 @@ policy will be adopted before the first versioned release.
 - Contribution, conduct, support, security, citation, and Apache-2.0 license
   files.
 - Reconstructed runtime and development requirements.
+- Inference runbook covering environment checks, local assets, GPU profiles,
+  model lifecycle, commands, and a model-backed maintainer verification.
 - GitHub issue and pull-request templates.
 
 ### Changed
