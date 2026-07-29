@@ -153,8 +153,8 @@ define the supported model-version boundary.
 - Historical path conventions and environment names coexist with current entry
   points.
 - Some helper logic is duplicated across experiment scripts.
-- Repository quality automation checks tracked-file syntax and documentation
-  links. It does not replace direct training, inference, or metric validation.
+- Repository quality automation checks project-source syntax. It does not
+  replace direct training, inference, or metric validation.
 
 These items describe future refactoring scope; they are not evidence that the
 completed experiment run was invalid.
