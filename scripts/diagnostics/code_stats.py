@@ -82,11 +82,20 @@ def _add(left: dict[str, int], right: dict[str, int]) -> dict[str, int]:
     return {field: left[field] + right[field] for field in SUMMARY_FIELDS}
 
 
+def _empty_summary() -> dict[str, int]:
+    """Return a zero row for an optional code scope that is not present."""
+    return {field: 0 for field in SUMMARY_FIELDS}
+
+
 def collect_stats(cloc_command: str | None = None) -> dict[str, object]:
-    """Collect main-code, test-code, and combined totals."""
+    """Collect main-code, optional local-test, and combined totals."""
     cloc = _resolve_cloc(cloc_command)
     main = _run_cloc(cloc, MAIN_ROOTS)
-    tests = _run_cloc(cloc, TEST_ROOTS)
+    tests = (
+        _run_cloc(cloc, TEST_ROOTS)
+        if all((PROJECT_ROOT / root).exists() for root in TEST_ROOTS)
+        else _empty_summary()
+    )
     return {
         "tool": "cloc",
         "project_root": str(PROJECT_ROOT),
@@ -122,8 +131,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line options."""
     parser = argparse.ArgumentParser(
         description=(
-            "Count Req2Inst main and test code through cloc without modifying "
-            "project files"
+            "Count Req2Inst main and optional local test code through cloc "
+            "without modifying project files"
         )
     )
     parser.add_argument(

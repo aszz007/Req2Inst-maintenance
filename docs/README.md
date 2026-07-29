@@ -60,7 +60,8 @@ python scripts/diagnostics/code_stats.py
 The wrapper uses an existing `cloc` executable (including an ignored
 `cloc.exe` placed at the project root) and does not implement its own line
 counter. It reports the main code roots (`config/`, `models/`, `src/`, and
-`scripts/`) separately from `tests/`, then shows their combined total. It does
-not count documentation, datasets, model files, checkpoints, logs, or routine
-outputs. Pass `--json` for machine-readable output or `--cloc-command PATH` to
-select a specific cloc executable.
+`scripts/`) separately from an optional local `tests/` tree, then shows their
+combined total. A public checkout without local maintenance tests reports a
+zero test-code total. It does not count documentation, datasets, model files,
+checkpoints, logs, or routine outputs. Pass `--json` for machine-readable output
+or `--cloc-command PATH` to select a specific cloc executable.

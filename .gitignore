@@ -197,6 +197,9 @@ __marimo__/
 
 # Project-local rules
 
+# Local maintenance regressions (retained outside the public release)
+/tests/
+
 # Large model files
 base_models/
 lora_weights/
