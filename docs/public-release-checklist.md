@@ -50,7 +50,7 @@ the primary Req2Inst implementation or publishing a versioned release.
 - [ ] Confirm `outputs/`, datasets, model weights, browser profiles, and local
       inputs are not tracked.
 - [ ] Review README commands and all relative links from a clean checkout.
-- [x] Keep a small CI workflow for tracked-file syntax and documentation links.
+- [x] Keep a small CI workflow for tracked-file syntax.
 
 ## Community readiness
 
